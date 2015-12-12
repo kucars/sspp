@@ -143,6 +143,7 @@ int main( int argc, char **  argv)
     ros::Publisher original_cloud = n.advertise<sensor_msgs::PointCloud2>("original_point_cloud", 100);
     ros::Publisher path_pub = n.advertise<visualization_msgs::Marker>("generated_path", 10);
     ros::Publisher searchSpace_pub = n.advertise<visualization_msgs::Marker>("search_space", 10);
+    ros::Publisher connectivity_pub = n.advertise<visualization_msgs::Marker>("connections", 10);
 
     PathPlanner * pathPlanner;
 
@@ -155,7 +156,7 @@ int main( int argc, char **  argv)
 //    bool negate = false;
     Pose start(0.0,1.0,-37,DTOR(-127.304)),end(-4.0,1.0,-19,DTOR(140.194));
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
-    double distanceToGoal = 2.4,regGridLen=0.2,regGridConRad=0.4;
+    double distanceToGoal = 2.4,regGridLen=1.0,regGridConRad=1.5;
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
     pathPlanner = new PathPlanner(n,robot,distanceToGoal,regGridLen,regGridConRad);
@@ -163,62 +164,82 @@ int main( int argc, char **  argv)
     const char * filename = "SearchSpace.txt";
     pathPlanner->generateRegularGrid(filename);//IMPORTANT
 //    pathPlanner->showSearchSpace();//visualization (not working for some reason)
-    //******for visualizing the search space********
+    pathPlanner->connectNodes();//IMPORTANT
+    std::cout<<"\nSpace Generation took:"<<timer.elapsed()/double(1000.00)<<" secs";
+    pathPlanner->showConnections();
+
+    //******for visualizing the search space & connectivity********
     SearchSpaceNode *temp = pathPlanner->search_space;
-    int m=0;
     std::vector<geometry_msgs::Point> pts;
+    std::vector<geometry_msgs::Point> lineSegments1;
     while (temp != NULL)
     {
+        //vertex visualization
         geometry_msgs::Point pt;
         pt.x= temp->location.position.x;
         pt.y= temp->location.position.y;
         pt.z= temp->location.position.z;
         pts.push_back(pt);
+        //connectivity visualization
+        for(int i=0; i < temp->children.size();i++)
+        {
+            geometry_msgs::Point linept;
+            //point1
+            linept.x = temp->location.position.x;
+            linept.y = temp->location.position.y;
+            linept.z = temp->location.position.z;
+            lineSegments1.push_back(linept);
+            //point2
+            linept.x= temp->children[i]->location.position.x;
+            linept.y= temp->children[i]->location.position.y;
+            linept.z= temp->children[i]->location.position.z;
+            lineSegments1.push_back(linept);
+        }
         temp = temp->next;
-        m++;
     }
     visualization_msgs::Marker points_vector = drawpoints(pts);
-    //******for visualizing the search space********
+    visualization_msgs::Marker linesList1 = drawLines(lineSegments1);
+
+    //**************************************************************
 
 
 
-    pathPlanner->connectNodes();//IMPORTANT
-    std::cout<<"\nSpace Generation took:"<<timer.elapsed()/double(1000.00)<<" secs";
-//    pathPlanner->showConnections();
 
-    timer.restart();
-    Node * retval = pathPlanner->startSearch(start,end,METRIC);
-    std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
-    //path print and visualization
-    if(retval)
-    {
-        pathPlanner->printNodeList();
-    }
-    else
-    {
-        std::cout<<"\nNo Path Found";
-    }
 
-    Node * p = pathPlanner->path;
-    std::vector<geometry_msgs::Point> lineSegments;
-    geometry_msgs::Point linePoint;
-    while(p !=NULL)
-    {
-        if (p->next !=NULL)
-        {
-            linePoint.x = p->pose.p.position.x;
-            linePoint.y = p->pose.p.position.y;
-            linePoint.z = p->pose.p.position.z;
-            lineSegments.push_back(linePoint);
 
-            linePoint.x = p->next->pose.p.position.x;
-            linePoint.y = p->next->pose.p.position.y;
-            linePoint.z = p->next->pose.p.position.z;
-            lineSegments.push_back(linePoint);
-        }
-        p = p->next;
-    }
-    visualization_msgs::Marker linesList = drawLines(lineSegments);
+//    timer.restart();
+//    Node * retval = pathPlanner->startSearch(start,end,METRIC);
+//    std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
+//    //path print and visualization
+//    if(retval)
+//    {
+//        pathPlanner->printNodeList();
+//    }
+//    else
+//    {
+//        std::cout<<"\nNo Path Found";
+//    }
+
+//    Node * p = pathPlanner->path;
+//    std::vector<geometry_msgs::Point> lineSegments;
+//    geometry_msgs::Point linePoint;
+//    while(p !=NULL)
+//    {
+//        if (p->next !=NULL)
+//        {
+//            linePoint.x = p->pose.p.position.x;
+//            linePoint.y = p->pose.p.position.y;
+//            linePoint.z = p->pose.p.position.z;
+//            lineSegments.push_back(linePoint);
+
+//            linePoint.x = p->next->pose.p.position.x;
+//            linePoint.y = p->next->pose.p.position.y;
+//            linePoint.z = p->next->pose.p.position.z;
+//            lineSegments.push_back(linePoint);
+//        }
+//        p = p->next;
+//    }
+//    visualization_msgs::Marker linesList = drawLines(lineSegments);
     ros::Rate loop_rate(10);
     while (ros::ok())
     {
@@ -229,8 +250,9 @@ int main( int argc, char **  argv)
         original_cloud.publish(cloud1);
 
         ROS_INFO("Publishing Marker");
-        path_pub.publish(linesList);
+//        path_pub.publish(linesList);
         searchSpace_pub.publish(points_vector);
+        connectivity_pub.publish(linesList1);
         ros::spinOnce();
         loop_rate.sleep();
     }
