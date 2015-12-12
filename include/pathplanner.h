@@ -23,6 +23,7 @@
 
 #include <astar.h>
 #include <QTime>
+#include <stdio.h>
 
 static const unsigned int BRIDGE_TEST       = 1;
 static const unsigned int REGULAR_GRID      = 2;
@@ -41,35 +42,31 @@ namespace SSPP
                 reg_grid_conn_rad,obst_penalry_radius,bridge_conn_rad;
     public :
         unsigned int getPlanningSteps();
-        void   setExpRad(double);
-        void   setBridgeLen(double);
-        void   setBridgeRes(double);
+
         void   setRegGrid(double);
         void   setConRad(double);
         void   setObstDist(double);
         void   freeResources();
         void   printNodeList ();
-        void   setMap(Map *); // Reads the map file and sets the attributes
-        void   expandObstacles();
-        void   addCostToNodes();
-        void   bridgeTest();
-        void   generateRegularGrid();
+
+        void   generateRegularGrid(const char *filename);
         void   connectNodes();
         void   showConnections();
-        void   saveSearchSpace();
+        void   showSearchSpace();
+	visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
+
         void   determineCheckPoints();
         void   findRoot();
         void   freePath();
-        void   updateMap(Map *mapPatch);
         bool   checkShortestDistance(geometry_msgs::Pose p, double neigbhour_pixel_distance);
-        bool   readSpaceFromFile(const char *filename,unsigned _planningSteps);
-        bool   saveSpace2File(const char *filename);
-        PathPlanner(ros::NodeHandle & nh, Robot *,double dG,double bridge_len,double bridge_res,double regGridRes,double reg_grid_conn_rad,double obst_pen,double bridge_conn_rad);
+        PathPlanner(ros::NodeHandle & nh, Robot *,double dG,double regGridRes,double reg_grid_conn_rad);
         ~PathPlanner();
     private:
         unsigned int planningSteps;
         bool obstaclesExpanded;
-        Map *originalMap;
+	ros::Publisher searchSpacePub;
+	std::vector<geometry_msgs::Point> pts;
+
 };
 
 }

@@ -189,6 +189,8 @@ void Astar::findRoot() throw (SSPPException)
             shortest_distance = distance;
             root->pose.p.position.x = temp->location.position.x;
             root->pose.p.position.y = temp->location.position.y;
+            root->pose.p.position.z = temp->location.position.z;//newly added
+
             root->id = temp->id;
         }
         temp = temp->next;
@@ -229,6 +231,7 @@ void Astar::findDest() throw (SSPPException)
             shortest_distance = distance;
             dest->pose.p.position.x = temp->location.position.x;
             dest->pose.p.position.y = temp->location.position.y;
+            dest->pose.p.position.z = temp->location.position.z;//newly added
             dest->id = temp->id;
         }
         temp = temp->next;

@@ -36,10 +36,14 @@ SET(QT_USE_QTOPENGL TRUE )
 SET(QT_USE_XML TRUE )
 SET(QT_USE_QTXMLPATTERNS TRUE)
 
+
+
 INCLUDE( ${QT_USE_FILE} )
 
 # Set include directories
-include_directories(include ${QT_INCLUDES} ${PLAYER_INCLUDE_DIRS})
+include_directories(include ${QT_INCLUDES} ${PLAYER_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 add_library(SSPathPlanner SHARED
     src/astar.cpp

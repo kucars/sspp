@@ -30,9 +30,14 @@
 #include <geometry_msgs/PoseArray.h>
 #include <QThread>
 
+//PCL
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl_conversions/pcl_conversions.h>
 using namespace SSPP;
-Map * provideMapOG(QString name,double res,bool negate,Pose mapPose);
+//Map * provideMapOG(QString name,double res,bool negate,Pose mapPose);
 visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links);
+visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
 /*
 class PathPlanningThread : public QThread
 {
@@ -88,80 +93,103 @@ signals:
     }
 };
 */
-Map * provideMapOG(QString name,double res,bool negate,Pose mapPose)
-{
-    QImage image;
-    if(!image.load(name, 0))
-    {
-        std::cout<<"\nError Loading Image";
-        exit(1);
-    }
-    Map * retval;
-    QPointF center(image.width()/2.0,image.height()/2.0);
-    retval = new Map(image.width(),image.height(),res,center,mapPose);
-    long int count=0;
-    for(int i=0;i<image.width();i++)
-    {
-        QRgb color;
-        for(int j=0;j<image.height();j++)
-        {
-            color = image.pixel(i,j);
-            double color_ratio = (qRed(color) + qGreen(color) + qBlue(color))/(3.0*255.0);
-            if(!negate)
-            {
-                // White color(255) is Free and Black(0) is Occupied
-                if (  color_ratio > 0.9)
-                    retval->grid[i][j]= false;
-                else
-                {
-                    retval->grid[i][j]= true;
-                    count++;
-                }
-            }
-            else
-            {
-                // White color(255) is Occupied and Black(0) is Free
-                if ( color_ratio < 0.1)
-                    retval->grid[i][j]= false;
-                else
-                    retval->grid[i][j]= true;
-            }
-        }
-    }
-    return retval;
-}
+//Map * provideMapOG(QString name,double res,bool negate,Pose mapPose)
+//{
+//    QImage image;
+//    if(!image.load(name, 0))
+//    {
+//        std::cout<<"\nError Loading Image";
+//        exit(1);
+//    }
+//    Map * retval;
+//    QPointF center(image.width()/2.0,image.height()/2.0);
+//    retval = new Map(image.width(),image.height(),res,center,mapPose);
+//    long int count=0;
+//    for(int i=0;i<image.width();i++)
+//    {
+//        QRgb color;
+//        for(int j=0;j<image.height();j++)
+//        {
+//            color = image.pixel(i,j);
+//            double color_ratio = (qRed(color) + qGreen(color) + qBlue(color))/(3.0*255.0);
+//            if(!negate)
+//            {
+//                // White color(255) is Free and Black(0) is Occupied
+//                if (  color_ratio > 0.9)
+//                    retval->grid[i][j]= false;
+//                else
+//                {
+//                    retval->grid[i][j]= true;
+//                    count++;
+//                }
+//            }
+//            else
+//            {
+//                // White color(255) is Occupied and Black(0) is Free
+//                if ( color_ratio < 0.1)
+//                    retval->grid[i][j]= false;
+//                else
+//                    retval->grid[i][j]= true;
+//            }
+//        }
+//    }
+//    return retval;
+//}
 
 int main( int argc, char **  argv)
 {
-    ros::init(argc, argv, "occlusion_culling_test");
+    ros::init(argc, argv, "path_planning");
     ros::NodeHandle n;
-    ros::Publisher pub = n.advertise<visualization_msgs::Marker>("generated_path", 10);
+    ros::Publisher original_cloud = n.advertise<sensor_msgs::PointCloud2>("original_point_cloud", 100);
+    ros::Publisher path_pub = n.advertise<visualization_msgs::Marker>("generated_path", 10);
+    ros::Publisher searchSpace_pub = n.advertise<visualization_msgs::Marker>("search_space", 10);
+
     PathPlanner * pathPlanner;
 
-    bool negate = false;
-    Pose start(12.9,1.3,0,DTOR(-127.304)),end(-6.6,7.4,0,DTOR(140.194));
-    double robotH=0.9,robotW=0.5,narrowestPath=0.987,mapRes= 0.05;
-    double distanceToGoal = 0.4,bridgeLen=2.5,bridgeRes=0.1,regGridLen=0.2,regGridConRad=0.4,obstPenalty=3.0,bridgeConRad=0.7;
+    //display the aircraft point cloud
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    std::string path = ros::package::getPath("component_test");
+    pcl::io::loadPCDFile<pcl::PointXYZ> (path+"/src/pcd/scaled_desktop.pcd", *cloud);
+
+
+//    bool negate = false;
+    Pose start(0.0,1.0,-37,DTOR(-127.304)),end(-4.0,1.0,-19,DTOR(140.194));
+    double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
+    double distanceToGoal = 2.4,regGridLen=0.2,regGridConRad=0.4;
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
-    Map   *map  = provideMapOG("casarea_s.png",mapRes,negate,Pose(0,0,0,0));
-    pathPlanner = new PathPlanner(n,robot,distanceToGoal,bridgeLen,bridgeRes,regGridLen,regGridConRad,obstPenalty,bridgeConRad);;
+    pathPlanner = new PathPlanner(n,robot,distanceToGoal,regGridLen,regGridConRad);
     QTime timer;
     const char * filename = "SearchSpace.txt";
-    pathPlanner->setMap(map);
-    pathPlanner->expandObstacles();
-    pathPlanner->generateRegularGrid();
-    pathPlanner->bridgeTest();
-    pathPlanner->addCostToNodes();
-    pathPlanner->connectNodes();
-    pathPlanner->saveSpace2File(filename);
+    pathPlanner->generateRegularGrid(filename);//IMPORTANT
+//    pathPlanner->showSearchSpace();//visualization (not working for some reason)
+    //******for visualizing the search space********
+    SearchSpaceNode *temp = pathPlanner->search_space;
+    int m=0;
+    std::vector<geometry_msgs::Point> pts;
+    while (temp != NULL)
+    {
+        geometry_msgs::Point pt;
+        pt.x= temp->location.position.x;
+        pt.y= temp->location.position.y;
+        pt.z= temp->location.position.z;
+        pts.push_back(pt);
+        temp = temp->next;
+        m++;
+    }
+    visualization_msgs::Marker points_vector = drawpoints(pts);
+    //******for visualizing the search space********
 
+
+
+    pathPlanner->connectNodes();//IMPORTANT
     std::cout<<"\nSpace Generation took:"<<timer.elapsed()/double(1000.00)<<" secs";
-    pathPlanner->showConnections();
+//    pathPlanner->showConnections();
 
     timer.restart();
     Node * retval = pathPlanner->startSearch(start,end,METRIC);
     std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
+    //path print and visualization
     if(retval)
     {
         pathPlanner->printNodeList();
@@ -194,13 +222,20 @@ int main( int argc, char **  argv)
     ros::Rate loop_rate(10);
     while (ros::ok())
     {
+        sensor_msgs::PointCloud2 cloud1;
+        pcl::toROSMsg(*cloud, cloud1);
+        cloud1.header.frame_id = "map";
+        cloud1.header.stamp = ros::Time::now();
+        original_cloud.publish(cloud1);
+
         ROS_INFO("Publishing Marker");
-        pub.publish(linesList);
+        path_pub.publish(linesList);
+        searchSpace_pub.publish(points_vector);
         ros::spinOnce();
         loop_rate.sleep();
     }
     delete robot;
-    delete map;
+//    delete map;
     delete pathPlanner;
     return 0;
 }
@@ -215,7 +250,7 @@ visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links)
     linksMarkerMsg.type = visualization_msgs::Marker::LINE_LIST;
     linksMarkerMsg.scale.x = 0.01;
     linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
-    linksMarkerMsg.lifetime  = ros::Duration(1.0);
+    linksMarkerMsg.lifetime  = ros::Duration(10.0);
     std_msgs::ColorRGBA color;
     color.r = 1.0f; color.g=.0f; color.b=.0f, color.a=1.0f;
     std::vector<geometry_msgs::Point>::iterator linksIterator;
@@ -225,4 +260,27 @@ visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links)
         linksMarkerMsg.colors.push_back(color);
     }
    return linksMarkerMsg;
+}
+
+visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points)
+{
+    visualization_msgs::Marker pointMarkerMsg;
+    pointMarkerMsg.header.frame_id="/map";
+    pointMarkerMsg.header.stamp=ros::Time::now();
+    pointMarkerMsg.ns="point_marker";
+    pointMarkerMsg.id = 2000;
+    pointMarkerMsg.type = visualization_msgs::Marker::POINTS;
+    pointMarkerMsg.scale.x = 0.1;
+    pointMarkerMsg.scale.y = 0.1;
+    pointMarkerMsg.action  = visualization_msgs::Marker::ADD;
+    pointMarkerMsg.lifetime  = ros::Duration(100.0);
+    std_msgs::ColorRGBA color;
+    color.r = 0.0f; color.g=1.0f; color.b=0.0f, color.a=1.0f;
+    std::vector<geometry_msgs::Point>::iterator pointsIterator;
+    for(pointsIterator = points.begin();pointsIterator != points.end();pointsIterator++)
+    {
+        pointMarkerMsg.points.push_back(*pointsIterator);
+        pointMarkerMsg.colors.push_back(color);
+    }
+   return pointMarkerMsg;
 }
