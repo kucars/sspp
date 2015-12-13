@@ -38,7 +38,7 @@ namespace SSPP
 PathPlanner :: ~PathPlanner()
 {
     freeResources();
-    std::cout<<"\n	--->>> Allocated Memory FREED <<<---";
+    std::cout<<"\n	--->>> Allocated Memory FREED <<<---"<<std::endl;
 }
 
 void PathPlanner::freeResources()
@@ -151,7 +151,6 @@ void   PathPlanner::setConRad(double a)
 //***************linked list based search space*************
 void PathPlanner::generateRegularGrid(const char *filename)
 {
-    std::cout<<"In function"<<endl;
     SearchSpaceNode *temp;
     geometry_msgs::Pose p;
     double locationx,locationy,locationz;
@@ -258,7 +257,7 @@ void PathPlanner :: printNodeList()
         pixel.position.y =  p->pose.p.position.y;
         pixel.position.z =  p->pose.p.position.z;
 
-        cout <<"Step [" << step++ <<"] x["<< pixel.position.x<<"] y["<<pixel.position.y<<"] z["<<pixel.position.z<< "] Direction="<<p->direction;
+        cout <<"Step [" << step++ <<"] x["<< pixel.position.x<<"] y["<<pixel.position.y<<"] z["<<pixel.position.z;//<< "] Direction="<<p->direction;
         std::cout<<"\n\tG cost="<<p->g_value<<"\tH cost="<<p->h_value<<"\tFcost="<<p->f_value;
         //cout<<"\tStored Angle = "<< setiosflags(ios::fixed) << setprecision(2)<<RTOD(p->angle);
         if (p->next !=NULL)

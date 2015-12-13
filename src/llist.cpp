@@ -83,13 +83,13 @@ void LList::free()
 
 void LList::add(Node * curChild)
 {
-	Node * p,* q ;
+    Node * p,* q ;
 	p = this->Start;
-	q = p;
-	// now insert the child into the open list according to the f value
+    q = p;
+    // now insert the child into the open list according to the f value
 	while (p) 
-	{
-		// insert before p, sorted ascending
+    {
+        // insert before p, sorted ascending
 		if (p->f_value >= curChild->f_value) 	       
 		{
 			// test head of the list case
@@ -104,21 +104,21 @@ void LList::add(Node * curChild)
 		}
 		q = p;
 		p = p->next;
-	}		
-	if (p == NULL)       
-	{
-		if (q != NULL) // insert at the end
-		{
-      		q->next = curChild;
+    }
+    if (p == NULL)
+    {
+        if (q != NULL) // insert at the end
+        {
+            q->next = curChild;
 			curChild->prev = q;
 			curChild->next = NULL;
 		}
 		else	      // insert at the beginning
-		{
-			Start = curChild;
+        {
+            Start = curChild;
 			curChild->prev = NULL;
 		}
-	}			
+    }
 }
 
 bool LList::remove(Node *q)

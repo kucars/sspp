@@ -101,11 +101,11 @@ void Astar::displayTree()
             linePoint.y = tree[k].location.position.y;
             linePoint.z = tree[k].location.position.z;
             lineSegments.push_back(linePoint);
-
             linePoint.x = child.position.x;
             linePoint.y = child.position.y;
             linePoint.z = child.position.z;
             lineSegments.push_back(linePoint);
+
         }
     }
     visualization_msgs::Marker linesList = drawLines(lineSegments);
@@ -117,12 +117,12 @@ visualization_msgs::Marker Astar::drawLines(std::vector<geometry_msgs::Point> li
     visualization_msgs::Marker linksMarkerMsg;
     linksMarkerMsg.header.frame_id="/map";
     linksMarkerMsg.header.stamp=ros::Time::now();
-    linksMarkerMsg.ns="link_marker";
+    linksMarkerMsg.ns="link_marker1";
     linksMarkerMsg.id = 0;
     linksMarkerMsg.type = visualization_msgs::Marker::LINE_LIST;
-    linksMarkerMsg.scale.x = 0.005;
+    linksMarkerMsg.scale.x = 0.05;
     linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
-    linksMarkerMsg.lifetime  = ros::Duration(10.0);
+    linksMarkerMsg.lifetime  = ros::Duration(100.0);
     std_msgs::ColorRGBA color;
     color.r = 0.0f; color.g=1.0f; color.b=.0f, color.a=1.0f;
     std::vector<geometry_msgs::Point>::iterator linksIterator;
@@ -147,26 +147,26 @@ void  Astar::setSocialReward(QHash<QString, int>* soRew)
 }
 
 // Tests for whether a node is in an obstacle or not
-int Astar::inObstacle(geometry_msgs::Pose P, double theta)
-{
-    int m,n;
-    geometry_msgs::Pose det_point;
-    // Rotates and Translates the check points according to the vehicle position and orientation
-    for (int i=0;i<robot->check_points.size();i++)
-    {
-        det_point.position.x = robot->check_points[i].x()*cos(theta) - robot->check_points[i].y()*sin(theta) + P.position.x;
-        det_point.position.y = robot->check_points[i].x()*sin(theta) + robot->check_points[i].y()*cos(theta) + P.position.y;
+//int Astar::inObstacle(geometry_msgs::Pose P, double theta)
+//{
+//    int m,n;
+//    geometry_msgs::Pose det_point;
+//    // Rotates and Translates the check points according to the vehicle position and orientation
+//    for (int i=0;i<robot->check_points.size();i++)
+//    {
+//        det_point.position.x = robot->check_points[i].x()*cos(theta) - robot->check_points[i].y()*sin(theta) + P.position.x;
+//        det_point.position.y = robot->check_points[i].x()*sin(theta) + robot->check_points[i].y()*cos(theta) + P.position.y;
 
-        map->convert2Pix(&det_point);
-        m = (int)(round(det_point.position.x));
-        n = (int)(round(det_point.position.y));
-        if (m <= 0 || n <= 0 || m >=map->width || n >=this->map->height)
-            return 1;
-        if (this->map->grid[m][n])
-            return 1;
-    }
-    return 0;
-};
+//        map->convert2Pix(&det_point);
+//        m = (int)(round(det_point.position.x));
+//        n = (int)(round(det_point.position.y));
+//        if (m <= 0 || n <= 0 || m >=map->width || n >=this->map->height)
+//            return 1;
+//        if (this->map->grid[m][n])
+//            return 1;
+//    }
+//    return 0;
+//};
 // find the nearest node to the start
 void Astar::findRoot() throw (SSPPException)
 {
@@ -203,10 +203,10 @@ void Astar::findRoot() throw (SSPPException)
     root->h_value = heuristic->gCost(root);
     root->f_value = root->g_value + root->h_value;
     root->depth = 0;
-    root->pose.phi = start.phi;
-    root->direction = FORWARD;
+//    root->pose.phi = start.phi;
+//    root->direction = FORWARD;
     //Translate(root->pose,start.phi);
-    std::cout<<"\n"<<QString("	---->>>Root is Set to be X=%1 Y=%2 Phi=%3").arg(root->pose.p.position.x).arg(root->pose.p.position.y).arg(RTOD(root->pose.phi)).toStdString();
+    std::cout<<"\n"<<QString("	---->>>Root is Set to be X=%1 Y=%2 Z=%3").arg(root->pose.p.position.x).arg(root->pose.p.position.y).arg(root->pose.p.position.z).toStdString();
 }
 
 // find the nearest node to the end
@@ -243,8 +243,8 @@ void Astar::findDest() throw (SSPPException)
     dest->h_value = 0;
     dest->f_value = 0;
     dest->depth = 0;
-    dest->pose.phi = end.phi;
-    dest->direction = FORWARD;
+//    dest->pose.phi = end.phi;
+//    dest->direction = FORWARD;
     //Translate(root->pose,start.phi);
 }
 
@@ -283,22 +283,22 @@ Node *  Astar::startSearch(Pose start,Pose end, int coord)
     this->start.p.position.x = start.p.position.x;
     this->start.p.position.y = start.p.position.y;
     this->start.p.position.z = start.p.position.z;
-    this->start.phi = start.phi;
+//    this->start.phi = start.phi;
     this->end.p.position.x = end.p.position.x;
     this->end.p.position.y = end.p.position.y;
     this->end.p.position.z = end.p.position.z;
 
-    this->end.phi = end.phi;
+//    this->end.phi = end.phi;
     std::cout<<"\n	--->>> Search Started <<<---";
     findRoot();
     findDest();
-    std::cout<<"\n"<<QString("	---->>>Target is Set to be X=%1 Y=%2 Z=%3 Phi=%4<<<---").arg(end.p.position.x).arg(end.p.position.y).arg(end.p.position.z).arg(RTOD(end.phi)).toStdString();
+    std::cout<<"\n"<<QString("	---->>>Target is Set to be X=%1 Y=%2 Z=%3<<<---").arg(end.p.position.x).arg(end.p.position.y).arg(end.p.position.z).toStdString();
     openList->add(root);				// add the root to OpenList
     // while openList is not empty
     int count = 0;
     while (openList->Start != NULL)
     {
-        if((count++%1000) == 0)
+        if((count++%10) == 0)
         {
             displayTree();
         }
@@ -370,13 +370,13 @@ Node *  Astar::startSearch(Pose start,Pose end, int coord)
             // check if the child is already in the open list
             if( (p = openList->find(curChild)))
             {
-                if (p->f_value <= curChild->f_value && (p->direction == curChild->direction))
+                if (p->f_value <= curChild->f_value)// && (p->direction == curChild->direction))
                 {
                     freeNode(curChild);
                     curChild = NULL;
                 }
                 // the child is a shorter path to this point, delete p from  the closed list
-                else if (p->f_value > curChild->f_value && (p->direction == curChild->direction))
+                else if (p->f_value > curChild->f_value )//&& (p->direction == curChild->direction))
                 {
                     openList->remove(p);
                     //cout<<"\n	--->>> Opened list -- Node is deleted, current child X="<<curChild->pose.x<<" Y="<<curChild->pose.y<<" has shorter path<<<---";
@@ -388,7 +388,7 @@ Node *  Astar::startSearch(Pose start,Pose end, int coord)
             {
                 if((p = closedList->find(curChild)))
                 {
-                    if (p->f_value <= curChild->f_value && p->direction == curChild->direction)
+                    if (p->f_value <= curChild->f_value)// && p->direction == curChild->direction)
                     {
                         freeNode(curChild);
                         curChild = NULL;
@@ -453,19 +453,19 @@ bool Astar::goalReached (Node *n)
         return true;
     else
         return false;
-    if (n->direction == FORWARD)
-        angle_diff =	anglediff(end.phi,n->pose.phi);
-    else
-    {
-        angle_diff =	anglediff(end.phi,n->pose.phi + M_PI);
-    }
-    if ( delta_d <= distGoal && angle_diff <= orientation2Goal)
-    {
-        //        LOG(Logger::Info," \n Desired Final Orientation ="<<RTOD(end.phi)<<" Current="<<RTOD(n->pose.phi))
-        //        LOG(Logger::Info,"\n Reached Destination with Diff Orientation="<< RTOD(angle_diff))
-        return 1;
-    }
-    return 0;
+//    if (n->direction == FORWARD)
+//        angle_diff =	anglediff(end.phi,n->pose.phi);
+//    else
+//    {
+//        angle_diff =	anglediff(end.phi,n->pose.phi + M_PI);
+//    }
+//    if ( delta_d <= distGoal && angle_diff <= orientation2Goal)
+//    {
+//        //        LOG(Logger::Info," \n Desired Final Orientation ="<<RTOD(end.phi)<<" Current="<<RTOD(n->pose.phi))
+//        //        LOG(Logger::Info,"\n Reached Destination with Diff Orientation="<< RTOD(angle_diff))
+//        return 1;
+//    }
+//    return 0;
 };
 
 Node *Astar::makeChildrenNodes(Node *parent)
@@ -505,16 +505,16 @@ Node *Astar::makeChildrenNodes(Node *parent)
          * Check what what as the Robot's direction of motion and see
          * if we it's easier to go forward or backwards to the child
          */
-        if (parent->direction == FORWARD)
-            robot_angle = parent->pose.phi;
-        else
-            robot_angle = parent->pose.phi + M_PI;
+//        if (parent->direction == FORWARD)
+//            robot_angle = parent->pose.phi;
+//        else
+//            robot_angle = parent->pose.phi + M_PI;
         // What will be our orientation when we go to this child node ?
         //TODO:: Transfer this into a 3D Vector angle diff
         //angle = ATAN2(temp->children[i]->location,P);
-        angle = 0;
+//        angle = 0;
         // How much it differs from our current orientations ?
-        angle_difference = anglediff(angle,parent->pose.phi);
+//        angle_difference = anglediff(angle,parent->pose.phi);
         // Are we gonna turn too much ? if yes then why not go backwards ?
         /*
                 if (angle_difference > DTOR(120))
@@ -524,10 +524,10 @@ Node *Astar::makeChildrenNodes(Node *parent)
                 }
                 else
                 */
-        {
-            direction = parent->direction;
-        }
-        collides = FALSE;
+//        {
+//            direction = parent->direction;
+//        }
+//        collides = FALSE;
         /* Discreatize the turning space and check for collison
                  * 1- Angle stored in the node is the direction of the PATH (NOT THE ROBOT)
                  * 2- If we were moving Forward then the Robot direction is the same as the Path
@@ -535,68 +535,69 @@ Node *Astar::makeChildrenNodes(Node *parent)
                  * 4- Determine what will the Robot orientation will be at this step
                  * 5- Check for collision detection with a certain resolution
                  */
-        if (direction == FORWARD)
-            child_angle = angle;
-        else
-            child_angle = angle + M_PI;
-        if(robot_angle  < 0 ) robot_angle  += 2*M_PI;
-        if(child_angle  < 0 ) child_angle  += 2*M_PI;
+//        if (direction == FORWARD)
+//            child_angle = angle;
+//        else
+//            child_angle = angle + M_PI;
+//        if(robot_angle  < 0 ) robot_angle  += 2*M_PI;
+//        if(child_angle  < 0 ) child_angle  += 2*M_PI;
         // Start from the largest angle and go down
-        if (robot_angle > child_angle)
-        {
-            start_angle  = robot_angle;
-            end_angle    = child_angle;
-        }
-        else
-        {
-            start_angle  = child_angle;
-            end_angle    = robot_angle;
-        }
-        discrete_angle =  start_angle;
+//        if (robot_angle > child_angle)
+//        {
+//            start_angle  = robot_angle;
+//            end_angle    = child_angle;
+//        }
+//        else
+//        {
+//            start_angle  = child_angle;
+//            end_angle    = robot_angle;
+//        }
+//        discrete_angle =  start_angle;
         //cout<<"\n Start is"<<RTOD(start_angle)<<" End angle="<<RTOD(end_angle);
-        angle_difference = anglediff(start_angle,end_angle);
-        for (int s=0 ; s <= ceil(angle_difference/angle_resolution); s++)
-        {
-            if (inObstacle(temp->children[i]->location,discrete_angle))
-            {
-                collides= true;
-                break;
-            }
-            if(Abs(start_angle - end_angle) >= DTOR(180))
-            {
-                discrete_angle += angle_resolution;
-                if (discrete_angle > 2*M_PI)
-                    discrete_angle-= 2*M_PI;
-                if(discrete_angle > end_angle)
-                    discrete_angle = end_angle;
-            }
-            else
-            {
-                discrete_angle -= angle_resolution;
-                if (discrete_angle < end_angle)
-                    discrete_angle = end_angle;
-            }
-        }
+//        angle_difference = anglediff(start_angle,end_angle);
+//        for (int s=0 ; s <= ceil(angle_difference/angle_resolution); s++)
+//        {
+//            if (inObstacle(temp->children[i]->location,discrete_angle))
+//            {
+//                collides= true;
+//                break;
+//            }
+//            if(Abs(start_angle - end_angle) >= DTOR(180))
+//            {
+//                discrete_angle += angle_resolution;
+//                if (discrete_angle > 2*M_PI)
+//                    discrete_angle-= 2*M_PI;
+//                if(discrete_angle > end_angle)
+//                    discrete_angle = end_angle;
+//            }
+//            else
+//            {
+//                discrete_angle -= angle_resolution;
+//                if (discrete_angle < end_angle)
+//                    discrete_angle = end_angle;
+//            }
+//        }
         //if (!collides) // if after discretization the child still doens't collide then add it
-        {
+        //{
             p = new Node;
             p->pose.p.position.x = temp->children[i]->location.position.x;
             p->pose.p.position.y = temp->children[i]->location.position.y;
             p->pose.p.position.z = temp->children[i]->location.position.z;
 
             p->id = temp->children[i]->id;
-            p->direction  =	direction ;
+//            p->direction  =	direction ;
             t.children.push_back(p->pose.p);
-            p->nearest_obstacle = temp->children[i]->obstacle_cost;
+//            p->nearest_obstacle = temp->children[i]->obstacle_cost;
             p->parent = parent;
-            p->pose.phi = angle;
+//            p->pose.phi = angle;
             p->next = q;
             q = p;
-        }
+       // }
     }
     // Save the search tree so that it can be displayed later
     if (t.children.size() > 0)
         tree.push_back(t);
+//    std::cout<<" tree size after making children nodes: "<<tree.size()<<"\n";
     return q;
 }
 // Free node function

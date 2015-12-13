@@ -76,7 +76,7 @@ public:
     visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links);
     void setSocialReward(QHash<QString, int>*);
     void freeNode     (Node *);
-    int  inObstacle   (geometry_msgs::Pose p, double angle);
+//     int  inObstacle   (geometry_msgs::Pose p, double angle);
     bool goalReached  (Node *n);
     Node*  startSearch  (Pose start,Pose end,int);
     virtual ~Astar();

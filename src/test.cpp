@@ -36,7 +36,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 using namespace SSPP;
 //Map * provideMapOG(QString name,double res,bool negate,Pose mapPose);
-visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int c_color);
+visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int c_color, float scale);
 visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
 /*
 class PathPlanningThread : public QThread
@@ -155,9 +155,9 @@ int main( int argc, char **  argv)
 
 //    bool negate = false;
 //    Pose start(0.0,1.0,-37,DTOR(-127.304)),end(-4.0,1.0,-19,DTOR(140.194));
-    Pose start(0.0,1.0,-37,DTOR(-127.304)),end(-4.0,1.0,-19,DTOR(140.194));
+    Pose start(0.0,2.0,1,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
-    double distanceToGoal = 2.4,regGridLen=1.0,regGridConRad=1.5;
+    double distanceToGoal = 0.4,regGridLen=1.0,regGridConRad=1.5;
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
     pathPlanner = new PathPlanner(n,robot,distanceToGoal,regGridLen,regGridConRad);
@@ -199,43 +199,43 @@ int main( int argc, char **  argv)
         temp = temp->next;
     }
     visualization_msgs::Marker points_vector = drawpoints(pts);
-    visualization_msgs::Marker linesList1 = drawLines(lineSegments1,3);
+    visualization_msgs::Marker linesList1 = drawLines(lineSegments1,3,0.01);
 
     //**************************************************************
 
-//    timer.restart();
-//    Node * retval = pathPlanner->startSearch(start,end,METRIC);
-//    std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
-//    //path print and visualization
-//    if(retval)
-//    {
-//        pathPlanner->printNodeList();
-//    }
-//    else
-//    {
-//        std::cout<<"\nNo Path Found";
-//    }
+    timer.restart();
+    Node * retval = pathPlanner->startSearch(start,end,METRIC);
+    std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
+    //path print and visualization
+    if(retval)
+    {
+        pathPlanner->printNodeList();
+    }
+    else
+    {
+        std::cout<<"\nNo Path Found";
+    }
 
-//    Node * p = pathPlanner->path;
-//    std::vector<geometry_msgs::Point> lineSegments;
-//    geometry_msgs::Point linePoint;
-//    while(p !=NULL)
-//    {
-//        if (p->next !=NULL)
-//        {
-//            linePoint.x = p->pose.p.position.x;
-//            linePoint.y = p->pose.p.position.y;
-//            linePoint.z = p->pose.p.position.z;
-//            lineSegments.push_back(linePoint);
+    Node * p = pathPlanner->path;
+    std::vector<geometry_msgs::Point> lineSegments;
+    geometry_msgs::Point linePoint;
+    while(p !=NULL)
+    {
+        if (p->next !=NULL)
+        {
+            linePoint.x = p->pose.p.position.x;
+            linePoint.y = p->pose.p.position.y;
+            linePoint.z = p->pose.p.position.z;
+            lineSegments.push_back(linePoint);
 
-//            linePoint.x = p->next->pose.p.position.x;
-//            linePoint.y = p->next->pose.p.position.y;
-//            linePoint.z = p->next->pose.p.position.z;
-//            lineSegments.push_back(linePoint);
-//        }
-//        p = p->next;
-//    }
-//    visualization_msgs::Marker linesList = drawLines(lineSegments,1);
+            linePoint.x = p->next->pose.p.position.x;
+            linePoint.y = p->next->pose.p.position.y;
+            linePoint.z = p->next->pose.p.position.z;
+            lineSegments.push_back(linePoint);
+        }
+        p = p->next;
+    }
+    visualization_msgs::Marker linesList = drawLines(lineSegments,1,0.1);
     ros::Rate loop_rate(10);
     while (ros::ok())
     {
@@ -246,7 +246,7 @@ int main( int argc, char **  argv)
         original_cloud.publish(cloud1);
 
         ROS_INFO("Publishing Marker");
-//        path_pub.publish(linesList);
+        path_pub.publish(linesList);
         searchSpace_pub.publish(points_vector);
         connectivity_pub.publish(linesList1);
         ros::spinOnce();
@@ -258,7 +258,7 @@ int main( int argc, char **  argv)
     return 0;
 }
 
-visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int c_color)
+visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int c_color, float scale)
 {
     visualization_msgs::Marker linksMarkerMsg;
     linksMarkerMsg.header.frame_id="/map";
@@ -266,7 +266,7 @@ visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, in
     linksMarkerMsg.ns="link_marker";
     linksMarkerMsg.id = 0;
     linksMarkerMsg.type = visualization_msgs::Marker::LINE_LIST;
-    linksMarkerMsg.scale.x = 0.01;
+    linksMarkerMsg.scale.x = scale;
     linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
     linksMarkerMsg.lifetime  = ros::Duration(100.0);
     std_msgs::ColorRGBA color;
