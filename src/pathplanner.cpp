@@ -184,7 +184,7 @@ void PathPlanner::generateRegularGrid(const char *filename)
             p.position.x = locationx;//i
             p.position.y = locationy;//j
             p.position.z = locationz;//was not written
-            if (checkShortestDistance(p,regGridRes))
+            //if (checkShortestDistance(p,regGridRes))
             {
                 temp = new SearchSpaceNode;
                 temp->location.position.x = p.position.x;
