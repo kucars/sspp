@@ -34,6 +34,8 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <component_test/occlusion_culling.h>
+
 using namespace SSPP;
 //Map * provideMapOG(QString name,double res,bool negate,Pose mapPose);
 visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int c_color, float scale);
@@ -141,16 +143,25 @@ int main( int argc, char **  argv)
     ros::init(argc, argv, "path_planning");
     ros::NodeHandle n;
     ros::Publisher original_cloud = n.advertise<sensor_msgs::PointCloud2>("original_point_cloud", 100);
+    ros::Publisher visible_pub = n.advertise<sensor_msgs::PointCloud2>("occlusion_free_cloud", 100);
     ros::Publisher path_pub = n.advertise<visualization_msgs::Marker>("generated_path", 10);
     ros::Publisher searchSpace_pub = n.advertise<visualization_msgs::Marker>("search_space", 10);
     ros::Publisher connectivity_pub = n.advertise<visualization_msgs::Marker>("connections", 10);
+    ros::Publisher vector_pub = n.advertise<geometry_msgs::PoseArray>("pose", 10);
 
     PathPlanner * pathPlanner;
 
+    //test
+    OcclusionCulling obj(n, "scaled_desktop.pcd");
+//    pcl::PointCloud<pcl::PointXYZ> test;
+//    geometry_msgs::Pose location;
+//    location.position.x=0.0; location.position.y=2.0; location.position.z=1.0; location.orientation.x=0.649369; location.orientation.y=-0.27985;location.orientation.z=-0.649369;location.orientation.w=0.279856;
+//    test = obj.extractVisibleSurface(location);
+
     //display the aircraft point cloud
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
-    std::string path = ros::package::getPath("component_test");
-    pcl::io::loadPCDFile<pcl::PointXYZ> (path+"/src/pcd/scaled_desktop.pcd", *cloud);
+//    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+//    std::string path = ros::package::getPath("component_test");
+//    pcl::io::loadPCDFile<pcl::PointXYZ> (path+"/src/pcd/scaled_desktop.pcd", *cloud);
 
 
 //    bool negate = false;
@@ -162,7 +173,7 @@ int main( int argc, char **  argv)
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
     pathPlanner = new PathPlanner(n,robot,distanceToGoal,regGridLen,regGridConRad);
     QTime timer;
-    const char * filename = "SearchSpace.txt";
+    const char * filename = "SearchSpaceq.txt";
     pathPlanner->generateRegularGrid(filename);//IMPORTANT
 //    pathPlanner->showSearchSpace();//visualization (not working for some reason)
     pathPlanner->connectNodes();//IMPORTANT
@@ -199,7 +210,7 @@ int main( int argc, char **  argv)
         temp = temp->next;
     }
     visualization_msgs::Marker points_vector = drawpoints(pts);
-    visualization_msgs::Marker linesList1 = drawLines(lineSegments1,3,0.01);
+    visualization_msgs::Marker linesList1 = drawLines(lineSegments1,3,0.03);
 
     //**************************************************************
 
@@ -219,6 +230,9 @@ int main( int argc, char **  argv)
     Node * p = pathPlanner->path;
     std::vector<geometry_msgs::Point> lineSegments;
     geometry_msgs::Point linePoint;
+    pcl::PointCloud<pcl::PointXYZ> temp_cloud, combined;
+    geometry_msgs::PoseArray vec;
+    int cnt=0;
     while(p !=NULL)
     {
         if (p->next !=NULL)
@@ -226,6 +240,10 @@ int main( int argc, char **  argv)
             linePoint.x = p->pose.p.position.x;
             linePoint.y = p->pose.p.position.y;
             linePoint.z = p->pose.p.position.z;
+            temp_cloud=obj.extractVisibleSurface(p->pose.p);
+            std::cout<<"path position: "<<p->pose.p.orientation.x<<" "<<p->pose.p.orientation.y<<" "<<p->pose.p.orientation.z<<" "<<p->pose.p.orientation.w<<std::endl;
+            combined += temp_cloud;
+            vec.poses.push_back(p->pose.p);
             lineSegments.push_back(linePoint);
 
             linePoint.x = p->next->pose.p.position.x;
@@ -235,15 +253,25 @@ int main( int argc, char **  argv)
         }
         p = p->next;
     }
-    visualization_msgs::Marker linesList = drawLines(lineSegments,1,0.1);
+    visualization_msgs::Marker linesList = drawLines(lineSegments,1,0.3);
     ros::Rate loop_rate(10);
     while (ros::ok())
     {
         sensor_msgs::PointCloud2 cloud1;
-        pcl::toROSMsg(*cloud, cloud1);
+        pcl::toROSMsg(*obj.cloud, cloud1);
         cloud1.header.frame_id = "map";
         cloud1.header.stamp = ros::Time::now();
         original_cloud.publish(cloud1);
+
+        sensor_msgs::PointCloud2 cloud2;
+        pcl::toROSMsg(combined, cloud2);
+        cloud2.header.frame_id = "map";
+        cloud2.header.stamp = ros::Time::now();
+        visible_pub.publish(cloud2);
+
+        vec.header.frame_id= "map";
+        vec.header.stamp = ros::Time::now();
+        vector_pub.publish(vec);
 
         ROS_INFO("Publishing Marker");
         path_pub.publish(linesList);

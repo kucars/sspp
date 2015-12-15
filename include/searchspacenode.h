@@ -37,7 +37,7 @@ class SearchSpaceNode
         geometry_msgs::Pose location;
 		SearchSpaceNode * parent, * next;
 		int type,id;
-		double obstacle_cost;
+// 		double obstacle_cost;
 		QVector <SearchSpaceNode *>  children;
 		 SearchSpaceNode ();
 		~SearchSpaceNode ();

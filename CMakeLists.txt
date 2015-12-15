@@ -12,14 +12,16 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   shape_msgs
   std_msgs
+  component_test
   )
-
+#find_package(component_test REQUIRED)
 include(FindPkgConfig)
   
-catkin_package()
+catkin_package(CATKIN_DEPENDS component_test)
 
 include_directories(include
   ${catkin_INCLUDE_DIRS}
+  ${component_test_INCLUDE_DIRS}
 )
 
 pkg_check_modules(PLAYER REQUIRED playercore playerc++ playerc)
@@ -41,7 +43,7 @@ SET(QT_USE_QTXMLPATTERNS TRUE)
 INCLUDE( ${QT_USE_FILE} )
 
 # Set include directories
-include_directories(include ${QT_INCLUDES} ${PLAYER_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+include_directories(include ${QT_INCLUDES} ${PLAYER_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
@@ -59,7 +61,7 @@ add_library(SSPathPlanner SHARED
     src/heuristic.cpp
     )
 add_executable(ssppTest src/test.cpp)
-target_include_directories(ssppTest PUBLIC include ${GTK_INCLUDE_DIRS})
+target_include_directories(ssppTest PUBLIC include ${catkin_INCLUDE_DIRS} ${GTK_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS})
 target_link_libraries( ssppTest SSPathPlanner
     ${QT_QTGUI_LIBRARY}
     ${QT_QTCORE_LIBRARY}
@@ -68,4 +70,6 @@ target_link_libraries( ssppTest SSPathPlanner
     ${QT_LIBRARIES}
     ${PLAYER_LIBRARIES}
     ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+    ${component_test_LIBRARIES}
     )

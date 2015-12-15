@@ -8,6 +8,8 @@ Panels:
         - /Status1
         - /Marker4
         - /PointCloud21
+        - /PointCloud22
+        - /PoseArray1
       Splitter Ratio: 0.5
     Tree Height: 845
   - Class: rviz/Selection
@@ -64,32 +66,60 @@ Visualization Manager:
       Name: Marker
       Namespaces:
         link_marker: true
-        point_marker: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /search_tree
       Name: Marker
       Namespaces:
-        link_marker: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: search_space
       Name: Marker
       Namespaces:
-        point_marker: true
+        {}
       Queue Size: 2000
-      Value: true
+      Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: connections
       Name: Marker
       Namespaces:
-        link_marker: true
+        {}
       Queue Size: 100
+      Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 0; 0; 255
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 0; 0; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.09
+      Style: Boxes
+      Topic: occlusion_free_cloud
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
@@ -120,6 +150,13 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Arrow Length: 0.6
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Name: PoseArray
+      Topic: pose
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -144,22 +181,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 61.6514
+      Distance: 36.8853
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -9.37645
-        Y: -8.56446
-        Z: -13.7003
+        X: -6.56666
+        Y: -4.26586
+        Z: -16.7733
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.0547974
+      Pitch: 0.354796
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.45723
+      Yaw: 1.54723
     Saved: ~
 Window Geometry:
   Displays:

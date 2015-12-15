@@ -153,7 +153,7 @@ void PathPlanner::generateRegularGrid(const char *filename)
 {
     SearchSpaceNode *temp;
     geometry_msgs::Pose p;
-    double locationx,locationy,locationz;
+    double locationx,locationy,locationz,qx,qy,qz,qw;
 
     assert(filename != NULL);
     filename = strdup(filename);
@@ -165,7 +165,7 @@ void PathPlanner::generateRegularGrid(const char *filename)
 //    }
     while (!feof(file))
     {
-        fscanf(file,"%lf %lf %lf\n",&locationx,&locationy,&locationz);
+        fscanf(file,"%lf %lf %lf %lf %lf %lf %lf\n",&locationx,&locationy,&locationz,&qx,&qy,&qz,&qw);
 //        std::cout<<locationx<<" "<<locationy<<" "<<locationz<<endl;
         if (search_space == NULL ) // Constructing the ROOT NODE
         {
@@ -173,6 +173,10 @@ void PathPlanner::generateRegularGrid(const char *filename)
             temp->location.position.x = locationx;//i
             temp->location.position.y = locationy;//j
             temp->location.position.z = locationz;
+            temp->location.orientation.x = qx;
+            temp->location.orientation.y = qy;
+            temp->location.orientation.z = qz;
+            temp->location.orientation.w = qw;
             temp->parent   = NULL;
             temp->next     = NULL;
             temp->type     = RegGridNode;
@@ -183,12 +187,20 @@ void PathPlanner::generateRegularGrid(const char *filename)
             p.position.x = locationx;//i
             p.position.y = locationy;//j
             p.position.z = locationz;//was not written
+            p.orientation.x = qx;
+            p.orientation.y = qy;
+            p.orientation.z = qz;
+            p.orientation.w = qw;
             //if (checkShortestDistance(p,regGridRes))
             {
                 temp = new SearchSpaceNode;
                 temp->location.position.x = p.position.x;
                 temp->location.position.y = p.position.y;
                 temp->location.position.z = p.position.z;
+                temp->location.orientation.x = p.orientation.x;
+                temp->location.orientation.y = p.orientation.y;
+                temp->location.orientation.z = p.orientation.z;
+                temp->location.orientation.w = p.orientation.w;
                 temp->parent = NULL;
                 temp->next   = search_space;
                 temp->type     = RegGridNode;

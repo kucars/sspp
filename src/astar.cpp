@@ -190,6 +190,10 @@ void Astar::findRoot() throw (SSPPException)
             root->pose.p.position.x = temp->location.position.x;
             root->pose.p.position.y = temp->location.position.y;
             root->pose.p.position.z = temp->location.position.z;//newly added
+            root->pose.p.orientation.x = temp->location.orientation.x;
+            root->pose.p.orientation.y = temp->location.orientation.y;
+            root->pose.p.orientation.z = temp->location.orientation.z;
+            root->pose.p.orientation.w = temp->location.orientation.w;
 
             root->id = temp->id;
         }
@@ -232,6 +236,11 @@ void Astar::findDest() throw (SSPPException)
             dest->pose.p.position.x = temp->location.position.x;
             dest->pose.p.position.y = temp->location.position.y;
             dest->pose.p.position.z = temp->location.position.z;//newly added
+            dest->pose.p.orientation.x = temp->location.orientation.x;
+            dest->pose.p.orientation.y = temp->location.orientation.y;
+            dest->pose.p.orientation.z = temp->location.orientation.z;
+            dest->pose.p.orientation.w = temp->location.orientation.w;
+
             dest->id = temp->id;
         }
         temp = temp->next;
@@ -283,10 +292,19 @@ Node *  Astar::startSearch(Pose start,Pose end, int coord)
     this->start.p.position.x = start.p.position.x;
     this->start.p.position.y = start.p.position.y;
     this->start.p.position.z = start.p.position.z;
+    this->start.p.orientation.x = start.p.orientation.x;
+    this->start.p.orientation.y = start.p.orientation.y;
+    this->start.p.orientation.z = start.p.orientation.z;
+    this->start.p.orientation.w = start.p.orientation.w;
+
 //    this->start.phi = start.phi;
     this->end.p.position.x = end.p.position.x;
     this->end.p.position.y = end.p.position.y;
     this->end.p.position.z = end.p.position.z;
+    this->end.p.orientation.x = end.p.orientation.x;
+    this->end.p.orientation.y = end.p.orientation.y;
+    this->end.p.orientation.z = end.p.orientation.z;
+    this->end.p.orientation.w = end.p.orientation.w;
 
 //    this->end.phi = end.phi;
     std::cout<<"\n	--->>> Search Started <<<---";
@@ -479,6 +497,10 @@ Node *Astar::makeChildrenNodes(Node *parent)
     P.position.x  = parent->pose.p.position.x;
     P.position.y  = parent->pose.p.position.y;
     P.position.z  = parent->pose.p.position.z;
+    P.orientation.x  = parent->pose.p.orientation.x;
+    P.orientation.y  = parent->pose.p.orientation.y;
+    P.orientation.z  = parent->pose.p.orientation.z;
+    P.orientation.w  = parent->pose.p.orientation.w;
     Tree t;
     t.location = P;
     if(!search_space)
@@ -583,6 +605,10 @@ Node *Astar::makeChildrenNodes(Node *parent)
             p->pose.p.position.x = temp->children[i]->location.position.x;
             p->pose.p.position.y = temp->children[i]->location.position.y;
             p->pose.p.position.z = temp->children[i]->location.position.z;
+            p->pose.p.orientation.x = temp->children[i]->location.orientation.x;
+            p->pose.p.orientation.y = temp->children[i]->location.orientation.y;
+            p->pose.p.orientation.z = temp->children[i]->location.orientation.z;
+            p->pose.p.orientation.w = temp->children[i]->location.orientation.w;
 
             p->id = temp->children[i]->id;
 //            p->direction  =	direction ;
