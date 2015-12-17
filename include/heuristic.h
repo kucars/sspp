@@ -25,7 +25,7 @@
 #include <QHash>
 #include "ssppexception.h"
 #include "node.h"
-
+#include <component_test/occlusion_culling.h>
 using namespace std;
 
 namespace SSPP
@@ -37,6 +37,8 @@ public:
 	virtual ~Heuristic(){}
 	virtual double gCost(Node *)=0;
     virtual double hCost(Node *,Node * )=0;
+    virtual double hCost(Node *)=0;
+//    double hCovCost(Node *n);
     static Heuristic * factory(QString type) throw(SSPPException);
     static Heuristic * factory(QString type,QHash<QString, int> *) throw(SSPPException);
 };
@@ -49,7 +51,8 @@ public:
 	friend class Heuristic;
 public:
 	double gCost(Node *n);
-	double hCost(Node *n, Node * end);
+    double hCost(Node *n, Node * end);
+    double hCost(Node *n){}
 	~SocialHeuristic(){}
 };
 
@@ -60,8 +63,22 @@ public:
 	friend class Heuristic;
 public:
 	double gCost(Node *n);
-	double hCost(Node *n, Node * end);
+    double hCost(Node *n, Node * end);
+    double hCost(Node *n){}
 	~DistanceHeuristic(){}
+};
+
+class SurfaceCoverageHeuristic : public Heuristic
+{
+public:
+    SurfaceCoverageHeuristic(){ obj = new OcclusionCulling("scaled_desktop.pcd");}
+    friend class Heuristic;
+public:
+    double gCost(Node *n);
+    double hCost(Node *n, Node * end){}
+    double hCost(Node *n);
+    OcclusionCulling* obj;
+    ~SurfaceCoverageHeuristic(){}
 };
 
 }

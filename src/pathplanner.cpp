@@ -23,9 +23,9 @@ namespace SSPP
 {
 
 
-    PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double dG, double reg_g, double conn_rad):
+    PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double dG, double cT, double reg_g, double conn_rad):
     nh(n),
-    Astar(n,rob,dG,"Distance"),
+    Astar(n,rob,dG,cT,"SurfaceCoverage"),
     map_initialized(false),
     regGridRes(reg_g),
     reg_grid_conn_rad(conn_rad)

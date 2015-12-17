@@ -59,7 +59,7 @@ namespace SSPP
         void   findRoot();
         void   freePath();
         bool   checkShortestDistance(geometry_msgs::Pose p, double neigbhour_pixel_distance);
-        PathPlanner(ros::NodeHandle & nh, Robot *,double dG,double regGridRes,double reg_grid_conn_rad);
+        PathPlanner(ros::NodeHandle & nh, Robot *,double dG,double cT,double regGridRes,double reg_grid_conn_rad);
         ~PathPlanner();
     private:
         unsigned int planningSteps;

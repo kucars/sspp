@@ -168,10 +168,10 @@ int main( int argc, char **  argv)
 //    Pose start(0.0,1.0,-37,DTOR(-127.304)),end(-4.0,1.0,-19,DTOR(140.194));
     Pose start(0.0,2.0,1,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
-    double distanceToGoal = 0.1,regGridLen=1.0,regGridConRad=1.5;
+    double distanceToGoal = 0.1,regGridLen=1.0,regGridConRad=1.5, coverageTolerance=0.05, targetCov=5;
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
-    pathPlanner = new PathPlanner(n,robot,distanceToGoal,regGridLen,regGridConRad);
+    pathPlanner = new PathPlanner(n,robot,distanceToGoal,coverageTolerance,regGridLen,regGridConRad);
     QTime timer;
     const char * filename = "SearchSpaceq.txt";
     pathPlanner->generateRegularGrid(filename);//IMPORTANT
@@ -215,8 +215,13 @@ int main( int argc, char **  argv)
     //**************************************************************
 
     timer.restart();
-    Node * retval = pathPlanner->startSearch(start,end,METRIC);
+    ros::Time coverage_begin = ros::Time::now();
+//    Node * retval = pathPlanner->startSearch(start,end,METRIC);
+    Node * retval = pathPlanner->startSearch(start,targetCov,METRIC);
     std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
+    ros::Time coverage_end = ros::Time::now();
+    double elapsed =  coverage_end.toSec() - coverage_begin.toSec();
+    std::cout<<"search duration (s) = "<<elapsed<<"\n";
     //path print and visualization
     if(retval)
     {
@@ -257,6 +262,7 @@ int main( int argc, char **  argv)
     ros::Rate loop_rate(10);
     while (ros::ok())
     {
+        std::cout<<"search duration (s) = "<<elapsed<<"\n";
         sensor_msgs::PointCloud2 cloud1;
         pcl::toROSMsg(*obj.cloud, cloud1);
         cloud1.header.frame_id = "map";
@@ -296,7 +302,7 @@ visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, in
     linksMarkerMsg.type = visualization_msgs::Marker::LINE_LIST;
     linksMarkerMsg.scale.x = scale;
     linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
-    linksMarkerMsg.lifetime  = ros::Duration(100.0);
+    linksMarkerMsg.lifetime  = ros::Duration(10000.0);
     std_msgs::ColorRGBA color;
 //    color.r = 1.0f; color.g=.0f; color.b=.0f, color.a=1.0f;
     if(c_color == 1)

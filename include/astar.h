@@ -58,16 +58,18 @@ private:
     Node  *makeChildrenNodes(Node *parent) ;
     ros::NodeHandle  nh;
 public:
-    Astar(ros::NodeHandle & n,Robot *,double dG, QString heuristicType);
+    Astar(ros::NodeHandle & n,Robot *,double dG, double cT, QString heuristicType);
     Astar();
     void setRobot(Robot *);
     long int MAXNODES;
     QString hType;
     double distGoal;
+    double covTolerance;
     double orientation2Goal;
     Heuristic *heuristic;
     Map    * map;
     Pose start,end;
+    double targetCov;
     Robot *robot;
     Node *root, *dest, *current, *childList, *curChild, *q, * test,*path, *p;
     LList *openList,*closedList;
@@ -78,7 +80,9 @@ public:
     void freeNode     (Node *);
 //     int  inObstacle   (geometry_msgs::Pose p, double angle);
     bool goalReached  (Node *n);
-    Node*  startSearch  (Pose start,Pose end,int);
+    bool surfaceCoverageReached (Node *n);// newly added
+//    Node*  startSearch  (Pose start,Pose end,int);
+    Node*  startSearch  (Pose start,double targetCov,int);
     virtual ~Astar();
     std::vector<geometry_msgs::Point> lineSegments;
     geometry_msgs::Point linePoint;

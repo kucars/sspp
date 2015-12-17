@@ -23,9 +23,10 @@
 namespace SSPP
 {
 
-Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG,QString heuristicT):
+Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG, double cT,QString heuristicT):
     nh(n),
     distGoal(dG),
+    covTolerance(cT),
     map(NULL),
     robot(rob),
     root(NULL),
@@ -35,8 +36,8 @@ Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG,QString heuristicT):
     openList(NULL),
     closedList(NULL)
 {
-    if (heuristicT == "Distance")
-    {
+   // if (heuristicT == "Distance")
+    //{
         try
         {
             heuristic = Heuristic::factory(heuristicT);
@@ -45,12 +46,13 @@ Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG,QString heuristicT):
         {
             cout<<e.what()<<endl;
         }
-    }
+    //}
     orientation2Goal = DTOR(60);
 }
 
 Astar::Astar():
     distGoal(0.01),
+    covTolerance(0.05),
     heuristic(NULL),
     map(NULL),
     root(NULL),
@@ -122,7 +124,7 @@ visualization_msgs::Marker Astar::drawLines(std::vector<geometry_msgs::Point> li
     linksMarkerMsg.type = visualization_msgs::Marker::LINE_LIST;
     linksMarkerMsg.scale.x = 0.05;
     linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
-    linksMarkerMsg.lifetime  = ros::Duration(100.0);
+    linksMarkerMsg.lifetime  = ros::Duration(10000.0);
     std_msgs::ColorRGBA color;
     color.r = 0.0f; color.g=1.0f; color.b=.0f, color.a=1.0f;
     std::vector<geometry_msgs::Point>::iterator linksIterator;
@@ -262,7 +264,208 @@ void Astar::setRobot(Robot*rob)
     this->robot = rob;
 }
 
-Node *  Astar::startSearch(Pose start,Pose end, int coord)
+//Node *  Astar::startSearch(Pose start,Pose end, int coord)
+//{
+//    int      ID = 1;
+//    int      NodesExpanded = 0;
+//    if(this->tree.size() > 0)
+//        this->tree.clear();
+//    if(!openList)
+//    {
+//        openList   = new LList;
+//    }
+//    if(!closedList)
+//    {
+//        closedList = new LList;
+//    }
+//    // Be sure that open and closed lists are empty
+//    openList->free();
+//    closedList->free();
+//    if (!this->search_space) // Make sure that we have a map to search
+//    {
+//        //        LOG(Logger::Warning,"Read the map and generate SearchSpace before Searching !!!")
+//        return NULL;
+//    }
+//    if(coord == PIXEL)
+//    {
+//        map->convertPix(&start.p);
+//        map->convertPix(&end.p);
+//    }
+//    this->start.p.position.x = start.p.position.x;
+//    this->start.p.position.y = start.p.position.y;
+//    this->start.p.position.z = start.p.position.z;
+//    this->start.p.orientation.x = start.p.orientation.x;
+//    this->start.p.orientation.y = start.p.orientation.y;
+//    this->start.p.orientation.z = start.p.orientation.z;
+//    this->start.p.orientation.w = start.p.orientation.w;
+
+////    this->start.phi = start.phi;
+//    this->end.p.position.x = end.p.position.x;
+//    this->end.p.position.y = end.p.position.y;
+//    this->end.p.position.z = end.p.position.z;
+//    this->end.p.orientation.x = end.p.orientation.x;
+//    this->end.p.orientation.y = end.p.orientation.y;
+//    this->end.p.orientation.z = end.p.orientation.z;
+//    this->end.p.orientation.w = end.p.orientation.w;
+
+////    this->end.phi = end.phi;
+//    std::cout<<"\n	--->>> Search Started <<<---";
+//    findRoot();
+//    findDest();
+//    std::cout<<"\n"<<QString("	---->>>Target is Set to be X=%1 Y=%2 Z=%3<<<---").arg(end.p.position.x).arg(end.p.position.y).arg(end.p.position.z).toStdString();
+//    openList->add(root);				// add the root to OpenList
+//    // while openList is not empty
+//    int count = 0;
+//    while (openList->Start != NULL)
+//    {
+//        if((count++%10) == 0)
+//        {
+//            displayTree();
+//        }
+//        current = openList->getHead(); 	// Get the node with the cheapest cost (first node)
+//        openList->next();				// Move to the next Node
+//        NodesExpanded++;
+//        // We reached the target pose, so build the path and return it.
+//        if (goalReached(current) && current!= root)//change goalReached to surfaceCoverageReached
+//        {
+//            // build the complete path to return
+//            //			qDebug("Last Node destination: %f %f",current->pose.p.x(),current->pose.p.y());
+//            current->next = NULL;
+//            std::cout<<"\n"<<QString("	--->>> Goal state reached with :%1 nodes created and :%2 nodes expanded <<<---").arg(ID).arg(NodesExpanded).toStdString();
+//            //			qDebug("	--->>> General Clean UP <<<---");
+//            fflush(stdout);
+//            //			int m=0;
+//            //	   		while (p != NULL)
+//            //				{
+//            //					cout<<"\n	--->>> Step["<<++m<<"] X="<<p->pose.p.x()<<" Y="<<p->pose.p.y();
+//            //					//cout<<"\n	--->>> Angle is="<<RTOD(p->angle);
+//            //					fflush(stdout);
+//            //					p = p->parent;
+//            //				}
+//            //			Going up to the Root
+//            p = current;
+//            path = NULL;
+//            while (p != NULL)
+//            {
+//                //				cout<<"\n Am Still HERE Step["<<++m<<"] X="<<p->pose.x<<" Y="<<p->pose.y;
+//                //				fflush(stdout);
+//                // remove the parent node from the closed list (where it has to be)
+//                if(p->prev != NULL)
+//                    (p->prev)->next = p->next;
+//                if(p->next != NULL)
+//                    (p->next)->prev = p->prev;
+//                // check if we're removing the top of the list
+//                if(p == closedList->Start)
+//                    closedList->next();
+//                // set it up in the path
+//                p->next = path;
+//                path = p;
+//                p = p->parent;
+//            }
+//            // now delete all nodes on OPEN and Closed Lists
+//            openList->free();
+//            closedList->free();
+//            return path;
+//        }
+//        // Create List of Children for the current NODE
+//        if(!(childList = makeChildrenNodes(current))) // No more Children => Search Ended Unsuccessfully at this path Branch
+//        {
+//            std::cout<<"\n	--->>> Search Ended On this Branch / We Reached a DEAD END <<<---";
+//        }
+//        // insert the children into the OPEN list according to their f values
+//        while (childList != NULL)
+//        {
+//            curChild  = childList;
+//            childList = childList->next;
+//            // set up the rest of the child node details
+//            curChild->parent = current;
+//            curChild->depth  = current->depth + 1;
+//            curChild->id = ID++;
+//            curChild->next = NULL;
+//            curChild->prev = NULL;
+//            curChild->g_value = heuristic->gCost(curChild);
+//            curChild->h_value = heuristic->hCost(curChild,dest);
+//            curChild->f_value = curChild->g_value + curChild->h_value;
+//            Node * p;
+//            // check if the child is already in the open list
+//            if( (p = openList->find(curChild)))
+//            {
+//                if (p->f_value <= curChild->f_value)// && (p->direction == curChild->direction))
+//                {
+//                    freeNode(curChild);
+//                    curChild = NULL;
+//                }
+//                // the child is a shorter path to this point, delete p from  the closed list
+//                else if (p->f_value > curChild->f_value )//&& (p->direction == curChild->direction))//************IMPORTANT******************
+//                {
+//                    openList->remove(p);
+//                    //cout<<"\n	--->>> Opened list -- Node is deleted, current child X="<<curChild->pose.x<<" Y="<<curChild->pose.y<<" has shorter path<<<---";
+//                    fflush(stdout);
+//                }
+//            }
+//            // test whether the child is in the closed list (already been there)
+//            if (curChild)
+//            {
+//                if((p = closedList->find(curChild)))
+//                {
+//                    if (p->f_value <= curChild->f_value)// && p->direction == curChild->direction)//************IMPORTANT******************
+//                    {
+//                        freeNode(curChild);
+//                        curChild = NULL;
+//                    }
+//                    // the child is a shorter path to this point, delete p from  the closed list
+//                    else
+//                    {
+//                        /* This is the tricky part, it rarely happens, but in my case it happenes all the time :s
+//                                                 * Anyways, we are here cause we found a better path to a node that we already visited, we will have to
+//                                                 * Update the cost of that node and ALL ITS DESCENDENTS because their cost is parent dependent ;)
+//                                                 * Another Solution is simply to comment everything and do nothing, doing this, the child will be added to the
+//                                                 * Open List and it will be investigated further later on.
+//                                                 */
+//                        //TODO : this SHOULD be fixed, very very DODGY
+//                        //						Node *ptr = closedList->Start;
+//                        //						while(ptr)
+//                        //						{
+//                        //							if(ptr->parent == p)
+//                        //								ptr->parent = NULL;
+//                        //							ptr = ptr->next;
+//                        //						}
+//                        //						closedList->Remove(p);
+//                        //cout<<"\n	--->>> Closed list -- Node is deleted, current child X="<<curChild->pose.x<<" Y="<<curChild->pose.y<<" has shorter path<<<---";
+//                        fflush(stdout);
+
+//                    }
+//                }
+//            }
+//            // ADD the child to the OPEN List
+//            if (curChild)
+//            {
+//                openList->add(curChild);
+//            }
+//        }
+//        // put the current node onto the closed list, ==>> already visited List
+//        closedList->add(current);
+//        // Test to see if we have expanded too many nodes without a solution
+//        if (current->id > this->MAXNODES)
+//        {
+//            //            LOG(Logger::Info,QString("	--->>>	Expanded %d Nodes which is more than the maximum allowed MAXNODE=%1 , Search Terminated").arg(current->id,MAXNODES))
+//            //Delete Nodes in Open and Closed Lists
+//            closedList->free();
+//            openList->free();
+//            path = NULL;
+//            return path; // Expanded more than the maximium nodes state
+//        }
+//    }	//...  end of OPEN loop
+
+//    /* if we got here, then there is no path to the goal
+//     *  delete all nodes on CLOSED since OPEN is now empty
+//     */
+//    closedList->free();
+//    std::cout<<"\n	--->>>No Path Found<<<---";
+//    return NULL;
+//}
+
+Node *  Astar::startSearch(Pose start,double targetCov, int coord)
 {
     int      ID = 1;
     int      NodesExpanded = 0;
@@ -297,20 +500,21 @@ Node *  Astar::startSearch(Pose start,Pose end, int coord)
     this->start.p.orientation.z = start.p.orientation.z;
     this->start.p.orientation.w = start.p.orientation.w;
 
+    this->targetCov = targetCov;
 //    this->start.phi = start.phi;
-    this->end.p.position.x = end.p.position.x;
-    this->end.p.position.y = end.p.position.y;
-    this->end.p.position.z = end.p.position.z;
-    this->end.p.orientation.x = end.p.orientation.x;
-    this->end.p.orientation.y = end.p.orientation.y;
-    this->end.p.orientation.z = end.p.orientation.z;
-    this->end.p.orientation.w = end.p.orientation.w;
+//    this->end.p.position.x = end.p.position.x;
+//    this->end.p.position.y = end.p.position.y;
+//    this->end.p.position.z = end.p.position.z;
+//    this->end.p.orientation.x = end.p.orientation.x;
+//    this->end.p.orientation.y = end.p.orientation.y;
+//    this->end.p.orientation.z = end.p.orientation.z;
+//    this->end.p.orientation.w = end.p.orientation.w;
 
 //    this->end.phi = end.phi;
     std::cout<<"\n	--->>> Search Started <<<---";
     findRoot();
-    findDest();
-    std::cout<<"\n"<<QString("	---->>>Target is Set to be X=%1 Y=%2 Z=%3<<<---").arg(end.p.position.x).arg(end.p.position.y).arg(end.p.position.z).toStdString();
+//    findDest();
+//    std::cout<<"\n"<<QString("	---->>>Target is Set to be X=%1 Y=%2 Z=%3<<<---").arg(end.p.position.x).arg(end.p.position.y).arg(end.p.position.z).toStdString();
     openList->add(root);				// add the root to OpenList
     // while openList is not empty
     int count = 0;
@@ -324,7 +528,7 @@ Node *  Astar::startSearch(Pose start,Pose end, int coord)
         openList->next();				// Move to the next Node
         NodesExpanded++;
         // We reached the target pose, so build the path and return it.
-        if (goalReached(current) && current!= root)
+        if (surfaceCoverageReached(current) && current!= root)//change goalReached to surfaceCoverageReached
         {
             // build the complete path to return
             //			qDebug("Last Node destination: %f %f",current->pose.p.x(),current->pose.p.y());
@@ -382,19 +586,20 @@ Node *  Astar::startSearch(Pose start,Pose end, int coord)
             curChild->next = NULL;
             curChild->prev = NULL;
             curChild->g_value = heuristic->gCost(curChild);
-            curChild->h_value = heuristic->hCost(curChild,dest);
+            curChild->h_value = heuristic->hCost(curChild);
             curChild->f_value = curChild->g_value + curChild->h_value;
+            std::cout<<"curChildren f value= "<<curChild->f_value<<"\n";
             Node * p;
             // check if the child is already in the open list
             if( (p = openList->find(curChild)))
             {
-                if (p->f_value <= curChild->f_value)// && (p->direction == curChild->direction))
+                if (p->f_value > curChild->f_value)// it was <= (to take least cost) but now it is changed to be reward function && (p->direction == curChild->direction))
                 {
                     freeNode(curChild);
                     curChild = NULL;
                 }
                 // the child is a shorter path to this point, delete p from  the closed list
-                else if (p->f_value > curChild->f_value )//&& (p->direction == curChild->direction))
+                else if (p->f_value <= curChild->f_value )//&& (p->direction == curChild->direction))//************IMPORTANT******************
                 {
                     openList->remove(p);
                     //cout<<"\n	--->>> Opened list -- Node is deleted, current child X="<<curChild->pose.x<<" Y="<<curChild->pose.y<<" has shorter path<<<---";
@@ -406,7 +611,7 @@ Node *  Astar::startSearch(Pose start,Pose end, int coord)
             {
                 if((p = closedList->find(curChild)))
                 {
-                    if (p->f_value <= curChild->f_value)// && p->direction == curChild->direction)
+                    if (p->f_value > curChild->f_value)// && p->direction == curChild->direction)//************IMPORTANT******************
                     {
                         freeNode(curChild);
                         curChild = NULL;
@@ -458,6 +663,7 @@ Node *  Astar::startSearch(Pose start,Pose end, int coord)
     /* if we got here, then there is no path to the goal
      *  delete all nodes on CLOSED since OPEN is now empty
      */
+    std::cout<<"Number of displaying the tree: "<<count<<" \n";
     closedList->free();
     std::cout<<"\n	--->>>No Path Found<<<---";
     return NULL;
@@ -485,6 +691,19 @@ bool Astar::goalReached (Node *n)
 //    }
 //    return 0;
 };
+
+bool Astar::surfaceCoverageReached (Node *n)// newly added
+{
+    double cov_delta;
+    cov_delta = targetCov - n->h_value;//Dist(n->pose.p,end.p);
+    std::cout<<"cov_delta= "<<cov_delta<<"\n";
+    if ( cov_delta <= covTolerance)
+        return true;
+    else
+        return false;
+
+};
+
 
 Node *Astar::makeChildrenNodes(Node *parent)
 {

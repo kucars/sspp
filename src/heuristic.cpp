@@ -19,7 +19,9 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
 #include "heuristic.h"
-
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl_conversions/pcl_conversions.h>
 namespace SSPP
 {
 
@@ -29,6 +31,11 @@ Heuristic *  Heuristic::factory(QString type) throw(SSPPException)
     {
         std::cout<<"\nUsing Distance Heuristic";
         return new DistanceHeuristic;
+    }
+    else if (type == "SurfaceCoverage")
+    {
+        std::cout<<"\nUsing Surface Coverage Heuristic";
+        return new SurfaceCoverageHeuristic;
     }
     throw (SSPPException((char*)"Bad Heuristic Type"));
 }
@@ -93,5 +100,33 @@ double DistanceHeuristic::hCost(Node *n,Node * end)
     // 0.555 is the AXLE Length
     return ( h*(1 + reverse_penalty ) + 0.555 * angle_cost + obstacle_penalty*delta_d);
 }
+
+double SurfaceCoverageHeuristic::gCost(Node *n)
+{
+    double cost;
+    if(n == NULL || n->parent==NULL)
+        return 0.0;
+//    cost = n->parent->g_value + Dist(n->pose.p,n->parent->pose.p);//
+    cost = 0.0;// it should be accumulating coverage
+    return cost;
+}
+
+double SurfaceCoverageHeuristic::hCost(Node *n)
+{
+    double h=0;
+    if(n == NULL)
+        return(0);
+    // Using the coverage percentage
+//    OcclusionCulling obj("scaled_desktop.pcd");
+//    pcl::PointCloud<pcl::PointXYZ> freecloud = obj.extractVisibleSurface(n->pose.p);
+    ros::Time heuristic_begin = ros::Time::now();
+    h = n->parent->h_value + obj->calcCoveragePercent(n->pose.p); //Dist(end->pose.p,n->pose.p);
+    std::cout<<"parent h value :"<<n->parent->h_value<<"h value calculation: "<<h<<"\n";
+    ros::Time heuristic_end = ros::Time::now();
+    double elapsed =  heuristic_end.toSec() - heuristic_begin.toSec();
+    std::cout<<"HEURISTIC duration (s) = "<<elapsed<<"\n";
+    return h;
+}
+
 
 }
