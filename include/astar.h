@@ -68,6 +68,7 @@ public:
     double orientation2Goal;
     Heuristic *heuristic;
     Map    * map;
+    OcclusionCulling* obj;
     Pose start,end;
     double targetCov;
     Robot *robot;

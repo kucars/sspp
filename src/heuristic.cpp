@@ -117,10 +117,11 @@ double SurfaceCoverageHeuristic::hCost(Node *n)
     if(n == NULL)
         return(0);
     // Using the coverage percentage
-//    OcclusionCulling obj("scaled_desktop.pcd");
-//    pcl::PointCloud<pcl::PointXYZ> freecloud = obj.extractVisibleSurface(n->pose.p);
+
     ros::Time heuristic_begin = ros::Time::now();
-    h = n->parent->h_value + obj->calcCoveragePercent(n->pose.p); //Dist(end->pose.p,n->pose.p);
+//    h = n->parent->h_value + n->obj->calcCoveragePercent(n->pose.p); //Dist(end->pose.p,n->pose.p);
+    std::cout<<"\nchild collective cloud after filtering size: "<<n->cloud_filtered->size()<<"\n";
+    h = obj1->calcCoveragePercent(n->cloud_filtered); //Dist(end->pose.p,n->pose.p);
     std::cout<<"parent h value :"<<n->parent->h_value<<"h value calculation: "<<h<<"\n";
     ros::Time heuristic_end = ros::Time::now();
     double elapsed =  heuristic_end.toSec() - heuristic_begin.toSec();

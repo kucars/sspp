@@ -71,13 +71,13 @@ public:
 class SurfaceCoverageHeuristic : public Heuristic
 {
 public:
-    SurfaceCoverageHeuristic(){ obj = new OcclusionCulling("scaled_desktop.pcd");}
+    SurfaceCoverageHeuristic(){ obj1 = new OcclusionCulling("scaled_desktop.pcd");}
     friend class Heuristic;
 public:
     double gCost(Node *n);
     double hCost(Node *n, Node * end){}
     double hCost(Node *n);
-    OcclusionCulling* obj;
+    OcclusionCulling* obj1;
     ~SurfaceCoverageHeuristic(){}
 };
 

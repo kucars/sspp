@@ -30,6 +30,8 @@ Node :: Node ():
     f_value(0.0)
 {
     parent = next = prev = NULL;
+//    obj = new OcclusionCulling("scaled_desktop.pcd");
+    cloud_filtered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 }
 
 Node :: ~Node ()
