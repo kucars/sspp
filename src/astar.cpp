@@ -337,11 +337,11 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
     int count = 0;
     while (openList->Start != NULL)
     {
-        if((count++%10) == 0)
+        if((count++%1) == 0)
         {
             displayTree();
         }
-        current = openList->getHead(); 	// Get the node with the cheapest cost (first node)
+        current = openList->getHead(); 	// Get the node with the highest cost (first node) (it was the cheapest one before since we were taking the lower cost but now it is converted to a reward function)
         openList->next();				// Move to the next Node
         NodesExpanded++;
         // We reached the target pose, so build the path and return it.
@@ -428,13 +428,13 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             // check if the child is already in the open list
             if( (p = openList->find(curChild)))
             {
-                if (p->f_value <= curChild->f_value)// it was <= (to take least cost) but now it is changed to be reward function && (p->direction == curChild->direction))
+                if (p->f_value > curChild->f_value)// it was <= (to take least cost) but now it is changed to be reward function && (p->direction == curChild->direction))
                 {
                     freeNode(curChild);
                     curChild = NULL;
                 }
                 // the child is a shorter path to this point, delete p from  the closed list
-                else if (p->f_value > curChild->f_value )//&& (p->direction == curChild->direction))//************IMPORTANT******************
+                else if (p->f_value <= curChild->f_value )//&& (p->direction == curChild->direction))//************IMPORTANT******************
                 {
                     openList->remove(p);
                     //cout<<"\n	--->>> Opened list -- Node is deleted, current child X="<<curChild->pose.x<<" Y="<<curChild->pose.y<<" has shorter path<<<---";
@@ -446,7 +446,7 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             {
                 if((p = closedList->find(curChild)))
                 {
-                    if (p->f_value <= curChild->f_value)// && p->direction == curChild->direction)//************IMPORTANT******************
+                    if (p->f_value > curChild->f_value)// && p->direction == curChild->direction)//************IMPORTANT******************
                     {
                         freeNode(curChild);
                         curChild = NULL;

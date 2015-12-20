@@ -89,8 +89,8 @@ void LList::add(Node * curChild)
     // now insert the child into the open list according to the f value
 	while (p) 
     {
-        // insert before p, sorted ascending
-		if (p->f_value >= curChild->f_value) 	       
+        // insert before p, sorted descending (cuz a reward function is used) *** it was ascending
+        if (p->f_value < curChild->f_value) //			if (p->f_value >= curChild->f_value)
 		{
 			// test head of the list case
 			if (p == Start)
