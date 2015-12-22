@@ -113,16 +113,27 @@ double SurfaceCoverageHeuristic::gCost(Node *n)
 
 double SurfaceCoverageHeuristic::hCost(Node *n)
 {
-    double h=0;
+    double h=0,d,c;
     if(n == NULL)
         return(0);
     // Using the coverage percentage
 
     ros::Time heuristic_begin = ros::Time::now();
-//    h = n->parent->h_value + n->obj->calcCoveragePercent(n->pose.p); //Dist(end->pose.p,n->pose.p);
+
     std::cout<<"\nchild collective cloud after filtering size: "<<n->cloud_filtered->size()<<"\n";
-    h = obj1->calcCoveragePercent(n->cloud_filtered); //Dist(end->pose.p,n->pose.p);
-    std::cout<<"parent h value :"<<n->parent->h_value<<"h value calculation: "<<h<<"\n";
+
+    std::cout<<"parent distance :"<<n->parent->distance<<" current node distance: "<<n->distance<<"\n";
+    std::cout<<"parent coverage :"<<n->parent->coverage<<" current node coverage: "<<n->coverage<<"\n";
+
+    d= Dist(n->pose.p,n->parent->pose.p);
+    std::cout<<"Calculated local distance d:"<<d<<" comulative distance: "<<n->distance<<"\n";
+
+    c= n->coverage - n->parent->coverage;
+    std::cout<<"extra coverage c : "<<c<<"\n";
+//    h=n->coverage;//only coverage
+    if(d!=0.0)
+        h = n->parent->h_value + ((1/d)*c); //distance and coverage heuristic ;
+    std::cout<<"parent h value :"<<n->parent->h_value<<" h value calculation: "<<h<<"\n";
     ros::Time heuristic_end = ros::Time::now();
     double elapsed =  heuristic_end.toSec() - heuristic_begin.toSec();
     std::cout<<"HEURISTIC duration (s) = "<<elapsed<<"\n";

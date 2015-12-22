@@ -49,6 +49,7 @@ Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG, double cT,QString heurist
     //}
     orientation2Goal = DTOR(60);
     obj = new OcclusionCulling("scaled_desktop.pcd");
+    covFilteredCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 
 }
 
@@ -75,6 +76,7 @@ Astar::Astar():
     distGoal = 1;
     orientation2Goal = DTOR(180);
     obj = new OcclusionCulling("scaled_desktop.pcd");
+    covFilteredCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 
 }
 
@@ -128,7 +130,7 @@ visualization_msgs::Marker Astar::drawLines(std::vector<geometry_msgs::Point> li
     linksMarkerMsg.type = visualization_msgs::Marker::LINE_LIST;
     linksMarkerMsg.scale.x = 0.05;
     linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
-    linksMarkerMsg.lifetime  = ros::Duration(10000.0);
+    linksMarkerMsg.lifetime  = ros::Duration(100000.0);
     std_msgs::ColorRGBA color;
     color.r = 0.0f; color.g=1.0f; color.b=.0f, color.a=1.0f;
     std::vector<geometry_msgs::Point>::iterator linksIterator;
@@ -214,7 +216,6 @@ void Astar::findRoot() throw (SSPPException)
             voxelgrid.filter (*root->cloud_filtered);
             std::cout<<"root cloud before filtering size: "<<tempCloud->size()<<"\n";
             std::cout<<"root cloud after filtering size: "<<root->cloud_filtered->size()<<"\n";
-
         }
         temp = temp->next;
     }
@@ -222,8 +223,10 @@ void Astar::findRoot() throw (SSPPException)
     root->parent = NULL;
     root->next = NULL;
     root->prev = NULL;
-    root->g_value = 0;;
-    root->h_value = heuristic->gCost(root);
+    root->g_value = 0;
+    root->distance = 0;
+    root->coverage =0;
+    root->h_value = 0;//heuristic->gCost(root);
     root->f_value = root->g_value + root->h_value;
     root->depth = 0;
 //    root->pose.phi = start.phi;
@@ -349,7 +352,11 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
         {
             // build the complete path to return
             //			qDebug("Last Node destination: %f %f",current->pose.p.x(),current->pose.p.y());
-            current->next = NULL;
+            current->next = NULL;//the last node in the path
+            covFilteredCloud->points = current->cloud_filtered->points; //getting the accumelated cloud to check the coverage and display it in the test code
+            std::cout<<"*************commulative distance : "<<current->distance<<"************ \n";
+            std::cout<<"*************commulative coverage : "<<current->coverage<<"************ \n";
+
             std::cout<<"\n"<<QString("	--->>> Goal state reached with :%1 nodes created and :%2 nodes expanded <<<---").arg(ID).arg(NodesExpanded).toStdString();
             //			qDebug("	--->>> General Clean UP <<<---");
             fflush(stdout);
@@ -418,11 +425,13 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
             voxelgrid.filter (*curChild->cloud_filtered);
             std::cout<<"\nchild collective cloud after filtering size: "<<curChild->cloud_filtered->size()<<"\n";
+            curChild->coverage = obj->calcCoveragePercent(curChild->cloud_filtered);
+            curChild->distance = curChild->parent->distance + Dist(curChild->pose.p,curChild->parent->pose.p);
 
 
             curChild->g_value = heuristic->gCost(curChild);
             curChild->h_value = heuristic->hCost(curChild);
-            curChild->f_value = curChild->g_value + curChild->h_value;
+            curChild->f_value = curChild->h_value;//curChild->g_value + curChild->h_value;
             std::cout<<"curChildren f value= "<<curChild->f_value<<"\n";
             Node * p;
             // check if the child is already in the open list
@@ -437,6 +446,7 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
                 else if (p->f_value <= curChild->f_value )//&& (p->direction == curChild->direction))//************IMPORTANT******************
                 {
                     openList->remove(p);
+                    std::cout<<"*****SELECTED child Parent h value: "<<curChild->f_value<<"********\n";
                     //cout<<"\n	--->>> Opened list -- Node is deleted, current child X="<<curChild->pose.x<<" Y="<<curChild->pose.y<<" has shorter path<<<---";
                     fflush(stdout);
                 }
@@ -530,7 +540,7 @@ bool Astar::goalReached (Node *n)
 bool Astar::surfaceCoverageReached (Node *n)// newly added
 {
     double cov_delta;
-    cov_delta = targetCov - n->h_value;//Dist(n->pose.p,end.p);
+    cov_delta = targetCov - n->coverage;//n->h_value;//Dist(n->pose.p,end.p);
     std::cout<<"cov_delta= "<<cov_delta<<"\n";
     if ( cov_delta <= covTolerance)
         return true;

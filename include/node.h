@@ -37,7 +37,7 @@ class Node
 {
 public :
     int id,depth,direction;
-    double nearest_obstacle,g_value,h_value,f_value;
+    double nearest_obstacle,g_value,h_value,f_value,distance,coverage;
     Node  * parent, * next, * prev;
 //    pcl::VoxelGridOcclusionEstimationT voxels;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;

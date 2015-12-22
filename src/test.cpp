@@ -168,7 +168,7 @@ int main( int argc, char **  argv)
 //    Pose start(0.0,1.0,-37,DTOR(-127.304)),end(-4.0,1.0,-19,DTOR(140.194));
     Pose start(0.0,2.0,1,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
-    double distanceToGoal = 0.1,regGridLen=1.0,regGridConRad=1.5, coverageTolerance=0.05, targetCov=60;
+    double distanceToGoal = 0.1,regGridLen=1.0,regGridConRad=1.5, coverageTolerance=1.00, targetCov=10;
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
     pathPlanner = new PathPlanner(n,robot,distanceToGoal,coverageTolerance,regGridLen,regGridConRad);
@@ -238,6 +238,7 @@ int main( int argc, char **  argv)
     pcl::PointCloud<pcl::PointXYZ> temp_cloud, combined;
     geometry_msgs::PoseArray vec;
     int cnt=0;
+    double dist=0;
     while(p !=NULL)
     {
         if (p->next !=NULL)
@@ -255,22 +256,26 @@ int main( int argc, char **  argv)
             linePoint.y = p->next->pose.p.position.y;
             linePoint.z = p->next->pose.p.position.z;
             lineSegments.push_back(linePoint);
+            dist=dist+ Dist(p->next->pose.p,p->pose.p);
         }
         p = p->next;
     }
     visualization_msgs::Marker linesList = drawLines(lineSegments,1,0.3);
     ros::Rate loop_rate(10);
+    std::cout<<"search duration (s) = "<<elapsed<<"\n";
+    std::cout<<"distance calculated from the path = "<<dist<<" \n";
+    std::cout<<"covered cloud filtered (s) = "<<pathPlanner->covFilteredCloud->size()<<"\n";
+    std::cout<<"original cloud filtered (s) = "<<obj.filtered_cloud->size()<<"\n";
     while (ros::ok())
     {
-        std::cout<<"search duration (s) = "<<elapsed<<"\n";
         sensor_msgs::PointCloud2 cloud1;
-        pcl::toROSMsg(*obj.cloud, cloud1);
+        pcl::toROSMsg(*obj.filtered_cloud, cloud1);
         cloud1.header.frame_id = "map";
         cloud1.header.stamp = ros::Time::now();
         original_cloud.publish(cloud1);
 
         sensor_msgs::PointCloud2 cloud2;
-        pcl::toROSMsg(combined, cloud2);
+        pcl::toROSMsg(*pathPlanner->covFilteredCloud, cloud2);
         cloud2.header.frame_id = "map";
         cloud2.header.stamp = ros::Time::now();
         visible_pub.publish(cloud2);
@@ -279,7 +284,7 @@ int main( int argc, char **  argv)
         vec.header.stamp = ros::Time::now();
         vector_pub.publish(vec);
 
-        ROS_INFO("Publishing Marker");
+        //ROS_INFO("Publishing Marker");
         path_pub.publish(linesList);
         searchSpace_pub.publish(points_vector);
         connectivity_pub.publish(linesList1);

@@ -74,7 +74,7 @@ Visualization Manager:
       Marker Topic: /search_tree
       Name: Marker
       Namespaces:
-        link_marker1: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -82,7 +82,7 @@ Visualization Manager:
       Marker Topic: search_space
       Name: Marker
       Namespaces:
-        point_marker: true
+        {}
       Queue Size: 2000
       Value: true
     - Class: rviz/Marker
@@ -90,7 +90,7 @@ Visualization Manager:
       Marker Topic: connections
       Name: Marker
       Namespaces:
-        link_marker: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -115,8 +115,8 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.2
+      Size (Pixels): 5
+      Size (m): 0.15
       Style: Spheres
       Topic: occlusion_free_cloud
       Use Fixed Frame: true
@@ -144,16 +144,16 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.01
-      Style: Points
+      Size (Pixels): 5
+      Size (m): 0.1
+      Style: Spheres
       Topic: original_point_cloud
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
     - Arrow Length: 0.8
       Class: rviz/PoseArray
-      Color: 255; 25; 0
+      Color: 255; 255; 0
       Enabled: true
       Name: PoseArray
       Topic: pose
@@ -182,22 +182,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 44.5229
+      Distance: 61.0945
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.445334
-        Y: 3.33499
-        Z: -15.7391
+        X: -0.0157633
+        Y: -0.0790951
+        Z: -17.9321
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.264796
+      Pitch: 0.175202
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.51726
+      Yaw: 1.45513
     Saved: ~
 Window Geometry:
   Displays:

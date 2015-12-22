@@ -69,6 +69,7 @@ public:
     Heuristic *heuristic;
     Map    * map;
     OcclusionCulling* obj;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr covFilteredCloud;
     Pose start,end;
     double targetCov;
     Robot *robot;
