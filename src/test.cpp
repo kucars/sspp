@@ -148,11 +148,12 @@ int main( int argc, char **  argv)
     ros::Publisher searchSpace_pub = n.advertise<visualization_msgs::Marker>("search_space", 10);
     ros::Publisher connectivity_pub = n.advertise<visualization_msgs::Marker>("connections", 10);
     ros::Publisher vector_pub = n.advertise<geometry_msgs::PoseArray>("pose", 10);
+    ros::Publisher sen_vector_pub = n.advertise<geometry_msgs::PoseArray>("sensor_pose", 10);
 
     PathPlanner * pathPlanner;
 
     //test
-    OcclusionCulling obj(n, "scaled_desktop.pcd");
+    OcclusionCulling obj(n, "etihad.pcd");
 //    pcl::PointCloud<pcl::PointXYZ> test;
 //    geometry_msgs::Pose location;
 //    location.position.x=0.0; location.position.y=2.0; location.position.z=1.0; location.orientation.x=0.649369; location.orientation.y=-0.27985;location.orientation.z=-0.649369;location.orientation.w=0.279856;
@@ -166,15 +167,19 @@ int main( int argc, char **  argv)
 
 //    bool negate = false;
 //    Pose start(0.0,1.0,-37,DTOR(-127.304)),end(-4.0,1.0,-19,DTOR(140.194));
-    Pose start(0.0,2.0,1,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));
+//    Pose start(0.0,37.0,18,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));start is at the tail
+    Pose start(0.0,-30.0,15,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));//start is at the front of the plane
+
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
-    double distanceToGoal = 0.1,regGridLen=1.0,regGridConRad=1.5, coverageTolerance=1.00, targetCov=10;
+    double distanceToGoal = 0.1,regGridConRad=3.0, coverageTolerance=1.00, targetCov=10;
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
-    pathPlanner = new PathPlanner(n,robot,distanceToGoal,coverageTolerance,regGridLen,regGridConRad);
+    pathPlanner = new PathPlanner(n,robot,distanceToGoal,coverageTolerance,regGridConRad);
     QTime timer;
-    const char * filename = "SearchSpaceq.txt";
-    pathPlanner->generateRegularGrid(filename);//IMPORTANT
+    const char * filename1 = "SearchSpaceUAV_2to4.txt";
+    const char * filename2 = "SearchSpaceCam_2to4.txt";
+
+    pathPlanner->generateRegularGrid(filename1, filename2);//IMPORTANT
 //    pathPlanner->showSearchSpace();//visualization (not working for some reason)
     pathPlanner->connectNodes();//IMPORTANT
     std::cout<<"\nSpace Generation took:"<<timer.elapsed()/double(1000.00)<<" secs";
@@ -236,7 +241,7 @@ int main( int argc, char **  argv)
     std::vector<geometry_msgs::Point> lineSegments;
     geometry_msgs::Point linePoint;
     pcl::PointCloud<pcl::PointXYZ> temp_cloud, combined;
-    geometry_msgs::PoseArray vec;
+    geometry_msgs::PoseArray vec,sensor_vec;
     int cnt=0;
     double dist=0;
     while(p !=NULL)
@@ -247,22 +252,29 @@ int main( int argc, char **  argv)
             linePoint.y = p->pose.p.position.y;
             linePoint.z = p->pose.p.position.z;
             temp_cloud=obj.extractVisibleSurface(p->pose.p);
-            std::cout<<"path position: "<<p->pose.p.orientation.x<<" "<<p->pose.p.orientation.y<<" "<<p->pose.p.orientation.z<<" "<<p->pose.p.orientation.w<<std::endl;
+//            std::cout<<"path position: "<<p->pose.p.orientation.x<<" "<<p->pose.p.orientation.y<<" "<<p->pose.p.orientation.z<<" "<<p->pose.p.orientation.w<<std::endl;
             combined += temp_cloud;
             vec.poses.push_back(p->pose.p);
             lineSegments.push_back(linePoint);
+            obj.visualizeFOV(p->senPose.p);
+            sensor_vec.poses.push_back(p->senPose.p);
 
             linePoint.x = p->next->pose.p.position.x;
             linePoint.y = p->next->pose.p.position.y;
             linePoint.z = p->next->pose.p.position.z;
             lineSegments.push_back(linePoint);
             dist=dist+ Dist(p->next->pose.p,p->pose.p);
+            vec.poses.push_back(p->next->pose.p);//ADD ME RANDA
+            obj.visualizeFOV(p->next->senPose.p);
+            sensor_vec.poses.push_back(p->next->senPose.p);
+
         }
         p = p->next;
     }
-    visualization_msgs::Marker linesList = drawLines(lineSegments,1,0.3);
+    visualization_msgs::Marker linesList = drawLines(lineSegments,1,0.15);
     ros::Rate loop_rate(10);
-    std::cout<<"search duration (s) = "<<elapsed<<"\n";
+    pathPlanner->showConnections();
+    std::cout<<"\nsearch duration (s) = "<<elapsed<<"\n";
     std::cout<<"distance calculated from the path = "<<dist<<" \n";
     std::cout<<"covered cloud filtered (s) = "<<pathPlanner->covFilteredCloud->size()<<"\n";
     std::cout<<"original cloud filtered (s) = "<<obj.filtered_cloud->size()<<"\n";
@@ -283,6 +295,11 @@ int main( int argc, char **  argv)
         vec.header.frame_id= "map";
         vec.header.stamp = ros::Time::now();
         vector_pub.publish(vec);
+
+        sensor_vec.header.frame_id= "map";
+        sensor_vec.header.stamp = ros::Time::now();
+        sen_vector_pub.publish(sensor_vec);
+
 
         //ROS_INFO("Publishing Marker");
         path_pub.publish(linesList);

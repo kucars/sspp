@@ -23,11 +23,10 @@ namespace SSPP
 {
 
 
-    PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double dG, double cT, double reg_g, double conn_rad):
+    PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double dG, double cT, double conn_rad):
     nh(n),
-    Astar(n,rob,dG,cT,"SurfaceCoverage"),
+    Astar(n,rob,dG,cT,"SurfaceCoveragewithOrientation"),
     map_initialized(false),
-    regGridRes(reg_g),
     reg_grid_conn_rad(conn_rad)
 {
     treePub = n.advertise<visualization_msgs::Marker>("search_tree", 10);
@@ -69,10 +68,10 @@ unsigned int PathPlanner::getPlanningSteps()
     return planningSteps;
 }
 
-void   PathPlanner::setRegGrid(double a)
-{
-    regGridRes = a;
-}
+//void   PathPlanner::setRegGrid(double a)
+//{
+//    regGridRes = a;
+//}
 
 void   PathPlanner::setConRad(double a)
 {
@@ -149,23 +148,29 @@ void   PathPlanner::setConRad(double a)
 
 
 //***************linked list based search space*************
-void PathPlanner::generateRegularGrid(const char *filename)
+void PathPlanner::generateRegularGrid(const char *filename1, const char *filename2)
 {
     SearchSpaceNode *temp;
     geometry_msgs::Pose p;
     double locationx,locationy,locationz,qx,qy,qz,qw;
+    double senLocx,senLocy,senLocz,senqx,senqy,senqz,senqw;
+    assert(filename1 != NULL);
+    filename1 = strdup(filename1);
+    FILE *file1 = fopen(filename1, "r");
 
-    assert(filename != NULL);
-    filename = strdup(filename);
-    FILE *file = fopen(filename, "r");
-//    if (!file)
-//    {
-//        std::cout<<"\nCan not open Search Space File";
-//        fclose(file);
-//    }
-    while (!feof(file))
+    assert(filename2 != NULL);
+    filename2 = strdup(filename2);
+    FILE *file2 = fopen(filename2, "r");
+    if (!file1 || !file2)
     {
-        fscanf(file,"%lf %lf %lf %lf %lf %lf %lf\n",&locationx,&locationy,&locationz,&qx,&qy,&qz,&qw);
+        std::cout<<"\nCan not open Search Space File";
+        fclose(file1);
+        fclose(file2);
+    }
+    while (!feof(file1) && !feof(file2))
+    {
+        fscanf(file1,"%lf %lf %lf %lf %lf %lf %lf\n",&locationx,&locationy,&locationz,&qx,&qy,&qz,&qw);
+        fscanf(file2,"%lf %lf %lf %lf %lf %lf %lf\n",&senLocx,&senLocy,&senLocz,&senqx,&senqy,&senqz,&senqw);
 //        std::cout<<locationx<<" "<<locationy<<" "<<locationz<<endl;
         if (search_space == NULL ) // Constructing the ROOT NODE
         {
@@ -177,6 +182,13 @@ void PathPlanner::generateRegularGrid(const char *filename)
             temp->location.orientation.y = qy;
             temp->location.orientation.z = qz;
             temp->location.orientation.w = qw;
+            temp->sensorLocation.position.x = senLocx;
+            temp->sensorLocation.position.y = senLocy;
+            temp->sensorLocation.position.z = senLocz;
+            temp->sensorLocation.orientation.x = senqx;
+            temp->sensorLocation.orientation.y = senqy;
+            temp->sensorLocation.orientation.z = senqz;
+            temp->sensorLocation.orientation.w = senqw;
             temp->parent   = NULL;
             temp->next     = NULL;
             temp->type     = RegGridNode;
@@ -184,6 +196,7 @@ void PathPlanner::generateRegularGrid(const char *filename)
         }
         else
         {
+            //it was done this way when the check the shortest distance was used
             p.position.x = locationx;//i
             p.position.y = locationy;//j
             p.position.z = locationz;//was not written
@@ -201,6 +214,13 @@ void PathPlanner::generateRegularGrid(const char *filename)
                 temp->location.orientation.y = p.orientation.y;
                 temp->location.orientation.z = p.orientation.z;
                 temp->location.orientation.w = p.orientation.w;
+                temp->sensorLocation.position.x = senLocx;
+                temp->sensorLocation.position.y = senLocy;
+                temp->sensorLocation.position.z = senLocz;
+                temp->sensorLocation.orientation.x = senqx;
+                temp->sensorLocation.orientation.y = senqy;
+                temp->sensorLocation.orientation.z = senqz;
+                temp->sensorLocation.orientation.w = senqw;
                 temp->parent = NULL;
                 temp->next   = search_space;
                 temp->type     = RegGridNode;
@@ -208,7 +228,8 @@ void PathPlanner::generateRegularGrid(const char *filename)
             }
         }
     }
-    fclose(file);
+    fclose(file1);
+    fclose(file2);
     std::cout<<"\n	--->>> REGULAR GRID GENERATED SUCCESSFULLY <<<---	";
     planningSteps|=REGULAR_GRID;
 }
@@ -309,9 +330,9 @@ void PathPlanner::connectNodes()
                 testDist = reg_grid_conn_rad;
 //            }
 
-            if (distance <= testDist && distance !=0)
+            if (distance <= testDist && S != temp)// && distance !=0)
             {
-                angle = atan2(S->location.position.y - temp->location.position.y ,S->location.position.x - temp->location.position.x);
+                angle = atan2(S->location.position.y - temp->location.position.y ,S->location.position.x - temp->location.position.x);//not used
 //                if(!inObstacle(temp->location,angle) && !inObstacle(S->location,angle))
 //                {
                     temp->children.push_back(S);
@@ -325,24 +346,24 @@ void PathPlanner::connectNodes()
     planningSteps|=NODES_CONNECT;
 }
 
-bool PathPlanner::checkShortestDistance(geometry_msgs::Pose p,double neigbhour_distance)
-{
-    SearchSpaceNode * S;
-    double distance,shortest_distance = 10000000;
+//bool PathPlanner::checkShortestDistance(geometry_msgs::Pose p,double neigbhour_distance)
+//{
+//    SearchSpaceNode * S;
+//    double distance,shortest_distance = 10000000;
 
-    S = search_space;
-    while (S!=NULL)
-    {
-        distance = sqrt(pow(S->location.position.x - p.position.x,2) + pow(S->location.position.y - p.position.y,2) + pow(S->location.position.z - p.position.z,2));
-        if (distance <= shortest_distance)
-            shortest_distance = distance;
-        S = S->next;
-    }
-    if( shortest_distance > neigbhour_distance )
-        return 1;
-    else
-        return 0;
-}
+//    S = search_space;
+//    while (S!=NULL)
+//    {
+//        distance = sqrt(pow(S->location.position.x - p.position.x,2) + pow(S->location.position.y - p.position.y,2) + pow(S->location.position.z - p.position.z,2));
+//        if (distance <= shortest_distance)
+//            shortest_distance = distance;
+//        S = S->next;
+//    }
+//    if( shortest_distance > neigbhour_distance )
+//        return 1;
+//    else
+//        return 0;
+//}
 
 void PathPlanner::showConnections()
 {

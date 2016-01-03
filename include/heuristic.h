@@ -80,5 +80,17 @@ public:
     ~SurfaceCoverageHeuristic(){}
 };
 
+class SCwithOrientationHeuristic : public Heuristic
+{
+public:
+    SCwithOrientationHeuristic(){}
+    friend class Heuristic;
+public:
+    double gCost(Node *n);
+    double hCost(Node *n, Node * end){}
+    double hCost(Node *n);
+    ~SCwithOrientationHeuristic(){}
+};
+
 }
 #endif /*HEURISTICT_H_*/

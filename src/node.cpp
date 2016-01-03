@@ -43,12 +43,14 @@ Node :: ~Node ()
 
 bool Node ::operator == (Node a)
 {
-    return ( isEqual(this->pose.p.position.x,a.pose.p.position.x) && isEqual(this->pose.p.position.y,a.pose.p.position.y) && isEqual(this->pose.p.position.z,a.pose.p.position.z));
+    return ( isPositionEqual(this->pose.p.position,a.pose.p.position)  && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation));
 }
 
 bool Node ::operator != (Node a)
 {
-    return ( !isEqual(this->pose.p.position.x,a.pose.p.position.x) || !isEqual(this->pose.p.position.y,a.pose.p.position.y) || !isEqual(this->pose.p.position.z,a.pose.p.position.z));
+//    return ( !isEqual(this->pose.p.position.x,a.pose.p.position.x) || !isEqual(this->pose.p.position.y,a.pose.p.position.y) || !isEqual(this->pose.p.position.z,a.pose.p.position.z));
+    return ( !(isPositionEqual(this->pose.p.position,a.pose.p.position) && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation)));
+
 }
 
 }

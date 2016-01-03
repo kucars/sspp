@@ -25,7 +25,7 @@
 #include "robot.h"
 #include "utils.h"
 #include "component_test/occlusion_culling.h"
-#include <pcl/filters/voxel_grid.h>
+
 namespace SSPP
 {
 /* This Class Represents the Node Structure in the search Tree,
@@ -42,7 +42,8 @@ public :
 //    pcl::VoxelGridOcclusionEstimationT voxels;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
 //    OcclusionCulling* obj;
-    Pose   pose;
+    Pose   pose;//UAV position
+    Pose   senPose;
     Node ();
     bool operator == (Node);
     bool operator != (Node);

@@ -48,7 +48,7 @@ Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG, double cT,QString heurist
         }
     //}
     orientation2Goal = DTOR(60);
-    obj = new OcclusionCulling("scaled_desktop.pcd");
+    obj = new OcclusionCulling("etihad.pcd");
     covFilteredCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 
 }
@@ -75,7 +75,7 @@ Astar::Astar():
     }
     distGoal = 1;
     orientation2Goal = DTOR(180);
-    obj = new OcclusionCulling("scaled_desktop.pcd");
+    obj = new OcclusionCulling("etihad.pcd");
     covFilteredCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 
 }
@@ -202,23 +202,31 @@ void Astar::findRoot() throw (SSPPException)
             root->pose.p.orientation.y = temp->location.orientation.y;
             root->pose.p.orientation.z = temp->location.orientation.z;
             root->pose.p.orientation.w = temp->location.orientation.w;
-
+            root->senPose.p.position.x = temp->sensorLocation.position.x;
+            root->senPose.p.position.y = temp->sensorLocation.position.y;
+            root->senPose.p.position.z = temp->sensorLocation.position.z;
+            root->senPose.p.orientation.x = temp->sensorLocation.orientation.x;
+            root->senPose.p.orientation.y = temp->sensorLocation.orientation.y;
+            root->senPose.p.orientation.z = temp->sensorLocation.orientation.z;
+            root->senPose.p.orientation.w = temp->sensorLocation.orientation.w;
             root->id = temp->id;
 
-            //************voxelgrid***********
-            pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::PointCloud<pcl::PointXYZ> temp_cloud;
-            temp_cloud = obj->extractVisibleSurface(root->pose.p);
-            tempCloud->points = temp_cloud.points;
-            pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
-            voxelgrid.setInputCloud (tempCloud);
-            voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
-            voxelgrid.filter (*root->cloud_filtered);
-            std::cout<<"root cloud before filtering size: "<<tempCloud->size()<<"\n";
-            std::cout<<"root cloud after filtering size: "<<root->cloud_filtered->size()<<"\n";
+
         }
         temp = temp->next;
     }
+    //************voxelgrid***********
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ> temp_cloud;
+    temp_cloud = obj->extractVisibleSurface(root->senPose.p);//extract visible surface at the sensor position
+    tempCloud->points = temp_cloud.points;
+    pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+    voxelgrid.setInputCloud (tempCloud);
+    voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
+    voxelgrid.filter (*root->cloud_filtered);
+    std::cout<<"root cloud before filtering size: "<<tempCloud->size()<<"\n";
+    std::cout<<"root cloud after filtering size: "<<root->cloud_filtered->size()<<"\n";
+
     root->id = 0;
     root->parent = NULL;
     root->next = NULL;
@@ -235,7 +243,7 @@ void Astar::findRoot() throw (SSPPException)
     std::cout<<"\n"<<QString("	---->>>Root is Set to be X=%1 Y=%2 Z=%3").arg(root->pose.p.position.x).arg(root->pose.p.position.y).arg(root->pose.p.position.z).toStdString();
 }
 
-// find the nearest node to the end
+// find the nearest node to the end //not used when surface coverage heuristic is used
 void Astar::findDest() throw (SSPPException)
 {
     SearchSpaceNode * temp;
@@ -399,8 +407,12 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             std::cout<<"\n	--->>> Search Ended On this Branch / We Reached a DEAD END <<<---";
         }
         // insert the children into the OPEN list according to their f values
+        ros::Time iteration_begin = ros::Time::now();
+
         while (childList != NULL)
         {
+            ros::Time test_begin = ros::Time::now();
+
             curChild  = childList;
             childList = childList->next;
             // set up the rest of the child node details
@@ -413,18 +425,18 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             //************voxelgrid***********
             pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
             pcl::PointCloud<pcl::PointXYZ> temp_cloud, collective_cloud;
-            temp_cloud = obj->extractVisibleSurface(curChild->pose.p);
+            temp_cloud = obj->extractVisibleSurface(curChild->senPose.p);
             collective_cloud.points = curChild->parent->cloud_filtered->points;
-            std::cout<<"Parent cloud size: "<<collective_cloud.size()<<"\n";
-            std::cout<<"child cloud size: "<<temp_cloud.size()<<"\n";
+//            std::cout<<"Parent cloud size: "<<collective_cloud.size()<<"\n";
+//            std::cout<<"child cloud size: "<<temp_cloud.size()<<"\n";
             collective_cloud +=temp_cloud;
-            std::cout<<"collective cloud size: "<<collective_cloud.size()<<"\n";
+//            std::cout<<"collective cloud size: "<<collective_cloud.size()<<"\n";
             tempCloud->points = collective_cloud.points;
             pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
             voxelgrid.setInputCloud (tempCloud);
             voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
             voxelgrid.filter (*curChild->cloud_filtered);
-            std::cout<<"\nchild collective cloud after filtering size: "<<curChild->cloud_filtered->size()<<"\n";
+//            std::cout<<"\nchild collective cloud after filtering size: "<<curChild->cloud_filtered->size()<<"\n";
             curChild->coverage = obj->calcCoveragePercent(curChild->cloud_filtered);
             curChild->distance = curChild->parent->distance + Dist(curChild->pose.p,curChild->parent->pose.p);
 
@@ -432,7 +444,7 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             curChild->g_value = heuristic->gCost(curChild);
             curChild->h_value = heuristic->hCost(curChild);
             curChild->f_value = curChild->h_value;//curChild->g_value + curChild->h_value;
-            std::cout<<"curChildren f value= "<<curChild->f_value<<"\n";
+//            std::cout<<"curChildren f value= "<<curChild->f_value<<"\n";
             Node * p;
             // check if the child is already in the open list
             if( (p = openList->find(curChild)))
@@ -446,7 +458,10 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
                 else if (p->f_value <= curChild->f_value )//&& (p->direction == curChild->direction))//************IMPORTANT******************
                 {
                     openList->remove(p);
-                    std::cout<<"*****SELECTED child Parent h value: "<<curChild->f_value<<"********\n";
+//                    std::cout<<"*****SELECTED child h value: "<<curChild->f_value<<"********\n";
+//                    std::cout<<"parent :"<<"position x:"<<curChild->pose.p.position.x<<" y:"<<curChild->pose.p.position.y<<" z:"<<curChild->pose.p.position.z<<"\n";
+//                    std::cout<<"parent :"<<"orientation x:"<<curChild->pose.p.orientation.x<<" y:"<<curChild->pose.p.orientation.y<<" z:"<<curChild->pose.p.orientation.z<<" w:"<<curChild->pose.p.orientation.w<<"\n";
+
                     //cout<<"\n	--->>> Opened list -- Node is deleted, current child X="<<curChild->pose.x<<" Y="<<curChild->pose.y<<" has shorter path<<<---";
                     fflush(stdout);
                 }
@@ -490,7 +505,14 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             {
                 openList->add(curChild);
             }
+            ros::Time test_end = ros::Time::now();
+            double elapsed1 =  test_end.toSec() - test_begin.toSec();
+            std::cout<<"****Child Test duration (s)= "<<elapsed1<<"****\n";
         }
+        ros::Time iteration_end = ros::Time::now();
+        double elapsed =  iteration_end.toSec() - iteration_begin.toSec();
+        std::cout<<"****Children Test duration (s) of node "<<current->id<<"= "<<elapsed<<"****\n";
+
         // put the current node onto the closed list, ==>> already visited List
         closedList->add(current);
         // Test to see if we have expanded too many nodes without a solution
@@ -552,7 +574,7 @@ bool Astar::surfaceCoverageReached (Node *n)// newly added
 
 Node *Astar::makeChildrenNodes(Node *parent)
 {
-    geometry_msgs::Pose P;
+    geometry_msgs::Pose P, sensorP;
     Node  *p, *q;
     SearchSpaceNode *temp;
     double start_angle,end_angle,angle,angle_difference,discrete_angle,robot_angle,child_angle,angle_resolution = DTOR(10);
@@ -565,6 +587,17 @@ Node *Astar::makeChildrenNodes(Node *parent)
     P.orientation.y  = parent->pose.p.orientation.y;
     P.orientation.z  = parent->pose.p.orientation.z;
     P.orientation.w  = parent->pose.p.orientation.w;
+    //not sure if it is necessary (Not necessary)
+    sensorP.position.x = parent->senPose.p.position.x;
+    sensorP.position.y = parent->senPose.p.position.y;
+    sensorP.position.z = parent->senPose.p.position.z;
+    sensorP.orientation.x = parent->senPose.p.orientation.x;
+    sensorP.orientation.y = parent->senPose.p.orientation.y;
+    sensorP.orientation.z = parent->senPose.p.orientation.z;
+    sensorP.orientation.w = parent->senPose.p.orientation.w;
+
+//    std::cout<<"parent #"<<"position x:"<<parent->pose.p.position.x<<" y:"<<parent->pose.p.position.y<<" z:"<<parent->pose.p.position.z<<"\n";
+//    std::cout<<"parent #"<<"orientation x:"<<parent->pose.p.orientation.x<<" y:"<<parent->pose.p.orientation.y<<" z:"<<parent->pose.p.orientation.z<<" w:"<<parent->pose.p.orientation.w<<"\n";
     Tree t;
     t.location = P;
     if(!search_space)
@@ -573,7 +606,8 @@ Node *Astar::makeChildrenNodes(Node *parent)
     // Locate the Cell in the Search Space, necessary to determine the neighbours
     while(temp!=NULL)
     {
-        if (isEqual(temp->location.position.x,P.position.x) && isEqual(temp->location.position.y,P.position.y) && isEqual(temp->location.position.z,P.position.z))
+        //added the orientation since we have different
+        if (isPositionEqual(temp->location.position,P.position) && isOrientationEqual(temp->location.orientation,P.orientation))
             break;
         temp = temp->next;
     }
@@ -673,6 +707,17 @@ Node *Astar::makeChildrenNodes(Node *parent)
             p->pose.p.orientation.y = temp->children[i]->location.orientation.y;
             p->pose.p.orientation.z = temp->children[i]->location.orientation.z;
             p->pose.p.orientation.w = temp->children[i]->location.orientation.w;
+
+//            std::cout<<"child #"<<i<<"position x:"<<p->pose.p.position.x<<" y:"<<p->pose.p.position.y<<" z:"<<p->pose.p.position.z<<"\n";
+//            std::cout<<"child #"<<i<<"orientation x:"<<p->pose.p.orientation.x<<" y:"<<p->pose.p.orientation.y<<" z:"<<p->pose.p.orientation.z<<" w:"<<p->pose.p.orientation.w<<"\n";
+
+            p->senPose.p.position.x = temp->children[i]->sensorLocation.position.x;
+            p->senPose.p.position.y = temp->children[i]->sensorLocation.position.y;
+            p->senPose.p.position.z = temp->children[i]->sensorLocation.position.z;
+            p->senPose.p.orientation.x = temp->children[i]->sensorLocation.orientation.x;
+            p->senPose.p.orientation.y = temp->children[i]->sensorLocation.orientation.y;
+            p->senPose.p.orientation.z = temp->children[i]->sensorLocation.orientation.z;
+            p->senPose.p.orientation.w = temp->children[i]->sensorLocation.orientation.w;
 
             p->id = temp->children[i]->id;
 //            p->direction  =	direction ;

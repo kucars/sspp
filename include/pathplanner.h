@@ -38,18 +38,17 @@ namespace SSPP
     public :
         ros::NodeHandle nh;
         bool map_initialized;
-        double  obstacle_expansion_radius,bridge_length,bridge_res,regGridRes,
+        double  obstacle_expansion_radius,bridge_length,bridge_res,
                 reg_grid_conn_rad,obst_penalry_radius,bridge_conn_rad;
     public :
         unsigned int getPlanningSteps();
 
-        void   setRegGrid(double);
         void   setConRad(double);
         void   setObstDist(double);
         void   freeResources();
         void   printNodeList ();
 
-        void   generateRegularGrid(const char *filename);
+        void   generateRegularGrid(const char *filename1, const char *filename2);
         void   connectNodes();
         void   showConnections();
         void   showSearchSpace();
@@ -58,8 +57,8 @@ namespace SSPP
         void   determineCheckPoints();
         void   findRoot();
         void   freePath();
-        bool   checkShortestDistance(geometry_msgs::Pose p, double neigbhour_pixel_distance);
-        PathPlanner(ros::NodeHandle & nh, Robot *,double dG,double cT,double regGridRes,double reg_grid_conn_rad);
+//        bool   checkShortestDistance(geometry_msgs::Pose p, double neigbhour_pixel_distance);
+        PathPlanner(ros::NodeHandle & nh, Robot *,double dG,double cT,double reg_grid_conn_rad);
         ~PathPlanner();
     private:
         unsigned int planningSteps;
