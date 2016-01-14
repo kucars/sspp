@@ -77,7 +77,7 @@ public:
     LList *openList,*closedList;
     vector <Tree> tree;
     void displayTree();
-    visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links);
+    visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration);
     void setSocialReward(QHash<QString, int>*);
     void freeNode     (Node *);
 //     int  inObstacle   (geometry_msgs::Pose p, double angle);
@@ -89,6 +89,8 @@ public:
     std::vector<geometry_msgs::Point> lineSegments;
     geometry_msgs::Point linePoint;
     ros::Publisher treePub;
+    ros::Publisher connectionPub;
+
 };
 
 }

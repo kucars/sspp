@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Marker1
         - /Marker4
         - /PointCloud21
         - /PointCloud22
@@ -68,7 +67,7 @@ Visualization Manager:
       Marker Topic: /generated_path
       Name: Marker
       Namespaces:
-        link_marker: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -80,21 +79,29 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: search_space
       Name: Marker
       Namespaces:
         {}
       Queue Size: 2000
-      Value: false
+      Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: connections
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: connectivity
+      Name: Marker
+      Namespaces:
+        link_marker1: true
+      Queue Size: 100
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -199,22 +206,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 80.8828
+      Distance: 137.461
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -8.08025
-        Y: -12.1814
-        Z: -0.434001
+        X: -3.41153
+        Y: -10.9784
+        Z: 6.10381
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.444797
+      Pitch: 0.609797
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.80193
+      Yaw: 0.291882
     Saved: ~
 Window Geometry:
   Displays:

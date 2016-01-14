@@ -161,14 +161,14 @@ int main( int argc, char **  argv)
 
     //display the aircraft point cloud
 //    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
-//    std::string path = ros::package::getPath("component_test");
+    std::string path = ros::package::getPath("sspp");
 //    pcl::io::loadPCDFile<pcl::PointXYZ> (path+"/src/pcd/scaled_desktop.pcd", *cloud);
 
 
 //    bool negate = false;
 //    Pose start(0.0,1.0,-37,DTOR(-127.304)),end(-4.0,1.0,-19,DTOR(140.194));
 //    Pose start(0.0,37.0,18,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));start is at the tail
-    Pose start(0.0,-30.0,15,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));//start is at the front of the plane
+    Pose start(4.0,-30.0,15,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));//start is at the front of the plane
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
     double distanceToGoal = 0.1,regGridConRad=3.0, coverageTolerance=1.00, targetCov=10;
@@ -244,8 +244,21 @@ int main( int argc, char **  argv)
     geometry_msgs::PoseArray vec,sensor_vec;
     int cnt=0;
     double dist=0;
+    ofstream pathFile;
+
+    //write to file
+    double yaw;
+    std::stringstream ss;
+    ss << targetCov;
+    std::string file_loc = path+"/resources/"+ss.str()+"%path.txt";
+    pathFile.open (file_loc.c_str());
+
     while(p !=NULL)
     {
+        tf::Quaternion qt(p->pose.p.orientation.x,p->pose.p.orientation.y,p->pose.p.orientation.z,p->pose.p.orientation.w);
+        yaw = tf::getYaw(qt);
+        pathFile << p->pose.p.position.x<<" "<<p->pose.p.position.y<<" "<<p->pose.p.position.z<<" "<<yaw<<"\n";
+
         if (p->next !=NULL)
         {
             linePoint.x = p->pose.p.position.x;
@@ -271,6 +284,8 @@ int main( int argc, char **  argv)
         }
         p = p->next;
     }
+    pathFile.close();
+    std::cout<<"\nDONE writing file :)\n";
     visualization_msgs::Marker linesList = drawLines(lineSegments,1,0.15);
     ros::Rate loop_rate(10);
     pathPlanner->showConnections();

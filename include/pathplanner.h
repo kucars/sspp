@@ -52,6 +52,8 @@ namespace SSPP
         void   connectNodes();
         void   showConnections();
         void   showSearchSpace();
+//        void   displayChildren(SearchSpaceNode *temp);
+
 	visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
 
         void   determineCheckPoints();

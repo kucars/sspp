@@ -116,30 +116,52 @@ void Astar::displayTree()
 
         }
     }
-    visualization_msgs::Marker linesList = drawLines(lineSegments);
+    visualization_msgs::Marker linesList = drawLines(lineSegments,1000000,2,1000);
     treePub.publish(linesList);
 }
 
-visualization_msgs::Marker Astar::drawLines(std::vector<geometry_msgs::Point> links)
+
+visualization_msgs::Marker Astar::drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration)
 {
     visualization_msgs::Marker linksMarkerMsg;
-    linksMarkerMsg.header.frame_id="/map";
+    linksMarkerMsg.header.frame_id="map";
     linksMarkerMsg.header.stamp=ros::Time::now();
     linksMarkerMsg.ns="link_marker1";
-    linksMarkerMsg.id = 0;
+    linksMarkerMsg.id = id;
     linksMarkerMsg.type = visualization_msgs::Marker::LINE_LIST;
-    linksMarkerMsg.scale.x = 0.05;
+    linksMarkerMsg.scale.x = 0.04;
     linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
-    linksMarkerMsg.lifetime  = ros::Duration(100000.0);
+    linksMarkerMsg.lifetime  = ros::Duration(duration);
     std_msgs::ColorRGBA color;
-    color.r = 0.0f; color.g=1.0f; color.b=.0f, color.a=1.0f;
+    //    color.r = 1.0f; color.g=.0f; color.b=.0f, color.a=1.0f;
+    if(c_color == 1)
+    {
+        color.r = 1.0;
+        color.g = 0.0;
+        color.b = 0.0;
+        color.a = 1.0;
+    }
+    else if(c_color == 2)
+    {
+        color.r = 0.0;
+        color.g = 1.0;
+        color.b = 0.0;
+        color.a = 1.0;
+    }
+    else
+    {
+        color.r = 0.0;
+        color.g = 0.0;
+        color.b = 1.0;
+        color.a = 1.0;
+    }
     std::vector<geometry_msgs::Point>::iterator linksIterator;
     for(linksIterator = links.begin();linksIterator != links.end();linksIterator++)
     {
         linksMarkerMsg.points.push_back(*linksIterator);
         linksMarkerMsg.colors.push_back(color);
     }
-   return linksMarkerMsg;
+    return linksMarkerMsg;
 }
 
 void  Astar::setSocialReward(QHash<QString, int>* soRew)
@@ -466,7 +488,7 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
                     fflush(stdout);
                 }
             }
-            // test whether the child is in the closed list (already been there)
+//             test whether the child is in the closed list (already been there)
             if (curChild)
             {
                 if((p = closedList->find(curChild)))
@@ -618,6 +640,8 @@ Node *Astar::makeChildrenNodes(Node *parent)
     }
     //    qDebug("Node has %d children x=%f y=%f",temp->children.size(),temp->location.x(),temp->location.y());
     q = NULL;
+
+    std::cout<<"\n\n\n#############children Size: "<< temp->children.size() <<" ##################\n\n\n";
     // Check Each neighbour
     for (int i=0;i<temp->children.size();i++)
     {

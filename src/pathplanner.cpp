@@ -25,11 +25,12 @@ namespace SSPP
 
     PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double dG, double cT, double conn_rad):
     nh(n),
-    Astar(n,rob,dG,cT,"SurfaceCoveragewithOrientation"),
+    Astar(n,rob,dG,cT,"SurfaceCoverage"),
     map_initialized(false),
     reg_grid_conn_rad(conn_rad)
 {
     treePub = n.advertise<visualization_msgs::Marker>("search_tree", 10);
+    connectionPub = n.advertise<visualization_msgs::Marker>("connectivity", 10);
     searchSpacePub = n.advertise<visualization_msgs::Marker>("search_space", 100);
     planningSteps = 0;
 }
@@ -78,7 +79,26 @@ void   PathPlanner::setConRad(double a)
     reg_grid_conn_rad = a;
 }
 
+//void PathPlanner::displayChildren(SearchSpaceNode *temp)
+//{
+////    SearchSpaceNode *temp;
 
+//    for (int i=0;i<temp->children.size();i++)
+//    {
+
+//        linePoint.x = temp->location.position.x;
+//        linePoint.y = temp->location.position.y;
+//        linePoint.z = temp->location.position.z;
+//        lineSegments1.push_back(linePoint);
+//        linePoint.x = temp->children[i]->location.position.x;
+//        linePoint.y = temp->children[i]->location.position.y;
+//        linePoint.z = temp->children[i]->location.position.z;
+//        lineSegments1.push_back(linePoint);
+
+//    }
+//    visualization_msgs::Marker linesList = drawLines(lineSegments1);
+//    childrenPub.publish(linesList);
+//}
 //bool PathPlanner::readSpaceFromFile(const char *filename)
 //{
 //    double locationx,locationy,locationz;
@@ -340,8 +360,14 @@ void PathPlanner::connectNodes()
             }
             S = S->next;
         }
+//        displayChildren(temp);
+
+
         temp = temp->next;
     }
+    showConnections();
+    showConnections();
+
     std::cout<<"\n	--->>> NODES CONNECTED <<<---	";
     planningSteps|=NODES_CONNECT;
 }
@@ -367,6 +393,8 @@ void PathPlanner::connectNodes()
 
 void PathPlanner::showConnections()
 {
+    std::vector<geometry_msgs::Point> lineSegments1;
+    geometry_msgs::Point pt;
     geometry_msgs::Pose loc1,loc2;
     SearchSpaceNode *temp = search_space;
     int m=0,n=0;
@@ -375,14 +403,25 @@ void PathPlanner::showConnections()
         for(int i=0; i < temp->children.size();i++)
         {
             loc1 = temp->location;
+            pt.x = temp->location.position.x;
+            pt.y = temp->location.position.y;
+            pt.z = temp->location.position.z;
           //  map->convert2Pix(&loc1);
+            lineSegments1.push_back(pt);
+
             loc2 = temp->children[i]->location;
+            pt.x = temp->children[i]->location.position.x;
+            pt.y = temp->children[i]->location.position.y;
+            pt.z = temp->children[i]->location.position.z;
           //  map->convert2Pix(&loc2);
+            lineSegments1.push_back(pt);
             m++;
         }
         temp = temp->next;
         n++;
     }
+    visualization_msgs::Marker linesList = drawLines(lineSegments1,2000000,3,1000);
+    connectionPub.publish(linesList);
     std::cout<<"\n"<<QString("\n---->>> TOTAL NUMBER OF CONNECTIONS =%1\n---->>> Total Nodes in search Space =%2").arg(m).arg(n).toStdString();
     this->MAXNODES = 2*m;
 }
