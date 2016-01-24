@@ -165,15 +165,15 @@ double SCwithOrientationHeuristic::hCost(Node *n)
 
     ros::Time heuristic_begin = ros::Time::now();
 
-//    std::cout<<"\nchild collective cloud after filtering size: "<<n->cloud_filtered->size()<<"\n";
-//    std::cout<<"parent distance :"<<n->parent->distance<<" current node distance: "<<n->distance<<"\n";
-//    std::cout<<"parent coverage :"<<n->parent->coverage<<" current node coverage: "<<n->coverage<<"\n";
+    std::cout<<"\nchild collective cloud after filtering size: "<<n->cloud_filtered->size()<<"\n";
+    std::cout<<"parent distance :"<<n->parent->distance<<" current node distance: "<<n->distance<<"\n";
+    std::cout<<"parent coverage :"<<n->parent->coverage<<" current node coverage: "<<n->coverage<<"\n";
 
     d= Dist(n->pose.p,n->parent->pose.p);
-//    std::cout<<"Calculated local distance d:"<<d<<" comulative distance: "<<n->distance<<"\n";
+    std::cout<<"Calculated local distance d:"<<d<<" comulative distance: "<<n->distance<<"\n";
 
     c= n->coverage - n->parent->coverage; //extra coverage
-//    std::cout<<"extra coverage c : "<<c<<"\n";
+    std::cout<<"extra coverage c : "<<c<<"\n";
 //    h=n->coverage;//only coverage
     if(d!=0.0)
     {
@@ -198,14 +198,14 @@ double SCwithOrientationHeuristic::hCost(Node *n)
         double angle, normAngle;
         angle=qt.angleShortestPath(qt_n);
         normAngle=1-angle/(2*M_PI);
-//        std::cout<<"###angle way (2) between the parent and child###: "<<angle<<"\n";
+        std::cout<<"###angle way (2) between the parent and child###: "<<angle<<"\n";
         h = n->parent->h_value + normAngle*c;
     }
 
-//    std::cout<<"parent h value :"<<n->parent->h_value<<" h value calculation: "<<h<<"\n";
+    std::cout<<"parent h value :"<<n->parent->h_value<<" h value calculation: "<<h<<"\n";
     ros::Time heuristic_end = ros::Time::now();
     double elapsed =  heuristic_end.toSec() - heuristic_begin.toSec();
-//    std::cout<<"HEURISTIC duration (s) = "<<elapsed<<"\n";
+    std::cout<<"HEURISTIC duration (s) = "<<elapsed<<"\n";
     return h;
 }
 

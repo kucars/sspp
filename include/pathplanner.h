@@ -51,10 +51,10 @@ namespace SSPP
         void   generateRegularGrid(const char *filename1, const char *filename2);
         void   connectNodes();
         void   showConnections();
-        void   showSearchSpace();
+//        void   showSearchSpace();
 //        void   displayChildren(SearchSpaceNode *temp);
 
-	visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
+//	visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
 
         void   determineCheckPoints();
         void   findRoot();

@@ -34,7 +34,9 @@ Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG, double cT,QString heurist
     path(NULL),
     p(NULL),
     openList(NULL),
-    closedList(NULL)
+    closedList(NULL),
+    globalcount(0),
+    debug(true)
 {
    // if (heuristicT == "Distance")
     //{
@@ -48,7 +50,7 @@ Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG, double cT,QString heurist
         }
     //}
     orientation2Goal = DTOR(60);
-    obj = new OcclusionCulling("etihad.pcd");
+    obj = new OcclusionCulling(nh, "etihad.pcd");
     covFilteredCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 
 }
@@ -63,7 +65,9 @@ Astar::Astar():
     path(NULL),
     p(NULL),
     openList(NULL),
-    closedList(NULL)
+    closedList(NULL),
+    globalcount(0),
+    debug(true)
 {
     try
     {
@@ -116,7 +120,7 @@ void Astar::displayTree()
 
         }
     }
-    visualization_msgs::Marker linesList = drawLines(lineSegments,1000000,2,1000);
+    visualization_msgs::Marker linesList = drawLines(lineSegments,1000000,2,100000000);
     treePub.publish(linesList);
 }
 
@@ -129,7 +133,7 @@ visualization_msgs::Marker Astar::drawLines(std::vector<geometry_msgs::Point> li
     linksMarkerMsg.ns="link_marker1";
     linksMarkerMsg.id = id;
     linksMarkerMsg.type = visualization_msgs::Marker::LINE_LIST;
-    linksMarkerMsg.scale.x = 0.04;
+    linksMarkerMsg.scale.x = 0.08;
     linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
     linksMarkerMsg.lifetime  = ros::Duration(duration);
     std_msgs::ColorRGBA color;
@@ -176,6 +180,49 @@ void  Astar::setSocialReward(QHash<QString, int>* soRew)
     }
 }
 
+visualization_msgs::Marker Astar::drawPoints(std::vector<geometry_msgs::Point> points, int c_color, int duration)
+{
+    visualization_msgs::Marker pointMarkerMsg;
+    pointMarkerMsg.header.frame_id="/map";
+    pointMarkerMsg.header.stamp=ros::Time::now();
+    pointMarkerMsg.ns="point_marker";
+    pointMarkerMsg.id = 444444;
+    pointMarkerMsg.type = visualization_msgs::Marker::POINTS;
+    pointMarkerMsg.scale.x = 0.35;
+    pointMarkerMsg.scale.y = 0.35;
+    pointMarkerMsg.action  = visualization_msgs::Marker::ADD;
+    pointMarkerMsg.lifetime  = ros::Duration(duration);
+    std_msgs::ColorRGBA color;
+    //    color.r = 1.0f; color.g=.0f; color.b=.0f, color.a=1.0f;
+    if(c_color == 1)
+    {
+        color.r = 1.0;
+        color.g = 0.0;
+        color.b = 0.0;
+        color.a = 1.0;
+    }
+    else if(c_color == 2)
+    {
+        color.r = 0.0;
+        color.g = 1.0;
+        color.b = 0.0;
+        color.a = 1.0;
+    }
+    else
+    {
+        color.r = 0.0;
+        color.g = 0.0;
+        color.b = 1.0;
+        color.a = 1.0;
+    }
+    std::vector<geometry_msgs::Point>::iterator pointsIterator;
+    for(pointsIterator = points.begin();pointsIterator != points.end();pointsIterator++)
+    {
+        pointMarkerMsg.points.push_back(*pointsIterator);
+        pointMarkerMsg.colors.push_back(color);
+    }
+   return pointMarkerMsg;
+}
 // Tests for whether a node is in an obstacle or not
 //int Astar::inObstacle(geometry_msgs::Pose P, double theta)
 //{
@@ -368,6 +415,7 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
     openList->add(root);				// add the root to OpenList
     // while openList is not empty
     int count = 0;
+    ros::Time search_begin = ros::Time::now();
     while (openList->Start != NULL)
     {
         if((count++%1) == 0)
@@ -429,11 +477,11 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             std::cout<<"\n	--->>> Search Ended On this Branch / We Reached a DEAD END <<<---";
         }
         // insert the children into the OPEN list according to their f values
-        ros::Time iteration_begin = ros::Time::now();
+        ros::Time childrentest_begin = ros::Time::now();
 
         while (childList != NULL)
         {
-            ros::Time test_begin = ros::Time::now();
+            ros::Time childtest_begin = ros::Time::now();
 
             curChild  = childList;
             childList = childList->next;
@@ -443,6 +491,14 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             curChild->id = ID++;
             curChild->next = NULL;
             curChild->prev = NULL;
+            //************displaying the tested child point***********
+            std::vector<geometry_msgs::Point> pts;
+            geometry_msgs::Point pt;
+            pt.x = curChild->pose.p.position.x; pt.y = curChild->pose.p.position.y; pt.z = curChild->pose.p.position.z;
+            pts.push_back(pt);
+            visualization_msgs::Marker ptsList = drawPoints(pts,2,1000000000);
+            testPointPub.publish(ptsList);
+
 
             //************voxelgrid***********
             pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -463,22 +519,26 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             curChild->distance = curChild->parent->distance + Dist(curChild->pose.p,curChild->parent->pose.p);
 
 
+
             curChild->g_value = heuristic->gCost(curChild);
             curChild->h_value = heuristic->hCost(curChild);
             curChild->f_value = curChild->h_value;//curChild->g_value + curChild->h_value;
-//            std::cout<<"curChildren f value= "<<curChild->f_value<<"\n";
+            std::cout<<"curChildren f value= "<<curChild->f_value<<"\n";
             Node * p;
             // check if the child is already in the open list
             if( (p = openList->find(curChild)))
             {
-                if (p->f_value > curChild->f_value)// it was <= (to take least cost) but now it is changed to be reward function && (p->direction == curChild->direction))
+                std::cout<<"check if the child is already in the open list"<<"\n";
+                if (p->f_value >=curChild->f_value)// it was <= (to take least cost) but now it is changed to be reward function && (p->direction == curChild->direction))
                 {
+                    std::cout<<"Free the node the openlist check"<<"\n";
                     freeNode(curChild);
                     curChild = NULL;
                 }
                 // the child is a shorter path to this point, delete p from  the closed list
-                else if (p->f_value <= curChild->f_value )//&& (p->direction == curChild->direction))//************IMPORTANT******************
+                else if (p->f_value < curChild->f_value )//&& (p->direction == curChild->direction))//************IMPORTANT******************
                 {
+                    std::cout<<"removing the p from the openlist"<<"\n";
                     openList->remove(p);
 //                    std::cout<<"*****SELECTED child h value: "<<curChild->f_value<<"********\n";
 //                    std::cout<<"parent :"<<"position x:"<<curChild->pose.p.position.x<<" y:"<<curChild->pose.p.position.y<<" z:"<<curChild->pose.p.position.z<<"\n";
@@ -491,16 +551,20 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
 //             test whether the child is in the closed list (already been there)
             if (curChild)
             {
+                std::cout<<" check if the current child "<<std::endl;
                 if((p = closedList->find(curChild)))
                 {
-                    if (p->f_value > curChild->f_value)// && p->direction == curChild->direction)//************IMPORTANT******************
+                    std::cout<<"check if the child is already in the closed list"<<"\n";
+                    if (p->f_value >=curChild->f_value)// && p->direction == curChild->direction)//************IMPORTANT******************
                     {
+                        std::cout<<"Free the node the closed list check"<<"\n";
                         freeNode(curChild);
                         curChild = NULL;
                     }
                     // the child is a shorter path to this point, delete p from  the closed list
                     else
                     {
+                        std::cout<<"the parent f value is bigger than the child"<<"\n";
                         /* This is the tricky part, it rarely happens, but in my case it happenes all the time :s
                                                  * Anyways, we are here cause we found a better path to a node that we already visited, we will have to
                                                  * Update the cost of that node and ALL ITS DESCENDENTS because their cost is parent dependent ;)
@@ -521,19 +585,25 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
 
                     }
                 }
+
+                ros::Time current_end = ros::Time::now();
+                double current_elapsed =  current_end.toSec() - search_begin.toSec();
+                std::cout<<"\n\n\n#####################################################################################\n";
+                std::cout<<"#################Duration of the SEARCH till now (s)= "<<current_elapsed<<"####################\n\n\n";
             }
             // ADD the child to the OPEN List
             if (curChild)
             {
+                std::cout<<"adding the cur child to the openlist"<<"\n";
                 openList->add(curChild);
             }
-            ros::Time test_end = ros::Time::now();
-            double elapsed1 =  test_end.toSec() - test_begin.toSec();
-            std::cout<<"****Child Test duration (s)= "<<elapsed1<<"****\n";
+            ros::Time childtest_end = ros::Time::now();
+            double childtest_elapsed =  childtest_end.toSec() - childtest_begin.toSec();
+            std::cout<<"****Child Test duration (s)= "<<childtest_elapsed<<"****\n";
         }
-        ros::Time iteration_end = ros::Time::now();
-        double elapsed =  iteration_end.toSec() - iteration_begin.toSec();
-        std::cout<<"****Children Test duration (s) of node "<<current->id<<"= "<<elapsed<<"****\n";
+        ros::Time childrentest_end = ros::Time::now();
+        double childrentest_elapsed =  childrentest_end.toSec() - childrentest_begin.toSec();
+        std::cout<<"****Children Test duration (s) of node "<<current->id<<"= "<<childrentest_elapsed<<"****\n";
 
         // put the current node onto the closed list, ==>> already visited List
         closedList->add(current);
@@ -542,6 +612,7 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
         {
             //            LOG(Logger::Info,QString("	--->>>	Expanded %d Nodes which is more than the maximum allowed MAXNODE=%1 , Search Terminated").arg(current->id,MAXNODES))
             //Delete Nodes in Open and Closed Lists
+            std::cout<<"the closed list and open list is freed"<<"\n";
             closedList->free();
             openList->free();
             path = NULL;
@@ -584,13 +655,87 @@ bool Astar::goalReached (Node *n)
 bool Astar::surfaceCoverageReached (Node *n)// newly added
 {
     double cov_delta;
+    globalcount++;
     cov_delta = targetCov - n->coverage;//n->h_value;//Dist(n->pose.p,end.p);
     std::cout<<"cov_delta= "<<cov_delta<<"\n";
     if ( cov_delta <= covTolerance)
         return true;
     else
-        return false;
+    {
+        //########display the covered points##########
+        sensor_msgs::PointCloud2 cloud1;
+        pcl::toROSMsg(*(n->cloud_filtered), cloud1);
+        cloud1.header.frame_id = "map";
+        cloud1.header.stamp = ros::Time::now();
+        coveredPointsPub.publish(cloud1);
 
+
+        //########display the point selected##########
+        std::vector<geometry_msgs::Point> points;
+        geometry_msgs::Point linept;
+        linept.x = n->pose.p.position.x; linept.y = n->pose.p.position.y; linept.z = n->pose.p.position.z;
+        points.push_back(linept);
+        visualization_msgs::Marker pointsList = drawPoints(points,1,1000000000);
+        pathPointPub.publish(pointsList);
+
+
+        int coveI = (int)n->coverage;
+
+        //########display FOV##########
+//        if (coveI != 0 && globalcount%10==0)
+//            obj->visualizeFOV(n->senPose.p);
+
+        //########display the path every 5% coverage########
+
+        std::cout<<"\n\n\n\n**********************COVERAGE delta:" <<coveI<<"\n\n\n\n";
+        if ( coveI%1==0 && debug)
+        {
+            std::cout<<"INSIDE PUBLISHING"<<"\n";
+            Node *p_test, *test_path;
+            p_test=n;
+            test_path = NULL;
+            while (p_test != NULL)
+            {
+                // remove the parent node from the closed list (where it has to be)
+                if(p_test->prev != NULL)
+                    (p_test->prev)->next = p_test->next;
+                if(p_test->next != NULL)
+                    (p_test->next)->prev = p_test->prev;
+                // check if we're removing the top of the list
+                if(p_test == closedList->Start)
+                    closedList->next();
+                // set it up in the path
+                p_test->next = test_path;
+                test_path = p_test;
+                p_test = p_test->parent;
+            }
+            //     optionally we could print the file each 10%
+            ofstream path_file;
+            std::string path = ros::package::getPath("sspp");
+            std::string fileloc = path+ "/resources/path_testfile.txt";
+            path_file.open(fileloc.c_str());
+            std::vector<geometry_msgs::Point> lines;
+            geometry_msgs::Point linepoint;
+            while (test_path != NULL)
+            {
+                path_file << test_path->pose.p.position.x<<" "<<test_path->pose.p.position.y<<" "<<test_path->pose.p.position.z<<" "<<test_path->pose.p.orientation.x<<" "<<test_path->pose.p.orientation.y<<" "<<test_path->pose.p.orientation.z<<" "<<test_path->pose.p.orientation.w<<"\n";
+                if (test_path->next != NULL)
+                {
+                    std::cout << test_path->pose.p.position.x<<" "<<test_path->pose.p.position.y<<" "<<test_path->pose.p.position.z<<" "<<test_path->pose.p.orientation.x<<" "<<test_path->pose.p.orientation.y<<" "<<test_path->pose.p.orientation.z<<" "<<test_path->pose.p.orientation.w<<"\n";
+                    linepoint.x = test_path->pose.p.position.x; linepoint.y = test_path->pose.p.position.y; linepoint.z = test_path->pose.p.position.z;
+                    lines.push_back(linepoint);
+                    linepoint.x = test_path->next->pose.p.position.x; linepoint.y = test_path->next->pose.p.position.y; linepoint.z = test_path->next->pose.p.position.z;
+                    lines.push_back(linepoint);
+                }
+                test_path = test_path->next;
+            }
+
+            path_file.close();
+            visualization_msgs::Marker linesList = drawLines(lines,333333,1,1000000000);
+            pathPub.publish(linesList);
+        }
+        return false;
+    }
 };
 
 

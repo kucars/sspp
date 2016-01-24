@@ -154,10 +154,6 @@ int main( int argc, char **  argv)
 
     //test
     OcclusionCulling obj(n, "etihad.pcd");
-//    pcl::PointCloud<pcl::PointXYZ> test;
-//    geometry_msgs::Pose location;
-//    location.position.x=0.0; location.position.y=2.0; location.position.z=1.0; location.orientation.x=0.649369; location.orientation.y=-0.27985;location.orientation.z=-0.649369;location.orientation.w=0.279856;
-//    test = obj.extractVisibleSurface(location);
 
     //display the aircraft point cloud
 //    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -168,7 +164,7 @@ int main( int argc, char **  argv)
 //    bool negate = false;
 //    Pose start(0.0,1.0,-37,DTOR(-127.304)),end(-4.0,1.0,-19,DTOR(140.194));
 //    Pose start(0.0,37.0,18,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));start is at the tail
-    Pose start(4.0,-30.0,15,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));//start is at the front of the plane
+    Pose start(4.0,-30.0,15,DTOR(0.0));//start is at the front of the plane
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
     double distanceToGoal = 0.1,regGridConRad=3.0, coverageTolerance=1.00, targetCov=10;
@@ -176,8 +172,8 @@ int main( int argc, char **  argv)
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
     pathPlanner = new PathPlanner(n,robot,distanceToGoal,coverageTolerance,regGridConRad);
     QTime timer;
-    const char * filename1 = "SearchSpaceUAV_2to4.txt";
-    const char * filename2 = "SearchSpaceCam_2to4.txt";
+    const char * filename1 = "SearchSpaceUAV_1.5m_1to4_NEW.txt";//"SearchSpaceUAV_2_2to4.txt"
+    const char * filename2 = "SearchSpaceCam_1.5m_1to4_NEW.txt";//"SearchSpaceCam_2_2to4.txt"
 
     pathPlanner->generateRegularGrid(filename1, filename2);//IMPORTANT
 //    pathPlanner->showSearchSpace();//visualization (not working for some reason)
@@ -248,9 +244,10 @@ int main( int argc, char **  argv)
 
     //write to file
     double yaw;
-    std::stringstream ss;
+    std::stringstream ss,cc;
     ss << targetCov;
-    std::string file_loc = path+"/resources/"+ss.str()+"%path.txt";
+    cc <<regGridConRad;
+    std::string file_loc = path+"/resources/"+cc.str()+"_"+ss.str()+"%path.txt";
     pathFile.open (file_loc.c_str());
 
     while(p !=NULL)
@@ -269,7 +266,7 @@ int main( int argc, char **  argv)
             combined += temp_cloud;
             vec.poses.push_back(p->pose.p);
             lineSegments.push_back(linePoint);
-            obj.visualizeFOV(p->senPose.p);
+//            obj.visualizeFOV(p->senPose.p);
             sensor_vec.poses.push_back(p->senPose.p);
 
             linePoint.x = p->next->pose.p.position.x;
@@ -278,7 +275,7 @@ int main( int argc, char **  argv)
             lineSegments.push_back(linePoint);
             dist=dist+ Dist(p->next->pose.p,p->pose.p);
             vec.poses.push_back(p->next->pose.p);//ADD ME RANDA
-            obj.visualizeFOV(p->next->senPose.p);
+//            obj.visualizeFOV(p->next->senPose.p);
             sensor_vec.poses.push_back(p->next->senPose.p);
 
         }

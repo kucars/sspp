@@ -25,13 +25,17 @@ namespace SSPP
 
     PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double dG, double cT, double conn_rad):
     nh(n),
-    Astar(n,rob,dG,cT,"SurfaceCoverage"),
+    Astar(n,rob,dG,cT,"SurfaceCoveragewithOrientation"),
     map_initialized(false),
     reg_grid_conn_rad(conn_rad)
 {
     treePub = n.advertise<visualization_msgs::Marker>("search_tree", 10);
     connectionPub = n.advertise<visualization_msgs::Marker>("connectivity", 10);
     searchSpacePub = n.advertise<visualization_msgs::Marker>("search_space", 100);
+    pathPub = n.advertise<visualization_msgs::Marker>("path_testing", 100);
+    pathPointPub = n.advertise<visualization_msgs::Marker>("path_point", 100);
+    testPointPub = n.advertise<visualization_msgs::Marker>("test_point", 100);
+    coveredPointsPub = n.advertise<sensor_msgs::PointCloud2>("gradual_coverage", 100);
     planningSteps = 0;
 }
 
@@ -253,47 +257,47 @@ void PathPlanner::generateRegularGrid(const char *filename1, const char *filenam
     std::cout<<"\n	--->>> REGULAR GRID GENERATED SUCCESSFULLY <<<---	";
     planningSteps|=REGULAR_GRID;
 }
-void   PathPlanner::showSearchSpace()
-{
-//    geometry_msgs::Point p;
-    SearchSpaceNode *temp = search_space;
-    int n=0;
-    while (temp != NULL)
-    {
-        geometry_msgs::Point pt;
-        pt.x= temp->location.position.x;
-        pt.y= temp->location.position.y;
-        pt.z= temp->location.position.z;
-        pts.push_back(pt);
-        temp = temp->next;
-        n++;
-    }
-    visualization_msgs::Marker points_vector = drawpoints(pts);
-    searchSpacePub.publish(points_vector);
-    std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(n).toStdString();
-}
-visualization_msgs::Marker PathPlanner::drawpoints(std::vector<geometry_msgs::Point> points)
-{
-    visualization_msgs::Marker pointMarkerMsg;
-    pointMarkerMsg.header.frame_id="/map";
-    pointMarkerMsg.header.stamp=ros::Time::now();
-    pointMarkerMsg.ns="point_marker";
-    pointMarkerMsg.id = 1000;
-    pointMarkerMsg.type = visualization_msgs::Marker::POINTS;
-    pointMarkerMsg.scale.x = 0.1;
-    pointMarkerMsg.scale.y = 0.1;
-    pointMarkerMsg.action  = visualization_msgs::Marker::ADD;
-    pointMarkerMsg.lifetime  = ros::Duration(100.0);
-    std_msgs::ColorRGBA color;
-    color.r = 0.0f; color.g=1.0f; color.b=0.0f, color.a=1.0f;
-    std::vector<geometry_msgs::Point>::iterator pointsIterator;
-    for(pointsIterator = points.begin();pointsIterator != points.end();pointsIterator++)
-    {
-        pointMarkerMsg.points.push_back(*pointsIterator);
-        pointMarkerMsg.colors.push_back(color);
-    }
-   return pointMarkerMsg;
-}
+//void   PathPlanner::showSearchSpace()
+//{
+////    geometry_msgs::Point p;
+//    SearchSpaceNode *temp = search_space;
+//    int n=0;
+//    while (temp != NULL)
+//    {
+//        geometry_msgs::Point pt;
+//        pt.x= temp->location.position.x;
+//        pt.y= temp->location.position.y;
+//        pt.z= temp->location.position.z;
+//        pts.push_back(pt);
+//        temp = temp->next;
+//        n++;
+//    }
+//    visualization_msgs::Marker points_vector = drawpoints(pts);
+//    searchSpacePub.publish(points_vector);
+//    std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(n).toStdString();
+//}
+//visualization_msgs::Marker PathPlanner::drawpoints(std::vector<geometry_msgs::Point> points)
+//{
+//    visualization_msgs::Marker pointMarkerMsg;
+//    pointMarkerMsg.header.frame_id="/map";
+//    pointMarkerMsg.header.stamp=ros::Time::now();
+//    pointMarkerMsg.ns="point_marker";
+//    pointMarkerMsg.id = 1000;
+//    pointMarkerMsg.type = visualization_msgs::Marker::POINTS;
+//    pointMarkerMsg.scale.x = 0.1;
+//    pointMarkerMsg.scale.y = 0.1;
+//    pointMarkerMsg.action  = visualization_msgs::Marker::ADD;
+//    pointMarkerMsg.lifetime  = ros::Duration(100.0);
+//    std_msgs::ColorRGBA color;
+//    color.r = 0.0f; color.g=1.0f; color.b=0.0f, color.a=1.0f;
+//    std::vector<geometry_msgs::Point>::iterator pointsIterator;
+//    for(pointsIterator = points.begin();pointsIterator != points.end();pointsIterator++)
+//    {
+//        pointMarkerMsg.points.push_back(*pointsIterator);
+//        pointMarkerMsg.colors.push_back(color);
+//    }
+//   return pointMarkerMsg;
+//}
 
 
 
@@ -420,7 +424,7 @@ void PathPlanner::showConnections()
         temp = temp->next;
         n++;
     }
-    visualization_msgs::Marker linesList = drawLines(lineSegments1,2000000,3,1000);
+    visualization_msgs::Marker linesList = drawLines(lineSegments1,2000000,3,100000000);
     connectionPub.publish(linesList);
     std::cout<<"\n"<<QString("\n---->>> TOTAL NUMBER OF CONNECTIONS =%1\n---->>> Total Nodes in search Space =%2").arg(m).arg(n).toStdString();
     this->MAXNODES = 2*m;
