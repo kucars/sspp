@@ -42,15 +42,18 @@ void LList::prev()
 
 Node * LList::find(Node * q)
 {
+    std::cout<<"\nI'm in find function\n";
 	Node *p = Start;
 	while (p)
 	{
 		if(*q==*p)
 		{
+            std::cout<<"Found it\n";
 			return p;
 		}
 		p = p->next;				
 	}
+    std::cout<<"DID NOT Find it\n";
 	return NULL;
 }
 
@@ -150,7 +153,7 @@ void LList::print()
 	p = Start;
 	while(p)
 	{
-        cout<<"\n Node["<<++i<<"] X="<<p->pose.p.position.x<<" Y="<<p->pose.p.position.y<<" Z="<<p->pose.p.position.z;
+        cout<<"\n Node["<<++i<<"] X="<<p->pose.p.position.x<<" Y="<<p->pose.p.position.y<<" Z="<<p->pose.p.position.z<<" F value="<<p->f_value;
 		p = p->next;
 	}
 }

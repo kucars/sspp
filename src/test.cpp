@@ -167,7 +167,7 @@ int main( int argc, char **  argv)
     Pose start(4.0,-30.0,15,DTOR(0.0));//start is at the front of the plane
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
-    double distanceToGoal = 0.1,regGridConRad=3.0, coverageTolerance=1.00, targetCov=10;
+    double distanceToGoal = 0.1,regGridConRad=3, coverageTolerance=1.00, targetCov=20;
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
     pathPlanner = new PathPlanner(n,robot,distanceToGoal,coverageTolerance,regGridConRad);
