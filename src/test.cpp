@@ -153,7 +153,7 @@ int main( int argc, char **  argv)
     PathPlanner * pathPlanner;
 
     //test
-    OcclusionCulling obj(n, "etihad.pcd");
+    OcclusionCulling obj(n, "etihad_nowheels_densed.pcd");
 
     //display the aircraft point cloud
 //    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -167,13 +167,13 @@ int main( int argc, char **  argv)
     Pose start(4.0,-30.0,15,DTOR(0.0));//start is at the front of the plane
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
-    double distanceToGoal = 0.1,regGridConRad=3, coverageTolerance=1.00, targetCov=20;
+    double distanceToGoal = 0.1,regGridConRad=3, coverageTolerance=1.00, targetCov=90;
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
     pathPlanner = new PathPlanner(n,robot,distanceToGoal,coverageTolerance,regGridConRad);
     QTime timer;
-    const char * filename1 = "SearchSpaceUAV_1.5m_1to4_NEW.txt";//"SearchSpaceUAV_2_2to4.txt"
-    const char * filename2 = "SearchSpaceCam_1.5m_1to4_NEW.txt";//"SearchSpaceCam_2_2to4.txt"
+    const char * filename1 = "SearchSpaceUAV_1.5m_2to4_NEW_etihadNoWheels.txt";//"SearchSpaceUAV_2_2to4.txt"
+    const char * filename2 = "SearchSpaceCam_1.5m_2to4_NEW_etihadNoWheels.txt";//"SearchSpaceCam_2_2to4.txt"
 
     pathPlanner->generateRegularGrid(filename1, filename2);//IMPORTANT
 //    pathPlanner->showSearchSpace();//visualization (not working for some reason)
@@ -247,7 +247,7 @@ int main( int argc, char **  argv)
     std::stringstream ss,cc;
     ss << targetCov;
     cc <<regGridConRad;
-    std::string file_loc = path+"/resources/"+cc.str()+"_"+ss.str()+"%path.txt";
+    std::string file_loc = path+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests.txt";
     pathFile.open (file_loc.c_str());
 
     while(p !=NULL)

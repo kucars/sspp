@@ -42,18 +42,18 @@ void LList::prev()
 
 Node * LList::find(Node * q)
 {
-    std::cout<<"\nI'm in find function\n";
+//     std::cout<<"\nI'm in find function\n";
 	Node *p = Start;
 	while (p)
 	{
 		if(*q==*p)
 		{
-            std::cout<<"Found it\n";
+//             std::cout<<"Found it\n";
 			return p;
 		}
 		p = p->next;				
 	}
-    std::cout<<"DID NOT Find it\n";
+//     std::cout<<"DID NOT Find it\n";
 	return NULL;
 }
 
