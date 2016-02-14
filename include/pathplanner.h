@@ -24,12 +24,46 @@
 #include <astar.h>
 #include <QTime>
 #include <stdio.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/AABB_tree.h>
+#include <CGAL/AABB_traits.h>
+#include <CGAL/AABB_triangle_primitive.h>
+#include "fcl/shape/geometric_shapes.h"
+#include "fcl/narrowphase/narrowphase.h"
+#include "fcl/collision.h"
+#include "fcl/ccd/motion.h"
+#include <stdlib.h>
+#include <boost/foreach.hpp>
+#include <Eigen/Eigen>
+#include "fcl/octree.h"
+#include "fcl/traversal/traversal_node_octree.h"
+#include "fcl/broadphase/broadphase.h"
+#include "fcl/shape/geometric_shape_to_BVH_model.h"
+#include "fcl/math/transform.h"
 
+#include <boost/filesystem.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/array.hpp>
+#include "fcl/BV/AABB.h"
+#include "fcl/collision_object.h"
+
+using namespace fcl;
 static const unsigned int BRIDGE_TEST       = 1;
 static const unsigned int REGULAR_GRID      = 2;
 static const unsigned int NODES_CONNECT     = 4;
 static const unsigned int OBST_PENALTY      = 8;
 static const unsigned int OBST_EXPAND       = 16;
+
+typedef CGAL::Simple_cartesian<double> K;
+typedef K::FT FT;
+typedef K::Ray_3 Ray;
+typedef K::Line_3 Line1;
+typedef K::Point_3 Point;
+typedef K::Triangle_3 CGALTriangle;
+typedef std::list<CGALTriangle>::iterator Iterator;
+typedef CGAL::AABB_triangle_primitive<K, Iterator> Primitive;
+typedef CGAL::AABB_traits<K, Primitive> AABB_triangle_traits;
+typedef CGAL::AABB_tree<AABB_triangle_traits> Tree1;
 
 namespace SSPP
 {
@@ -59,6 +93,8 @@ namespace SSPP
         void   determineCheckPoints();
         void   findRoot();
         void   freePath();
+        void   loadOBJFile(const char* filename, std::vector<Vec3f>& points, std::list<CGALTriangle>& triangles);
+
 //        bool   checkShortestDistance(geometry_msgs::Pose p, double neigbhour_pixel_distance);
         PathPlanner(ros::NodeHandle & nh, Robot *,double dG,double cT,double reg_grid_conn_rad);
         ~PathPlanner();
@@ -67,7 +103,10 @@ namespace SSPP
         bool obstaclesExpanded;
 	ros::Publisher searchSpacePub;
 	std::vector<geometry_msgs::Point> pts;
-
+    std::list<CGALTriangle> triangles;
+    std::vector<Vec3f> p1;
+    std::string pathDir;
+    Tree1* tree_cgal;
 };
 
 }

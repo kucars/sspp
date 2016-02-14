@@ -37,6 +37,12 @@ namespace SSPP
     testPointPub = n.advertise<visualization_msgs::Marker>("test_point", 100);
     coveredPointsPub = n.advertise<sensor_msgs::PointCloud2>("gradual_coverage", 100);
     planningSteps = 0;
+    pathDir = ros::package::getPath("component_test");
+    std::string str = pathDir+"/src/mesh/etihad_nowheels.obj";
+    loadOBJFile(str.c_str(), p1, triangles);
+//    std::cout<<"triangles size: "<<triangles.size()<<std::endl;
+    tree_cgal = new Tree1(triangles.begin(),triangles.end());
+
 }
 
 PathPlanner :: ~PathPlanner()
@@ -356,11 +362,28 @@ void PathPlanner::connectNodes()
 
             if (distance <= testDist && S != temp)// && distance !=0)
             {
-                angle = atan2(S->location.position.y - temp->location.position.y ,S->location.position.x - temp->location.position.x);//not used
-//                if(!inObstacle(temp->location,angle) && !inObstacle(S->location,angle))
-//                {
+//                angle = atan2(S->location.position.y - temp->location.position.y ,S->location.position.x - temp->location.position.x);//not used
+
+                //collision check
+                int intersectionsCount=0;
+                Point a(temp->location.position.x , temp->location.position.y ,temp->location.position.z );//parent
+                if (S->location.position.x != temp->location.position.x || S->location.position.y != temp->location.position.y || S->location.position.z != temp->location.position.z )
+                 {
+                    Point b(S->location.position.x, S->location.position.y, S->location.position.z);//child
+                    Point c(0, 0, 100);//child
+                    
+                    Ray line_query(a,b);
+                    intersectionsCount = tree_cgal->number_of_intersected_primitives(line_query);
+                    std::cout << "intersections: "<<intersectionsCount<< " intersections(s) with ray query" << std::endl;
+                    if (intersectionsCount==0){
+                        temp->children.push_back(S);
+                    }
+                }
+                else
+                {
                     temp->children.push_back(S);
-//                }
+                }
+
             }
             S = S->next;
         }
@@ -430,6 +453,105 @@ void PathPlanner::showConnections()
     this->MAXNODES = 2*m;
 }
 
+void PathPlanner::loadOBJFile(const char* filename, std::vector<Vec3f>& points, std::list<CGALTriangle>& triangles)
+{
+
+    FILE* file = fopen(filename, "rb");
+    if(!file)
+    {
+        std::cerr << "file not exist" << std::endl;
+        return;
+    }
+
+    bool has_normal = false;
+    bool has_texture = false;
+    char line_buffer[2000];
+    while(fgets(line_buffer, 2000, file))
+    {
+        char* first_token = strtok(line_buffer, "\r\n\t ");
+        if(!first_token || first_token[0] == '#' || first_token[0] == 0)
+            continue;
+
+        switch(first_token[0])
+        {
+        case 'v':
+        {
+            if(first_token[1] == 'n')
+            {
+                strtok(NULL, "\t ");
+                strtok(NULL, "\t ");
+                strtok(NULL, "\t ");
+                has_normal = true;
+            }
+            else if(first_token[1] == 't')
+            {
+                strtok(NULL, "\t ");
+                strtok(NULL, "\t ");
+                has_texture = true;
+            }
+            else
+            {
+                FCL_REAL x = (FCL_REAL)atof(strtok(NULL, "\t "));
+                FCL_REAL y = (FCL_REAL)atof(strtok(NULL, "\t "));
+                FCL_REAL z = (FCL_REAL)atof(strtok(NULL, "\t "));
+                Vec3f p(x, y, z);
+                points.push_back(p);
+            }
+        }
+            break;
+        case 'f':
+        {
+            CGALTriangle tri;
+            char* data[30];
+            int n = 0;
+            while((data[n] = strtok(NULL, "\t \r\n")) != NULL)
+            {
+                if(strlen(data[n]))
+                    n++;
+            }
+
+            for(int t = 0; t < (n - 2); ++t)
+            {
+                if((!has_texture) && (!has_normal))
+                {
+                    Point p1(points[atoi(data[0]) - 1][0],points[atoi(data[0]) - 1][1],points[atoi(data[0]) - 1][2]);
+                    Point p2(points[atoi(data[1]) - 1][0],points[atoi(data[1]) - 1][1],points[atoi(data[1]) - 1][2]);
+                    Point p3(points[atoi(data[2]) - 1][0],points[atoi(data[2]) - 1][1],points[atoi(data[2]) - 1][2]);
+                    tri = CGALTriangle(p1,p2,p3);
+                    //std::cout<<"1: Yep, I get here p1:"<<atoi(data[0]) - 1<<" p2:"<<atoi(data[1]) - 1<<" p2:"<<atoi(data[2]) - 1;
+                    if(!CGAL::collinear(p1,p2,p3))
+                    {
+                        triangles.push_back(tri);
+                    }
+                }
+                else
+                {
+                    const char *v1;
+                    uint indxs[3];
+                    for(int i = 0; i < 3; i++)
+                    {
+                        // vertex ID
+                        if(i == 0)
+                            v1 = data[0];
+                        else
+                            v1 = data[t + i];
+
+                        indxs[i] = atoi(v1) - 1;
+                    }
+                    Point p1(points[indxs[0]][0],points[indxs[0]][1],points[indxs[0]][2]);
+                    Point p2(points[indxs[1]][0],points[indxs[1]][1],points[indxs[1]][2]);
+                    Point p3(points[indxs[2]][0],points[indxs[2]][1],points[indxs[2]][2]);
+                    tri = CGALTriangle(p1,p2,p3);
+                    if(!CGAL::collinear(p1,p2,p3))
+                    {
+                        triangles.push_back(tri);
+                    }
+                }
+            }
+        }
+        }
+    }
+}
 
 
 }

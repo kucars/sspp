@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(sspp)
+SET ( CMAKE_CXX_FLAGS "-frounding-math" )
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -15,6 +16,9 @@ find_package(catkin REQUIRED COMPONENTS
   component_test
   )
 #find_package(component_test REQUIRED)
+find_package( CGAL QUIET COMPONENTS  )
+find_package(fcl REQUIRED)
+
 include(FindPkgConfig)
   
 catkin_package(CATKIN_DEPENDS component_test)
@@ -63,6 +67,7 @@ add_library(SSPathPlanner SHARED
 add_executable(ssppTest src/test.cpp)
 target_include_directories(ssppTest PUBLIC include ${catkin_INCLUDE_DIRS} ${GTK_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS})
 target_link_libraries( ssppTest SSPathPlanner
+    -lgmp -lmpfr ${CGAL_LIBRARY} ${CGAL_Core_LIBRARY}
     ${QT_QTGUI_LIBRARY}
     ${QT_QTCORE_LIBRARY}
     ${QT_QTOPENGL_LIBRARY}
