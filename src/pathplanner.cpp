@@ -367,19 +367,18 @@ void PathPlanner::connectNodes()
                 //collision check
                 int intersectionsCount=0;
                 Point a(temp->location.position.x , temp->location.position.y ,temp->location.position.z );//parent
+                //check if parent and child are in the same position (it affects the cgal intersection)
                 if (S->location.position.x != temp->location.position.x || S->location.position.y != temp->location.position.y || S->location.position.z != temp->location.position.z )
                  {
-                    Point b(S->location.position.x, S->location.position.y, S->location.position.z);//child
-                    Point c(0, 0, 100);//child
-                    
-                    Ray line_query(a,b);
-                    intersectionsCount = tree_cgal->number_of_intersected_primitives(line_query);
-                    std::cout << "intersections: "<<intersectionsCount<< " intersections(s) with ray query" << std::endl;
+                    Point b(S->location.position.x, S->location.position.y, S->location.position.z);//child                    
+                    Ray ray_query(a,b);
+                    intersectionsCount = tree_cgal->number_of_intersected_primitives(ray_query);
+//                    std::cout << "intersections: "<<intersectionsCount<< " intersections(s) with ray query" << std::endl;
                     if (intersectionsCount==0){
                         temp->children.push_back(S);
                     }
                 }
-                else
+                else //child and parent are in the same position
                 {
                     temp->children.push_back(S);
                 }
