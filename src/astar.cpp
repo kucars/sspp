@@ -36,13 +36,13 @@ Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG, double cT,QString heurist
     openList(NULL),
     closedList(NULL),
     globalcount(0),
-    debug(true)
+    debug(false)
 {
    // if (heuristicT == "Distance")
     //{
         try
         {
-            heuristic = Heuristic::factory(heuristicT);
+            heuristic = Heuristic::factory(heuristicT,debug);
         }
         catch(SSPPException e)
         {
@@ -71,7 +71,7 @@ Astar::Astar():
 {
     try
     {
-        heuristic = Heuristic::factory("Distance");
+        heuristic = Heuristic::factory("Distance",debug);
     }
     catch(SSPPException e)
     {
@@ -523,25 +523,33 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             curChild->g_value = heuristic->gCost(curChild);
             curChild->h_value = heuristic->hCost(curChild);
             curChild->f_value = curChild->h_value;//curChild->g_value + curChild->h_value;
-            std::cout<<"curChildren f value= "<<curChild->f_value<<"\n";
             Node * p;
+
             // check if the child is already in the open list
 //            std::cout<<" OPEN LIST NODES\n"<<std::endl;
 //            openList->print();
-            std::cout<<"\n Finding the curchild : "<<curChild->pose.p.position.x<<" "<< curChild->pose.p.position.y<<" "<<curChild->pose.p.position.z<<" "<<curChild->pose.p.orientation.x<<" "<<curChild->pose.p.orientation.y<<" "<<curChild->pose.p.orientation.z<<" "<<curChild->pose.p.orientation.w<< std::endl;
+            if (debug == true)
+            {
+                std::cout<<"curChildren f value= "<<curChild->f_value<<"\n";
+                std::cout<<"\n Finding the curchild : "<<curChild->pose.p.position.x<<" "<< curChild->pose.p.position.y<<" "<<curChild->pose.p.position.z<<" "<<curChild->pose.p.orientation.x<<" "<<curChild->pose.p.orientation.y<<" "<<curChild->pose.p.orientation.z<<" "<<curChild->pose.p.orientation.w<< std::endl;
+            }
+
             if( (p = openList->find(curChild)))
             {
-                std::cout<<"check if the child is already in the open list"<<"\n";
+                if (debug == true)
+                    std::cout<<"check if the child is already in the open list"<<"\n";
                 if (p->f_value >=curChild->f_value)// it was <= (to take least cost) but now it is changed to be reward function && (p->direction == curChild->direction))
                 {
-                    std::cout<<"Free the node the openlist check"<<"\n";
+                    if (debug == true)
+                        std::cout<<"Free the node the openlist check"<<"\n";
                     freeNode(curChild);
                     curChild = NULL;
                 }
                 // the child is a shorter path to this point, delete p from  the closed list
                 else if (p->f_value < curChild->f_value )//&& (p->direction == curChild->direction))//************IMPORTANT******************
                 {
-                    std::cout<<"removing the p from the openlist"<<"\n";
+                    if (debug == true)
+                        std::cout<<"removing the p from the openlist"<<"\n";
                     openList->remove(p);
 //                    std::cout<<"*****SELECTED child h value: "<<curChild->f_value<<"********\n";
 //                    std::cout<<"parent :"<<"position x:"<<curChild->pose.p.position.x<<" y:"<<curChild->pose.p.position.y<<" z:"<<curChild->pose.p.position.z<<"\n";
@@ -554,23 +562,29 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
 //             test whether the child is in the closed list (already been there)
             if (curChild)
             {
-                std::cout<<" check if the current child in the closed list\n"<<std::endl;
-                std::cout<<" CLOSED LIST NODES\n"<<std::endl;
-                closedList->print();
-                std::cout<<" Finding the curchild : "<<curChild->pose.p.position.x<<" "<< curChild->pose.p.position.y<<" "<<curChild->pose.p.position.z<<" "<<curChild->pose.p.orientation.x<<" "<<curChild->pose.p.orientation.y<<" "<<curChild->pose.p.orientation.z<<" "<<curChild->pose.p.orientation.w<< std::endl;
+                if (debug == true)
+                {
+                    std::cout<<" check if the current child in the closed list\n"<<std::endl;
+                    std::cout<<" CLOSED LIST NODES\n"<<std::endl;
+                    closedList->print();
+                    std::cout<<" Finding the curchild : "<<curChild->pose.p.position.x<<" "<< curChild->pose.p.position.y<<" "<<curChild->pose.p.position.z<<" "<<curChild->pose.p.orientation.x<<" "<<curChild->pose.p.orientation.y<<" "<<curChild->pose.p.orientation.z<<" "<<curChild->pose.p.orientation.w<< std::endl;
+                }
                 if((p = closedList->find(curChild)))
                 {
-                    std::cout<<"the child is already in the closed list"<<"\n";
+                    if (debug == true)
+                        std::cout<<"the child is already in the closed list"<<"\n";
                     if (p->f_value >=curChild->f_value)// && p->direction == curChild->direction)//************IMPORTANT******************
                     {
-                        std::cout<<"Free the node the closed list check, parent is bigger than the child"<<"\n";
+                        if (debug == true)
+                            std::cout<<"Free the node the closed list check, parent is bigger than the child"<<"\n";
                         freeNode(curChild);
                         curChild = NULL;
                     }
                     // the child is a shorter path to this point, delete p from  the closed list
                     else
                     {
-                        std::cout<<"the parent f value is less than the child"<<"\n";
+                        if (debug == true)
+                            std::cout<<"the parent f value is less than the child"<<"\n";
                         /* This is the tricky part, it rarely happens, but in my case it happenes all the time :s
                                                  * Anyways, we are here cause we found a better path to a node that we already visited, we will have to
                                                  * Update the cost of that node and ALL ITS DESCENDENTS because their cost is parent dependent ;)
@@ -591,33 +605,47 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
 
                     }
                 }
-                std::cout<<"DID NOT find the child in the closed list\n";
+                if (debug == true)
+                    std::cout<<"DID NOT find the child in the closed list\n";
 
 
             }
             ros::Time current_end = ros::Time::now();
             double current_elapsed =  current_end.toSec() - search_begin.toSec();
-            std::cout<<"\n\n\n#####################################################################################\n";
-            std::cout<<"#################Duration of the SEARCH till now (s)= "<<current_elapsed<<"####################\n\n\n";
+
+            if (debug == true)
+            {
+                std::cout<<"\n\n\n#####################################################################################\n";
+                std::cout<<"#################Duration of the SEARCH till now (s)= "<<current_elapsed<<"####################\n\n\n";
+            }
 
             // ADD the child to the OPEN List
             if (curChild)
             {
-                std::cout<<"adding the cur child to the openlist"<<"\n";
+                if (debug == true)
+                    std::cout<<"adding the cur child to the openlist"<<"\n";
+
                 openList->add(curChild);
             }
             ros::Time childtest_end = ros::Time::now();
             double childtest_elapsed =  childtest_end.toSec() - childtest_begin.toSec();
-            std::cout<<"****Child Test duration (s)= "<<childtest_elapsed<<"****\n";
+
+            if (debug == true)
+                std::cout<<"****Child Test duration (s)= "<<childtest_elapsed<<"****\n";
         }
         ros::Time childrentest_end = ros::Time::now();
         double childrentest_elapsed =  childrentest_end.toSec() - childrentest_begin.toSec();
-        std::cout<<"****Children Test duration (s) of node "<<current->id<<"= "<<childrentest_elapsed<<"****\n";
+
+        if (debug == true)
+            std::cout<<"****Children Test duration (s) of node "<<current->id<<"= "<<childrentest_elapsed<<"****\n";
 
         ros::Time search_end = ros::Time::now();
         double current_elapsed1 =  search_end.toSec() - search_begin.toSec();
-        std::cout<<"\n\n\n\n******************************************************************************************\n";
-        std::cout<<"*********************SEARCH DURATION (s)= "<<current_elapsed1<<"*****************\n\n\n\n";
+
+        if (debug == true) {
+            std::cout<<"\n\n\n\n******************************************************************************************\n";
+            std::cout<<"*********************SEARCH DURATION (s)= "<<current_elapsed1<<"*****************\n\n\n\n";
+        }
 
 
         // put the current node onto the closed list, ==>> already visited List
@@ -638,7 +666,8 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
     /* if we got here, then there is no path to the goal
      *  delete all nodes on CLOSED since OPEN is now empty
      */
-    std::cout<<"counter for displaying the tree: "<<count<<" \n";
+    if (debug == true)
+        std::cout<<"counter for displaying the tree: "<<count<<" \n";
     closedList->free();
     std::cout<<"\n	--->>>No Path Found<<<---";
     return NULL;
@@ -672,7 +701,10 @@ bool Astar::surfaceCoverageReached (Node *n)// newly added
     double cov_delta;
     globalcount++;
     cov_delta = targetCov - n->coverage;//n->h_value;//Dist(n->pose.p,end.p);
-    std::cout<<"cov_delta= "<<cov_delta<<"\n";
+
+    if (debug == true)
+        std::cout<<"cov_delta= "<<cov_delta<<"\n";
+
     if ( cov_delta <= covTolerance)
         return true;
     else
@@ -701,11 +733,12 @@ bool Astar::surfaceCoverageReached (Node *n)// newly added
 //            obj->visualizeFOV(n->senPose.p);
 
         //########display the path every 5% coverage########
-
-        std::cout<<"\n\n\n\n**********************COVERAGE delta:" <<coveI<<"\n\n\n\n";
-        if ( coveI%1==0 && debug)
+        if (debug == true)
+            std::cout<<"\n\n\n\n**********************COVERAGE delta:" <<coveI<<"\n\n\n\n";
+        if ( coveI%1==0)
         {
-            std::cout<<"INSIDE PUBLISHING"<<"\n";
+            if (debug == true)
+                std::cout<<"INSIDE PUBLISHING"<<"\n";
             Node *p_test, *test_path;
             p_test=n;
             test_path = NULL;
@@ -805,7 +838,8 @@ Node *Astar::makeChildrenNodes(Node *parent)
     //    qDebug("Node has %d children x=%f y=%f",temp->children.size(),temp->location.x(),temp->location.y());
     q = NULL;
 
-    std::cout<<"\n\n\n#############children Size: "<< temp->children.size() <<" ##################\n\n\n";
+    if (debug == true)
+        std::cout<<"\n\n\n#############children Size: "<< temp->children.size() <<" ##################\n\n\n";
     // Check Each neighbour
     for (int i=0;i<temp->children.size();i++)
     {

@@ -34,44 +34,46 @@ namespace SSPP
 class Heuristic
 {
 public:
-	virtual ~Heuristic(){}
-	virtual double gCost(Node *)=0;
+    virtual ~Heuristic(){}
+    virtual double gCost(Node *)=0;
     virtual double hCost(Node *,Node * )=0;
     virtual double hCost(Node *)=0;
 //    double hCovCost(Node *n);
-    static Heuristic * factory(QString type) throw(SSPPException);
+    static Heuristic * factory(QString type, bool debug) throw(SSPPException);
     static Heuristic * factory(QString type,QHash<QString, int> *) throw(SSPPException);
 };
 
 class SocialHeuristic : public Heuristic
 {
 public:
-	QHash<QString, int> *socialRewards;
-	SocialHeuristic(QHash<QString, int> *socRew){this->socialRewards=socRew;}
-	friend class Heuristic;
+    QHash<QString, int> *socialRewards;
+    SocialHeuristic(QHash<QString, int> *socRew){this->socialRewards=socRew;}
+    friend class Heuristic;
 public:
-	double gCost(Node *n);
+    double gCost(Node *n);
     double hCost(Node *n, Node * end);
     double hCost(Node *n){}
-	~SocialHeuristic(){}
+    ~SocialHeuristic(){}
 };
 
 class DistanceHeuristic : public Heuristic
 {
 public:
-	DistanceHeuristic(){}
-	friend class Heuristic;
+    bool H_debug;
+    DistanceHeuristic(bool d){H_debug=d;}
+    friend class Heuristic;
 public:
-	double gCost(Node *n);
+    double gCost(Node *n);
     double hCost(Node *n, Node * end);
     double hCost(Node *n){}
-	~DistanceHeuristic(){}
+    ~DistanceHeuristic(){}
 };
 
 class SurfaceCoverageHeuristic : public Heuristic
 {
 public:
-    SurfaceCoverageHeuristic(){}
+    bool H_debug;
+    SurfaceCoverageHeuristic(bool d){H_debug=d;}
     friend class Heuristic;
 public:
     double gCost(Node *n);
@@ -83,7 +85,8 @@ public:
 class SCwithOrientationHeuristic : public Heuristic
 {
 public:
-    SCwithOrientationHeuristic(){}
+    bool H_debug;
+    SCwithOrientationHeuristic(bool d){H_debug=d;}
     friend class Heuristic;
 public:
     double gCost(Node *n);
