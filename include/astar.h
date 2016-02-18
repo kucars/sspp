@@ -97,6 +97,8 @@ public:
     ros::Publisher pathPointPub;
     ros::Publisher testPointPub;
     ros::Publisher coveredPointsPub;
+    ros::Publisher connectionDebugPub;
+
 
 
 };

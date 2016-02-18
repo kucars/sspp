@@ -36,6 +36,8 @@ namespace SSPP
     pathPointPub = n.advertise<visualization_msgs::Marker>("path_point", 100);
     testPointPub = n.advertise<visualization_msgs::Marker>("test_point", 100);
     coveredPointsPub = n.advertise<sensor_msgs::PointCloud2>("gradual_coverage", 100);
+    connectionDebugPub = n.advertise<visualization_msgs::Marker>("debug", 10);
+
     planningSteps = 0;
     pathDir = ros::package::getPath("component_test");
     std::string str = pathDir+"/src/mesh/etihad_nowheels.obj";
@@ -344,6 +346,7 @@ void PathPlanner::connectNodes()
         return;
     temp = search_space;
     //	cout<<"\n RegGrid Conn:"<<reg_grid_conn_rad<<" Bridge Conn:"<<bridge_conn_rad;
+    int i =0;
     while (temp!=NULL)
     {
         S = search_space;
@@ -372,11 +375,30 @@ void PathPlanner::connectNodes()
                 {
                     Point b(S->location.position.x, S->location.position.y, S->location.position.z);//child
                     Line1 line_query(a,b);
-                    intersectionsCount = tree_cgal->number_of_intersected_primitives(line_query);
-//                    std::cout << "intersections: "<<intersectionsCount<< " intersections(s) with line query" << std::endl;
+                    Segment seg_query(a,b);
+                    intersectionsCount = tree_cgal->number_of_intersected_primitives(seg_query);
+                    std::cout << "intersections: "<<intersectionsCount<< " intersections(s) with line query" << std::endl;
                     if (intersectionsCount==0){
                         temp->children.push_back(S);
+                    }else {
+                        std::vector<geometry_msgs::Point> lineSegments3;
+                        geometry_msgs::Point pt;
+                        pt.x = temp->location.position.x;
+                        pt.y = temp->location.position.y;
+                        pt.z = temp->location.position.z;
+                        lineSegments3.push_back(pt);
+
+                        pt.x = S->location.position.x;
+                        pt.y = S->location.position.y;
+                        pt.z = S->location.position.z;
+                        lineSegments3.push_back(pt);
+                        visualization_msgs::Marker linesLists = drawLines(lineSegments3,i,2,100000000);
+                        connectionDebugPub.publish(linesLists);
+                        lineSegments3.pop_back();lineSegments3.pop_back();
+                        i++;
+
                     }
+
                 }
                 else //child and parent are in the same position
                 {

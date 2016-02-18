@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /conn_debug1
         - /covered point cloud1
         - /original point cloud1
         - /gradual_coverage1
@@ -67,7 +68,7 @@ Visualization Manager:
       Marker Topic: /generated_path
       Name: generated_path
       Namespaces:
-        {}
+        link_marker: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -83,7 +84,7 @@ Visualization Manager:
       Marker Topic: search_space
       Name: search_space
       Namespaces:
-        {}
+        point_marker: true
       Queue Size: 2000
       Value: true
     - Class: rviz/Marker
@@ -91,7 +92,7 @@ Visualization Manager:
       Marker Topic: connections
       Name: connections_at_end
       Namespaces:
-        {}
+        link_marker: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -124,6 +125,14 @@ Visualization Manager:
       Name: test_point
       Namespaces:
         point_marker: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: debug
+      Name: conn_debug
+      Namespaces:
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -259,22 +268,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 87.7829
+      Distance: 87.8818
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -4.35149
-        Y: 7.24481
-        Z: -4.52043
+        X: -16.8442
+        Y: 9.28928
+        Z: -6.26702
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.454797
+      Pitch: 0.474797
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.33274
+      Yaw: 5.52773
     Saved: ~
 Window Geometry:
   Displays:

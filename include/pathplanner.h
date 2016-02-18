@@ -27,6 +27,7 @@
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/AABB_tree.h>
 #include <CGAL/AABB_traits.h>
+#include <CGAL/Segment_3.h>
 #include <CGAL/AABB_triangle_primitive.h>
 #include "fcl/shape/geometric_shapes.h"
 #include "fcl/narrowphase/narrowphase.h"
@@ -59,6 +60,7 @@ typedef K::FT FT;
 typedef K::Ray_3 Ray;
 typedef K::Line_3 Line1;
 typedef K::Point_3 Point;
+typedef K::Segment_3 Segment;
 typedef K::Triangle_3 CGALTriangle;
 typedef std::list<CGALTriangle>::iterator Iterator;
 typedef CGAL::AABB_triangle_primitive<K, Iterator> Primitive;
