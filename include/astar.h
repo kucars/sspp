@@ -79,7 +79,9 @@ public:
     LList *openList,*closedList;
     vector <Tree> tree;
     void displayTree();
-    visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration);
+//    visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration);
+    visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration, double scale);
+
     visualization_msgs::Marker drawPoints(std::vector<geometry_msgs::Point> points, int c_color, int duration);
     void setSocialReward(QHash<QString, int>*);
     void freeNode     (Node *);

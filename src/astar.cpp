@@ -120,12 +120,12 @@ void Astar::displayTree()
 
         }
     }
-    visualization_msgs::Marker linesList = drawLines(lineSegments,1000000,2,100000000);
+    visualization_msgs::Marker linesList = drawLines(lineSegments,1000000,2,100000000,0.08);
     treePub.publish(linesList);
 }
 
 
-visualization_msgs::Marker Astar::drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration)
+visualization_msgs::Marker Astar::drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration, double scale)
 {
     visualization_msgs::Marker linksMarkerMsg;
     linksMarkerMsg.header.frame_id="map";
@@ -133,7 +133,7 @@ visualization_msgs::Marker Astar::drawLines(std::vector<geometry_msgs::Point> li
     linksMarkerMsg.ns="link_marker1";
     linksMarkerMsg.id = id;
     linksMarkerMsg.type = visualization_msgs::Marker::LINE_LIST;
-    linksMarkerMsg.scale.x = 0.08;
+    linksMarkerMsg.scale.x = scale;//0.08;
     linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
     linksMarkerMsg.lifetime  = ros::Duration(duration);
     std_msgs::ColorRGBA color;
@@ -478,7 +478,7 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
         }
         // insert the children into the OPEN list according to their f values
         ros::Time childrentest_begin = ros::Time::now();
-
+        std::cout<<"new children SET >>>>>>>>>>>>>\n\n\n";
         while (childList != NULL)
         {
             ros::Time childtest_begin = ros::Time::now();
@@ -508,13 +508,13 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
 //            std::cout<<"Parent cloud size: "<<collective_cloud.size()<<"\n";
 //            std::cout<<"child cloud size: "<<temp_cloud.size()<<"\n";
             collective_cloud +=temp_cloud;
-//            std::cout<<"collective cloud size: "<<collective_cloud.size()<<"\n";
+            std::cout<<"collective cloud size: "<<collective_cloud.size()<<"\n";
             tempCloud->points = collective_cloud.points;
             pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
             voxelgrid.setInputCloud (tempCloud);
             voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
             voxelgrid.filter (*curChild->cloud_filtered);
-//            std::cout<<"\nchild collective cloud after filtering size: "<<curChild->cloud_filtered->size()<<"\n";
+            std::cout<<"\nchild collective cloud after filtering size: "<<curChild->cloud_filtered->size()<<"\n";
             curChild->coverage = obj->calcCoveragePercent(curChild->cloud_filtered);
             curChild->distance = curChild->parent->distance + Dist(curChild->pose.p,curChild->parent->pose.p);
 
@@ -729,8 +729,8 @@ bool Astar::surfaceCoverageReached (Node *n)// newly added
         int coveI = (int)n->coverage;
 
         //########display FOV##########
-//        if (coveI != 0 && globalcount%10==0)
-//            obj->visualizeFOV(n->senPose.p);
+        if (coveI != 0 && globalcount%10==0)
+            obj->visualizeFOV(n->senPose.p);
 
         //########display the path every 5% coverage########
         if (debug == true)
@@ -783,7 +783,7 @@ bool Astar::surfaceCoverageReached (Node *n)// newly added
             }
 
             path_file.close();
-            visualization_msgs::Marker linesList = drawLines(lines,333333,1,1000000000);
+            visualization_msgs::Marker linesList = drawLines(lines,333333,1,1000000000,0.2);
             pathPub.publish(linesList);
         }
         return false;

@@ -164,10 +164,11 @@ int main( int argc, char **  argv)
 //    bool negate = false;
 //    Pose start(0.0,1.0,-37,DTOR(-127.304)),end(-4.0,1.0,-19,DTOR(140.194));
 //    Pose start(0.0,37.0,18,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));start is at the tail
-    Pose start(4.0,-30.0,15,DTOR(0.0));//start is at the front of the plane
+//    Pose start(4.0,-30.0,15,DTOR(0.0));//start is at the front of the plane
+    Pose start(3.0,-34.0,10,DTOR(0.0));//start is at the front of the plane
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
-    double distanceToGoal = 0.1,regGridConRad=3, coverageTolerance=1.00, targetCov=5;
+    double distanceToGoal = 0.1,regGridConRad=2.5, coverageTolerance=1.00, targetCov=10;
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
     pathPlanner = new PathPlanner(n,robot,distanceToGoal,coverageTolerance,regGridConRad);
@@ -294,6 +295,12 @@ int main( int argc, char **  argv)
     std::cout<<"distance calculated from the path = "<<dist<<" \n";
     std::cout<<"covered cloud filtered (s) = "<<pathPlanner->covFilteredCloud->size()<<"\n";
     std::cout<<"original cloud filtered (s) = "<<obj.filtered_cloud->size()<<"\n";
+
+    pathPlanner->covFilteredCloud->width = pathPlanner->covFilteredCloud->points.size();
+    pathPlanner->covFilteredCloud->height = 1;
+    pcl::PCDWriter writer,writer1;
+//    writer.write<pcl::PointXYZRGB> (path+"/src/pcd/trial.pcd", *(tempCloud2), false);
+    writer1.write<pcl::PointXYZ> (path+"/resources/3_5percent.pcd", *(pathPlanner->covFilteredCloud), false);
     while (ros::ok())
     {
         sensor_msgs::PointCloud2 cloud1;

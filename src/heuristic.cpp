@@ -173,6 +173,7 @@ double SCwithOrientationHeuristic::hCost(Node *n)
 
     d= Dist(n->pose.p,n->parent->pose.p);
     c= n->coverage - n->parent->coverage; //extra coverage
+    std::cout<<"parent coverage :"<<n->parent->coverage<<" current node coverage: "<<n->coverage<<"\n";
 
     if(H_debug == true)
     {

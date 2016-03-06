@@ -392,7 +392,7 @@ void PathPlanner::connectNodes()
                         pt.y = S->location.position.y;
                         pt.z = S->location.position.z;
                         lineSegments3.push_back(pt);
-                        visualization_msgs::Marker linesLists = drawLines(lineSegments3,i,2,100000000);
+                        visualization_msgs::Marker linesLists = drawLines(lineSegments3,i,2,100000000,0.08);
                         connectionDebugPub.publish(linesLists);
                         lineSegments3.pop_back();lineSegments3.pop_back();
                         i++;
@@ -468,7 +468,7 @@ void PathPlanner::showConnections()
         temp = temp->next;
         n++;
     }
-    visualization_msgs::Marker linesList = drawLines(lineSegments1,2000000,3,100000000);
+    visualization_msgs::Marker linesList = drawLines(lineSegments1,2000000,3,100000000,0.08);
     connectionPub.publish(linesList);
     std::cout<<"\n"<<QString("\n---->>> TOTAL NUMBER OF CONNECTIONS =%1\n---->>> Total Nodes in search Space =%2").arg(m).arg(n).toStdString();
     this->MAXNODES = 2*m;
