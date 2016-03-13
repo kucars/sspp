@@ -45,33 +45,6 @@ Heuristic *  Heuristic::factory(QString type, bool debug) throw(SSPPException)
     throw (SSPPException((char*)"Bad Heuristic Type"));
 }
 
-Heuristic *  Heuristic::factory(QString type,QHash<QString, int> *soRe) throw(SSPPException)
-{
-    if (type == "Social")
-    {
-        std::cout<<"\nUsing Social Heuristic";
-        return new SocialHeuristic(soRe);
-    }
-    throw (SSPPException((char*)"Bad Heuristic Type"));
-}
-
-double SocialHeuristic::gCost(Node *n)
-{
-    return 0;
-}
-
-double SocialHeuristic::hCost(Node *n,Node * end)
-{
-    double cost=0,h=0,g=0;
-    if(n == NULL || n->parent==NULL)
-        return 0.0;
-    // Using the Euclidean distance
-    h = Dist(end->pose.p,n->pose.p);
-    g = n->parent->g_value + Dist(n->pose.p,n->parent->pose.p);
-    cost =  h + g;
-    cost -= this->socialRewards->value(QString("%1-%2-%3").arg(n->parent->id).arg(n->id).arg(end->id));
-    return cost;
-}
 
 double DistanceHeuristic::gCost(Node *n)
 {
@@ -173,7 +146,7 @@ double SCwithOrientationHeuristic::hCost(Node *n)
 
     d= Dist(n->pose.p,n->parent->pose.p);
     c= n->coverage - n->parent->coverage; //extra coverage
-    std::cout<<"parent coverage :"<<n->parent->coverage<<" current node coverage: "<<n->coverage<<"\n";
+//    std::cout<<"parent coverage :"<<n->parent->coverage<<" current node coverage: "<<n->coverage<<"\n";
 
     if(H_debug == true)
     {

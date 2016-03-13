@@ -27,7 +27,6 @@ Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG, double cT,QString heurist
     nh(n),
     distGoal(dG),
     covTolerance(cT),
-    map(NULL),
     robot(rob),
     root(NULL),
     test(NULL),
@@ -38,18 +37,17 @@ Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG, double cT,QString heurist
     globalcount(0),
     debug(false)
 {
-   // if (heuristicT == "Distance")
-    //{
-        try
-        {
-            heuristic = Heuristic::factory(heuristicT,debug);
-        }
-        catch(SSPPException e)
-        {
-            cout<<e.what()<<endl;
-        }
-    //}
-    orientation2Goal = DTOR(60);
+
+    try
+    {
+        heuristic = Heuristic::factory(heuristicT,debug);
+    }
+    catch(SSPPException e)
+    {
+        cout<<e.what()<<endl;
+    }
+
+    orientation2Goal = DTOR(60);//for distance hueristic
     obj = new OcclusionCulling(nh, "etihad_nowheels_densed.pcd");
     covFilteredCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 
@@ -59,7 +57,6 @@ Astar::Astar():
     distGoal(0.01),
     covTolerance(0.05),
     heuristic(NULL),
-    map(NULL),
     root(NULL),
     test(NULL),
     path(NULL),
@@ -77,8 +74,8 @@ Astar::Astar():
     {
         cout<<e.what()<<endl;
     }
-    distGoal = 1;
-    orientation2Goal = DTOR(180);
+    distGoal = 1;//for distance hueristic
+    orientation2Goal = DTOR(180);//for distance hueristic
     obj = new OcclusionCulling("etihad_nowheels_densed.pcd");
     covFilteredCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 
@@ -168,17 +165,6 @@ visualization_msgs::Marker Astar::drawLines(std::vector<geometry_msgs::Point> li
     return linksMarkerMsg;
 }
 
-void  Astar::setSocialReward(QHash<QString, int>* soRew)
-{
-    try
-    {
-        heuristic = Heuristic::factory("Social",soRew);
-    }
-    catch(SSPPException e)
-    {
-        std::cout<<"\nCritical:"<<e.what();
-    }
-}
 
 visualization_msgs::Marker Astar::drawPoints(std::vector<geometry_msgs::Point> points, int c_color, int duration)
 {
@@ -223,27 +209,7 @@ visualization_msgs::Marker Astar::drawPoints(std::vector<geometry_msgs::Point> p
     }
    return pointMarkerMsg;
 }
-// Tests for whether a node is in an obstacle or not
-//int Astar::inObstacle(geometry_msgs::Pose P, double theta)
-//{
-//    int m,n;
-//    geometry_msgs::Pose det_point;
-//    // Rotates and Translates the check points according to the vehicle position and orientation
-//    for (int i=0;i<robot->check_points.size();i++)
-//    {
-//        det_point.position.x = robot->check_points[i].x()*cos(theta) - robot->check_points[i].y()*sin(theta) + P.position.x;
-//        det_point.position.y = robot->check_points[i].x()*sin(theta) + robot->check_points[i].y()*cos(theta) + P.position.y;
 
-//        map->convert2Pix(&det_point);
-//        m = (int)(round(det_point.position.x));
-//        n = (int)(round(det_point.position.y));
-//        if (m <= 0 || n <= 0 || m >=map->width || n >=this->map->height)
-//            return 1;
-//        if (this->map->grid[m][n])
-//            return 1;
-//    }
-//    return 0;
-//};
 // find the nearest node to the start
 void Astar::findRoot() throw (SSPPException)
 {
@@ -312,49 +278,6 @@ void Astar::findRoot() throw (SSPPException)
     std::cout<<"\n"<<QString("	---->>>Root is Set to be X=%1 Y=%2 Z=%3").arg(root->pose.p.position.x).arg(root->pose.p.position.y).arg(root->pose.p.position.z).toStdString();
 }
 
-// find the nearest node to the end //not used when surface coverage heuristic is used
-void Astar::findDest() throw (SSPPException)
-{
-    SearchSpaceNode * temp;
-    if(!this->search_space)
-    {
-        throw(SSPPException((char*)"No SearchSpace Defined"));
-        return;
-    }
-    double distance,shortest_distance = 100000;
-    // allocate and setup the root node
-    dest = new Node;
-    temp = this->search_space;
-    while(temp!=NULL)
-    {
-        distance = Dist(temp->location,end.p);
-        // Initialize the root node information and put it in the open list
-        if (distance < shortest_distance)
-        {
-            shortest_distance = distance;
-            dest->pose.p.position.x = temp->location.position.x;
-            dest->pose.p.position.y = temp->location.position.y;
-            dest->pose.p.position.z = temp->location.position.z;//newly added
-            dest->pose.p.orientation.x = temp->location.orientation.x;
-            dest->pose.p.orientation.y = temp->location.orientation.y;
-            dest->pose.p.orientation.z = temp->location.orientation.z;
-            dest->pose.p.orientation.w = temp->location.orientation.w;
-
-            dest->id = temp->id;
-        }
-        temp = temp->next;
-    }
-    dest->parent = NULL;
-    dest->next = NULL;
-    dest->prev = NULL;
-    dest->g_value = 0;;
-    dest->h_value = 0;
-    dest->f_value = 0;
-    dest->depth = 0;
-//    dest->pose.phi = end.phi;
-//    dest->direction = FORWARD;
-    //Translate(root->pose,start.phi);
-}
 
 void Astar::setRobot(Robot*rob)
 {
@@ -384,11 +307,7 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
         //        LOG(Logger::Warning,"Read the map and generate SearchSpace before Searching !!!")
         return NULL;
     }
-    if(coord == PIXEL)
-    {
-        map->convertPix(&start.p);
-        map->convertPix(&end.p);
-    }
+
     this->start.p.position.x = start.p.position.x;
     this->start.p.position.y = start.p.position.y;
     this->start.p.position.z = start.p.position.z;
@@ -398,19 +317,10 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
     this->start.p.orientation.w = start.p.orientation.w;
 
     this->targetCov = targetCov;
-//    this->start.phi = start.phi;
-//    this->end.p.position.x = end.p.position.x;
-//    this->end.p.position.y = end.p.position.y;
-//    this->end.p.position.z = end.p.position.z;
-//    this->end.p.orientation.x = end.p.orientation.x;
-//    this->end.p.orientation.y = end.p.orientation.y;
-//    this->end.p.orientation.z = end.p.orientation.z;
-//    this->end.p.orientation.w = end.p.orientation.w;
 
-//    this->end.phi = end.phi;
     std::cout<<"\n	--->>> Search Started <<<---";
     findRoot();
-//    findDest();
+
 //    std::cout<<"\n"<<QString("	---->>>Target is Set to be X=%1 Y=%2 Z=%3<<<---").arg(end.p.position.x).arg(end.p.position.y).arg(end.p.position.z).toStdString();
     openList->add(root);				// add the root to OpenList
     // while openList is not empty
@@ -426,6 +336,7 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
         openList->next();				// Move to the next Node
         NodesExpanded++;
         // We reached the target pose, so build the path and return it.
+        ros::Time reached_check_begin = ros::Time::now();
         if (surfaceCoverageReached(current) && current!= root)//change goalReached to surfaceCoverageReached
         {
             // build the complete path to return
@@ -471,14 +382,20 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             closedList->free();
             return path;
         }
+        ros::Time reached_check_end = ros::Time::now();
+        double check_elapsed =  reached_check_end.toSec() - reached_check_begin.toSec();
+        std::cout<<"surface coverage check duration: "<< check_elapsed <<"\n";
         // Create List of Children for the current NODE
         if(!(childList = makeChildrenNodes(current))) // No more Children => Search Ended Unsuccessfully at this path Branch
         {
             std::cout<<"\n	--->>> Search Ended On this Branch / We Reached a DEAD END <<<---";
         }
+        ros::Time make_children_end = ros::Time::now();
+        double make_elapsed =  make_children_end.toSec() - reached_check_end.toSec();
+        std::cout<<"make children duration: "<< make_elapsed <<"\n";
         // insert the children into the OPEN list according to their f values
         ros::Time childrentest_begin = ros::Time::now();
-        std::cout<<"new children SET >>>>>>>>>>>>>\n\n\n";
+        std::cout<<" <<<<<<<<<<<<<<<<<<<<<<<<<<<< new children SET >>>>>>>>>>>>>\n";
         while (childList != NULL)
         {
             ros::Time childtest_begin = ros::Time::now();
@@ -492,37 +409,55 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
             curChild->next = NULL;
             curChild->prev = NULL;
             //************displaying the tested child point***********
-            std::vector<geometry_msgs::Point> pts;
-            geometry_msgs::Point pt;
-            pt.x = curChild->pose.p.position.x; pt.y = curChild->pose.p.position.y; pt.z = curChild->pose.p.position.z;
-            pts.push_back(pt);
-            visualization_msgs::Marker ptsList = drawPoints(pts,2,1000000000);
-            testPointPub.publish(ptsList);
+//            std::vector<geometry_msgs::Point> pts;
+//            geometry_msgs::Point pt;
+//            pt.x = curChild->pose.p.position.x; pt.y = curChild->pose.p.position.y; pt.z = curChild->pose.p.position.z;
+//            pts.push_back(pt);
+//            visualization_msgs::Marker ptsList = drawPoints(pts,2,1000000000);
+//            testPointPub.publish(ptsList);
 
 
             //************voxelgrid***********
+            ros::Time all_begin = ros::Time::now();
             pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
             pcl::PointCloud<pcl::PointXYZ> temp_cloud, collective_cloud;
+            ros::Time extract_begin = ros::Time::now();
             temp_cloud = obj->extractVisibleSurface(curChild->senPose.p);
+            ros::Time extract_end = ros::Time::now();
+            double extract_elapsed =  extract_end.toSec() - extract_begin.toSec();
+            std::cout<<"Extract visible surface duration: "<< extract_elapsed <<"\n";
+
             collective_cloud.points = curChild->parent->cloud_filtered->points;
 //            std::cout<<"Parent cloud size: "<<collective_cloud.size()<<"\n";
 //            std::cout<<"child cloud size: "<<temp_cloud.size()<<"\n";
             collective_cloud +=temp_cloud;
-            std::cout<<"collective cloud size: "<<collective_cloud.size()<<"\n";
+//            std::cout<<"collective cloud size: "<<collective_cloud.size()<<"\n";
             tempCloud->points = collective_cloud.points;
+
+            ros::Time filtering_begin = ros::Time::now();
             pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
             voxelgrid.setInputCloud (tempCloud);
             voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
             voxelgrid.filter (*curChild->cloud_filtered);
-            std::cout<<"\nchild collective cloud after filtering size: "<<curChild->cloud_filtered->size()<<"\n";
+            ros::Time filtering_end = ros::Time::now();
+            double filtering_elapsed =  filtering_end.toSec() - filtering_begin.toSec();
+            std::cout<<"filtering duration: "<< filtering_elapsed <<"\n";
+//            std::cout<<"\nchild collective cloud after filtering size: "<<curChild->cloud_filtered->size()<<"\n";
+            ros::Time calc_begin = ros::Time::now();
             curChild->coverage = obj->calcCoveragePercent(curChild->cloud_filtered);
+            ros::Time calc_end = ros::Time::now();
+            double calc_elapsed =  calc_end.toSec() - calc_begin.toSec();
+            std::cout<<"calculate percentage duration: "<< calc_elapsed <<"\n";
+            ros::Time all_end = ros::Time::now();
+            double all_elapsed =  all_end.toSec() - all_begin.toSec();
+            std::cout<<"all the part duration: "<< all_elapsed <<"\n\n";
+
             curChild->distance = curChild->parent->distance + Dist(curChild->pose.p,curChild->parent->pose.p);
-
-
-
-            curChild->g_value = heuristic->gCost(curChild);
+//            curChild->g_value = heuristic->gCost(curChild);
             curChild->h_value = heuristic->hCost(curChild);
             curChild->f_value = curChild->h_value;//curChild->g_value + curChild->h_value;
+
+
             Node * p;
 
             // check if the child is already in the open list
@@ -636,8 +571,8 @@ Node *  Astar::startSearch(Pose start,double targetCov, int coord)
         ros::Time childrentest_end = ros::Time::now();
         double childrentest_elapsed =  childrentest_end.toSec() - childrentest_begin.toSec();
 
-        if (debug == true)
-            std::cout<<"****Children Test duration (s) of node "<<current->id<<"= "<<childrentest_elapsed<<"****\n";
+//        if (debug == true)
+            std::cout<<"****Children Test duration (s) of node "<<current->id<<"= "<<childrentest_elapsed<<"****\n\n\n";
 
         ros::Time search_end = ros::Time::now();
         double current_elapsed1 =  search_end.toSec() - search_begin.toSec();
@@ -709,83 +644,83 @@ bool Astar::surfaceCoverageReached (Node *n)// newly added
         return true;
     else
     {
-        //########display the covered points##########
-        sensor_msgs::PointCloud2 cloud1;
-        pcl::toROSMsg(*(n->cloud_filtered), cloud1);
-        cloud1.header.frame_id = "map";
-        cloud1.header.stamp = ros::Time::now();
-        coveredPointsPub.publish(cloud1);
+//        //########display the covered points##########
+//        sensor_msgs::PointCloud2 cloud1;
+//        pcl::toROSMsg(*(n->cloud_filtered), cloud1);
+//        cloud1.header.frame_id = "map";
+//        cloud1.header.stamp = ros::Time::now();
+//        coveredPointsPub.publish(cloud1);
 
 
-        //########display the point selected##########
-        std::vector<geometry_msgs::Point> points;
-        geometry_msgs::Point linept;
-        linept.x = n->pose.p.position.x; linept.y = n->pose.p.position.y; linept.z = n->pose.p.position.z;
-        points.push_back(linept);
-        visualization_msgs::Marker pointsList = drawPoints(points,1,1000000000);
-        pathPointPub.publish(pointsList);
+//        //########display the point selected##########
+////        std::vector<geometry_msgs::Point> points;
+////        geometry_msgs::Point linept;
+////        linept.x = n->pose.p.position.x; linept.y = n->pose.p.position.y; linept.z = n->pose.p.position.z;
+////        points.push_back(linept);
+////        visualization_msgs::Marker pointsList = drawPoints(points,1,1000000000);
+////        pathPointPub.publish(pointsList);
 
 
-        int coveI = (int)n->coverage;
+//        int coveI = (int)n->coverage;
 
-        //########display FOV##########
-        if (coveI != 0 && globalcount%10==0)
-            obj->visualizeFOV(n->senPose.p);
+//        //########display FOV##########
+////        if (coveI != 0 && globalcount%10==0)
+////            obj->visualizeFOV(n->senPose.p);
 
-        //########display the path every 5% coverage########
-        if (debug == true)
-            std::cout<<"\n\n\n\n**********************COVERAGE delta:" <<coveI<<"\n\n\n\n";
-        if ( coveI%1==0)
-        {
-            if (debug == true)
-                std::cout<<"INSIDE PUBLISHING"<<"\n";
-            Node *p_test, *test_path;
-            p_test=n;
-            test_path = NULL;
-            while (p_test != NULL)
-            {
-                // remove the parent node from the closed list (where it has to be)
-                if(p_test->prev != NULL)
-                    (p_test->prev)->next = p_test->next;
-                if(p_test->next != NULL)
-                    (p_test->next)->prev = p_test->prev;
-                // check if we're removing the top of the list
-                if(p_test == closedList->Start)
-                    closedList->next();
-                // set it up in the path
-                p_test->next = test_path;
-                test_path = p_test;
-                p_test = p_test->parent;
-            }
-            //     optionally we could print the file each 10%
-            ofstream path_file;
-            std::string path = ros::package::getPath("sspp");
-            std::string fileloc = path+ "/resources/path_testfile.txt";
-            path_file.open(fileloc.c_str());
-            std::vector<geometry_msgs::Point> lines;
-            geometry_msgs::Point linepoint;
-            double yaw;
-            while (test_path != NULL)
-            {
-                tf::Quaternion qt(test_path->pose.p.orientation.x,test_path->pose.p.orientation.y,test_path->pose.p.orientation.z,test_path->pose.p.orientation.w);
-                yaw = tf::getYaw(qt);
-                path_file << test_path->pose.p.position.x<<" "<<test_path->pose.p.position.y<<" "<<test_path->pose.p.position.z<<" "<<yaw<<"\n";
-//                path_file << test_path->pose.p.position.x<<" "<<test_path->pose.p.position.y<<" "<<test_path->pose.p.position.z<<" "<<test_path->pose.p.orientation.x<<" "<<test_path->pose.p.orientation.y<<" "<<test_path->pose.p.orientation.z<<" "<<test_path->pose.p.orientation.w<<"\n";
-                if (test_path->next != NULL)
-                {
-//                    std::cout << test_path->pose.p.position.x<<" "<<test_path->pose.p.position.y<<" "<<test_path->pose.p.position.z<<" "<<test_path->pose.p.orientation.x<<" "<<test_path->pose.p.orientation.y<<" "<<test_path->pose.p.orientation.z<<" "<<test_path->pose.p.orientation.w<<"\n";
-                    linepoint.x = test_path->pose.p.position.x; linepoint.y = test_path->pose.p.position.y; linepoint.z = test_path->pose.p.position.z;
-                    lines.push_back(linepoint);
-                    linepoint.x = test_path->next->pose.p.position.x; linepoint.y = test_path->next->pose.p.position.y; linepoint.z = test_path->next->pose.p.position.z;
-                    lines.push_back(linepoint);
-                }
-                test_path = test_path->next;
-            }
+//        //########display the path every 5% coverage########
+//        if (debug == true)
+//            std::cout<<"\n\n\n\n**********************COVERAGE delta:" <<coveI<<"\n\n\n\n";
+//        if ( coveI%1==0)
+//        {
+//            if (debug == true)
+//                std::cout<<"INSIDE PUBLISHING"<<"\n";
+//            Node *p_test, *test_path;
+//            p_test=n;
+//            test_path = NULL;
+//            while (p_test != NULL)
+//            {
+//                // remove the parent node from the closed list (where it has to be)
+//                if(p_test->prev != NULL)
+//                    (p_test->prev)->next = p_test->next;
+//                if(p_test->next != NULL)
+//                    (p_test->next)->prev = p_test->prev;
+//                // check if we're removing the top of the list
+//                if(p_test == closedList->Start)
+//                    closedList->next();
+//                // set it up in the path
+//                p_test->next = test_path;
+//                test_path = p_test;
+//                p_test = p_test->parent;
+//            }
+//            //     optionally we could print the file each 10%
+//            ofstream path_file;
+//            std::string path = ros::package::getPath("sspp");
+//            std::string fileloc = path+ "/resources/path_testfile.txt";
+//            path_file.open(fileloc.c_str());
+//            std::vector<geometry_msgs::Point> lines;
+//            geometry_msgs::Point linepoint;
+//            double yaw;
+//            while (test_path != NULL)
+//            {
+//                tf::Quaternion qt(test_path->pose.p.orientation.x,test_path->pose.p.orientation.y,test_path->pose.p.orientation.z,test_path->pose.p.orientation.w);
+//                yaw = tf::getYaw(qt);
+//                path_file << test_path->pose.p.position.x<<" "<<test_path->pose.p.position.y<<" "<<test_path->pose.p.position.z<<" "<<yaw<<"\n";
+////                path_file << test_path->pose.p.position.x<<" "<<test_path->pose.p.position.y<<" "<<test_path->pose.p.position.z<<" "<<test_path->pose.p.orientation.x<<" "<<test_path->pose.p.orientation.y<<" "<<test_path->pose.p.orientation.z<<" "<<test_path->pose.p.orientation.w<<"\n";
+//                if (test_path->next != NULL)
+//                {
+////                    std::cout << test_path->pose.p.position.x<<" "<<test_path->pose.p.position.y<<" "<<test_path->pose.p.position.z<<" "<<test_path->pose.p.orientation.x<<" "<<test_path->pose.p.orientation.y<<" "<<test_path->pose.p.orientation.z<<" "<<test_path->pose.p.orientation.w<<"\n";
+//                    linepoint.x = test_path->pose.p.position.x; linepoint.y = test_path->pose.p.position.y; linepoint.z = test_path->pose.p.position.z;
+//                    lines.push_back(linepoint);
+//                    linepoint.x = test_path->next->pose.p.position.x; linepoint.y = test_path->next->pose.p.position.y; linepoint.z = test_path->next->pose.p.position.z;
+//                    lines.push_back(linepoint);
+//                }
+//                test_path = test_path->next;
+//            }
 
-            path_file.close();
-            visualization_msgs::Marker linesList = drawLines(lines,333333,1,1000000000,0.2);
-            pathPub.publish(linesList);
-        }
+//            path_file.close();
+//            visualization_msgs::Marker linesList = drawLines(lines,333333,1,1000000000,0.2);
+//            pathPub.publish(linesList);
+//        }
         return false;
     }
 };
@@ -954,7 +889,7 @@ Node *Astar::makeChildrenNodes(Node *parent)
     // Save the search tree so that it can be displayed later
     if (t.children.size() > 0)
         tree.push_back(t);
-//    std::cout<<" tree size after making children nodes: "<<tree.size()<<"\n";
+    std::cout<<" Making children nodes: "<<t.children.size()<<"\n";
     return q;
 }
 // Free node function

@@ -26,7 +26,6 @@ namespace SSPP
     PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double dG, double cT, double conn_rad):
     nh(n),
     Astar(n,rob,dG,cT,"SurfaceCoveragewithOrientation"),
-    map_initialized(false),
     reg_grid_conn_rad(conn_rad)
 {
     treePub = n.advertise<visualization_msgs::Marker>("search_tree", 10);
@@ -38,7 +37,6 @@ namespace SSPP
     coveredPointsPub = n.advertise<sensor_msgs::PointCloud2>("gradual_coverage", 100);
     connectionDebugPub = n.advertise<visualization_msgs::Marker>("debug", 10);
 
-    planningSteps = 0;
     pathDir = ros::package::getPath("component_test");
     std::string str = pathDir+"/src/mesh/etihad_nowheels.obj";
     loadOBJFile(str.c_str(), p1, triangles);
@@ -58,12 +56,7 @@ void PathPlanner::freeResources()
     freeSearchSpace();
     freePath();
     p=root=test=NULL;
-    /*
-    if(originalMap)
-        delete originalMap;
-    if(Astar::map)
-        delete Astar::map;
-    */
+
 }
 
 void PathPlanner::freePath()
@@ -76,15 +69,6 @@ void PathPlanner::freePath()
     }
 }
 
-unsigned int PathPlanner::getPlanningSteps()
-{
-    return planningSteps;
-}
-
-//void   PathPlanner::setRegGrid(double a)
-//{
-//    regGridRes = a;
-//}
 
 void   PathPlanner::setConRad(double a)
 {
@@ -111,72 +95,6 @@ void   PathPlanner::setConRad(double a)
 //    visualization_msgs::Marker linesList = drawLines(lineSegments1);
 //    childrenPub.publish(linesList);
 //}
-//bool PathPlanner::readSpaceFromFile(const char *filename)
-//{
-//    double locationx,locationy,locationz;
-//    int type;
-//    SearchSpaceNode *temp;
-//    assert(filename != NULL);
-//    filename = strdup(filename);
-//    FILE *file = fopen(filename, "r");
-//    if (!file)
-//    {
-//        std::cout<<"\nCan not open Search Space File";
-//        fclose(file);
-//        return false;
-//    }
-//    // Read metadata line, it's expected to be the first line
-//    // If planning parameters are not the same as the current then we can't read it
-////    double regGridRes_t,
-////            reg_grid_conn_rad_t;
-////    unsigned int planningSteps_t;
-////    fscanf(file,"%lf %lf\n",&regGridRes_t,
-////           &reg_grid_conn_rad_t); //*************************************************************
-////    if(!isEqual(regGridRes_t,regGridRes) || !isEqual(reg_grid_conn_rad_t,reg_grid_conn_rad) || planningSteps_t!=_planningSteps)
-////    {
-////        std::cout<<"\nMetadata Parameters mismatch, can't read search space, try to generate new one";
-////        std::cout<<"\nExpected reg_grid_res:"<<regGridRes<<" found:"<<regGridRes_t;
-////        std::cout<<"\nExpected reg_grid_con:"<<reg_grid_conn_rad<<" found:"<<reg_grid_conn_rad_t;
-////        std::cout<<"\nExpected planningSteps:"<<_planningSteps<<" found:"<<planningSteps_t;
-////        fclose(file);
-////        return false;
-////    }
-//    // overwrite the planning steps to reflect those in the file
-////    planningSteps = _planningSteps;
-//    while (!feof(file))
-//    {
-//        fscanf(file,"%lf %lf %lf\n",&locationx,&locationy,&locationz);
-//        if (search_space == NULL ) // Constructing the ROOT NODE
-//        {
-//            temp = new SearchSpaceNode;
-//            temp->location.position.x = locationx;
-//            temp->location.position.y = locationy;
-//            temp->location.position.z = locationz;
-//            //            temp->obstacle_cost = obstacle_cost;
-//            temp->parent   = NULL;
-//            temp->next     = NULL;
-//            temp->type     = RegGridNode;
-//            search_space = temp;
-//        }
-//        else
-//        {
-//            temp = new SearchSpaceNode;
-//            temp->location.position.x = locationx;
-//            temp->location.position.y = locationy;
-//            temp->location.position.z = locationz;
-//            //            temp->obstacle_cost = obstacle_cost;
-//            temp->parent = NULL;
-//            temp->next   = search_space;
-//            temp->type     = RegGridNode;
-//            search_space = temp;
-//        }
-//    }
-//    fclose(file);
-//    return true;
-
-
-//}
-
 
 
 //***************linked list based search space*************
@@ -263,7 +181,6 @@ void PathPlanner::generateRegularGrid(const char *filename1, const char *filenam
     fclose(file1);
     fclose(file2);
     std::cout<<"\n	--->>> REGULAR GRID GENERATED SUCCESSFULLY <<<---	";
-    planningSteps|=REGULAR_GRID;
 }
 //void   PathPlanner::showSearchSpace()
 //{
@@ -353,20 +270,9 @@ void PathPlanner::connectNodes()
         while (S!=NULL)
         {
             distance = Dist(S->location,temp->location);
-            double testDist;
-//            if(!(S->type==RegGridNode && temp->type==RegGridNode))
-//            {
-//                testDist = bridge_conn_rad;
-//            }
-//            else
-//            {
-                testDist = reg_grid_conn_rad;
-//            }
 
-            if (distance <= testDist && S != temp)// && distance !=0)
+            if (distance <= reg_grid_conn_rad && S != temp)// && distance !=0)
             {
-//                angle = atan2(S->location.position.y - temp->location.position.y ,S->location.position.x - temp->location.position.x);//not used
-
                 //collision check
                 int intersectionsCount=0;
                 Point a(temp->location.position.x , temp->location.position.y ,temp->location.position.z );//parent
@@ -374,10 +280,9 @@ void PathPlanner::connectNodes()
                 if (S->location.position.x != temp->location.position.x || S->location.position.y != temp->location.position.y || S->location.position.z != temp->location.position.z )
                 {
                     Point b(S->location.position.x, S->location.position.y, S->location.position.z);//child
-                    Line1 line_query(a,b);
                     Segment seg_query(a,b);
                     intersectionsCount = tree_cgal->number_of_intersected_primitives(seg_query);
-                    std::cout << "intersections: "<<intersectionsCount<< " intersections(s) with line query" << std::endl;
+//                    std::cout << "intersections: "<<intersectionsCount<< " intersections(s) with line query" << std::endl;
                     if (intersectionsCount==0){
                         temp->children.push_back(S);
                     }else {
@@ -417,27 +322,8 @@ void PathPlanner::connectNodes()
     showConnections();
 
     std::cout<<"\n	--->>> NODES CONNECTED <<<---	";
-    planningSteps|=NODES_CONNECT;
 }
 
-//bool PathPlanner::checkShortestDistance(geometry_msgs::Pose p,double neigbhour_distance)
-//{
-//    SearchSpaceNode * S;
-//    double distance,shortest_distance = 10000000;
-
-//    S = search_space;
-//    while (S!=NULL)
-//    {
-//        distance = sqrt(pow(S->location.position.x - p.position.x,2) + pow(S->location.position.y - p.position.y,2) + pow(S->location.position.z - p.position.z,2));
-//        if (distance <= shortest_distance)
-//            shortest_distance = distance;
-//        S = S->next;
-//    }
-//    if( shortest_distance > neigbhour_distance )
-//        return 1;
-//    else
-//        return 0;
-//}
 
 void PathPlanner::showConnections()
 {
@@ -454,14 +340,12 @@ void PathPlanner::showConnections()
             pt.x = temp->location.position.x;
             pt.y = temp->location.position.y;
             pt.z = temp->location.position.z;
-          //  map->convert2Pix(&loc1);
             lineSegments1.push_back(pt);
 
             loc2 = temp->children[i]->location;
             pt.x = temp->children[i]->location.position.x;
             pt.y = temp->children[i]->location.position.y;
             pt.z = temp->children[i]->location.position.z;
-          //  map->convert2Pix(&loc2);
             lineSegments1.push_back(pt);
             m++;
         }

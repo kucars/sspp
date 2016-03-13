@@ -49,11 +49,6 @@
 #include "fcl/collision_object.h"
 
 using namespace fcl;
-static const unsigned int BRIDGE_TEST       = 1;
-static const unsigned int REGULAR_GRID      = 2;
-static const unsigned int NODES_CONNECT     = 4;
-static const unsigned int OBST_PENALTY      = 8;
-static const unsigned int OBST_EXPAND       = 16;
 
 typedef CGAL::Simple_cartesian<double> K;
 typedef K::FT FT;
@@ -73,14 +68,11 @@ namespace SSPP
     {
     public :
         ros::NodeHandle nh;
-        bool map_initialized;
-        double  obstacle_expansion_radius,bridge_length,bridge_res,
-                reg_grid_conn_rad,obst_penalry_radius,bridge_conn_rad;
+        double  reg_grid_conn_rad;
     public :
         unsigned int getPlanningSteps();
 
         void   setConRad(double);
-        void   setObstDist(double);
         void   freeResources();
         void   printNodeList ();
 
@@ -91,8 +83,6 @@ namespace SSPP
 //        void   displayChildren(SearchSpaceNode *temp);
 
 //	visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
-
-        void   determineCheckPoints();
         void   findRoot();
         void   freePath();
         void   loadOBJFile(const char* filename, std::vector<Vec3f>& points, std::list<CGALTriangle>& triangles);
@@ -101,8 +91,6 @@ namespace SSPP
         PathPlanner(ros::NodeHandle & nh, Robot *,double dG,double cT,double reg_grid_conn_rad);
         ~PathPlanner();
     private:
-        unsigned int planningSteps;
-        bool obstaclesExpanded;
 	ros::Publisher searchSpacePub;
 	std::vector<geometry_msgs::Point> pts;
     std::list<CGALTriangle> triangles;

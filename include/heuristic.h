@@ -40,20 +40,6 @@ public:
     virtual double hCost(Node *)=0;
 //    double hCovCost(Node *n);
     static Heuristic * factory(QString type, bool debug) throw(SSPPException);
-    static Heuristic * factory(QString type,QHash<QString, int> *) throw(SSPPException);
-};
-
-class SocialHeuristic : public Heuristic
-{
-public:
-    QHash<QString, int> *socialRewards;
-    SocialHeuristic(QHash<QString, int> *socRew){this->socialRewards=socRew;}
-    friend class Heuristic;
-public:
-    double gCost(Node *n);
-    double hCost(Node *n, Node * end);
-    double hCost(Node *n){}
-    ~SocialHeuristic(){}
 };
 
 class DistanceHeuristic : public Heuristic

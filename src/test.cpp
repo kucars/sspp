@@ -37,106 +37,8 @@
 #include <component_test/occlusion_culling.h>
 
 using namespace SSPP;
-//Map * provideMapOG(QString name,double res,bool negate,Pose mapPose);
 visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int c_color, float scale);
 visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
-/*
-class PathPlanningThread : public QThread
-{
-    Q_OBJECT
-public:
-    PathPlanningThread(){}
-    ~PathPlanningThread(){}
-    virtual void run()
-    {
-        QString result;
-        PathPlanner * pathPlanner;
-        bool negate = false;
-        Pose start(12.9,1.3,0,DTOR(-127.304)),end(-6.6,7.4,0,DTOR(140.194));
-        double robotH=0.9,robotW=0.5,narrowestPath=0.987,mapRes= 0.05;
-        double distanceToGoal = 0.4,bridgeLen=2.5,bridgeRes=0.1,regGridLen=0.2,regGridConRad=0.4,obstPenalty=3.0,bridgeConRad=0.7;
-        QPointF robotCenter(-0.3f,0.0f);
-        Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
-        Map   *map  = provideMapOG("casarea_s.png",mapRes,negate,Pose(0,0,0,0));
-        PathPlanner * pathPlanner = new PathPlanner(robot,distanceToGoal,bridgeLen,bridgeRes,regGridLen,regGridConRad,obstPenalty,bridgeConRad);;
-        QTime timer;
-        const char * filename = "SearchSpace.txt";
-        pathPlanner->setMap(map);
-        pathPlanner->expandObstacles();
-        pathPlanner->generateRegularGrid();
-        pathPlanner->bridgeTest();
-        pathPlanner->addCostToNodes();
-        pathPlanner->connectNodes();
-        pathPlanner->saveSpace2File(filename);
-
-        std::cout<<"\nSpace Generation took:"<<timer.elapsed()/double(1000.00)<<" secs";
-        pathPlanner->showConnections();
-
-        timer.restart();
-        Node * retval = pathPlanner->startSearch(start,end,METRIC);
-        std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
-        if(retval)
-        {
-            pathPlanner->printNodeList();
-        }
-        else
-        {
-            std::cout<<"\nNo Path Found";
-        }
-        delete robot;
-        delete map;
-        delete pathPlanner;
-        emit resultReady(result);
-    }
-signals:
-    void resultReady(const QString &s)
-    {
-
-    }
-};
-*/
-//Map * provideMapOG(QString name,double res,bool negate,Pose mapPose)
-//{
-//    QImage image;
-//    if(!image.load(name, 0))
-//    {
-//        std::cout<<"\nError Loading Image";
-//        exit(1);
-//    }
-//    Map * retval;
-//    QPointF center(image.width()/2.0,image.height()/2.0);
-//    retval = new Map(image.width(),image.height(),res,center,mapPose);
-//    long int count=0;
-//    for(int i=0;i<image.width();i++)
-//    {
-//        QRgb color;
-//        for(int j=0;j<image.height();j++)
-//        {
-//            color = image.pixel(i,j);
-//            double color_ratio = (qRed(color) + qGreen(color) + qBlue(color))/(3.0*255.0);
-//            if(!negate)
-//            {
-//                // White color(255) is Free and Black(0) is Occupied
-//                if (  color_ratio > 0.9)
-//                    retval->grid[i][j]= false;
-//                else
-//                {
-//                    retval->grid[i][j]= true;
-//                    count++;
-//                }
-//            }
-//            else
-//            {
-//                // White color(255) is Occupied and Black(0) is Free
-//                if ( color_ratio < 0.1)
-//                    retval->grid[i][j]= false;
-//                else
-//                    retval->grid[i][j]= true;
-//            }
-//        }
-//    }
-//    return retval;
-//}
 
 int main( int argc, char **  argv)
 {
@@ -168,7 +70,7 @@ int main( int argc, char **  argv)
     Pose start(3.0,-34.0,10,DTOR(0.0));//start is at the front of the plane
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
-    double distanceToGoal = 0.1,regGridConRad=2.5, coverageTolerance=1.00, targetCov=10;
+    double distanceToGoal = 0.1,regGridConRad=2.5, coverageTolerance=1.00, targetCov=5;
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
     pathPlanner = new PathPlanner(n,robot,distanceToGoal,coverageTolerance,regGridConRad);

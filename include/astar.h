@@ -67,7 +67,6 @@ public:
     double covTolerance;
     double orientation2Goal;
     Heuristic *heuristic;
-    Map    * map;
     bool debug;
     OcclusionCulling* obj;
     pcl::PointCloud<pcl::PointXYZ>::Ptr covFilteredCloud;
@@ -79,13 +78,10 @@ public:
     LList *openList,*closedList;
     vector <Tree> tree;
     void displayTree();
-//    visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration);
-    visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration, double scale);
 
+    visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration, double scale);
     visualization_msgs::Marker drawPoints(std::vector<geometry_msgs::Point> points, int c_color, int duration);
-    void setSocialReward(QHash<QString, int>*);
     void freeNode     (Node *);
-//     int  inObstacle   (geometry_msgs::Pose p, double angle);
     bool goalReached  (Node *n);
     bool surfaceCoverageReached (Node *n);// newly added
 //    Node*  startSearch  (Pose start,Pose end,int);
