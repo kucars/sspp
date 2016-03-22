@@ -34,6 +34,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <component_test/occlusion_culling_gpu.h>
 #include <component_test/occlusion_culling.h>
 
 using namespace SSPP;
@@ -55,7 +56,7 @@ int main( int argc, char **  argv)
     PathPlanner * pathPlanner;
 
     //test
-    OcclusionCulling obj(n, "etihad_nowheels_densed.pcd");
+    OcclusionCullingGPU obj(n, "etihad_nowheels_densed.pcd");
 
     //display the aircraft point cloud
 //    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);

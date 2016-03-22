@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
 #find_package(component_test REQUIRED)
 find_package( CGAL QUIET COMPONENTS  )
 find_package(fcl REQUIRED)
+find_package(CUDA REQUIRED)
 
 include(FindPkgConfig)
   
@@ -26,6 +27,7 @@ catkin_package(CATKIN_DEPENDS component_test)
 include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${component_test_INCLUDE_DIRS}
+  /usr/local/cuda/include/
 )
 
 pkg_check_modules(PLAYER REQUIRED playercore playerc++ playerc)
@@ -77,4 +79,5 @@ target_link_libraries( ssppTest SSPathPlanner
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
     ${component_test_LIBRARIES}
+    occlusion_culling_gpu
     )

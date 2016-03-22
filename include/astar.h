@@ -68,7 +68,7 @@ public:
     double orientation2Goal;
     Heuristic *heuristic;
     bool debug;
-    OcclusionCulling* obj;
+    OcclusionCullingGPU* obj;
     pcl::PointCloud<pcl::PointXYZ>::Ptr covFilteredCloud;
     Pose start,end;
     double targetCov;

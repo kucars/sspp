@@ -48,7 +48,7 @@ Astar::Astar(ros::NodeHandle & n,Robot *rob,double dG, double cT,QString heurist
     }
 
     orientation2Goal = DTOR(60);//for distance hueristic
-    obj = new OcclusionCulling(nh, "etihad_nowheels_densed.pcd");
+    obj = new OcclusionCullingGPU(nh, "etihad_nowheels_densed.pcd");
     covFilteredCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 
 }
@@ -76,7 +76,7 @@ Astar::Astar():
     }
     distGoal = 1;//for distance hueristic
     orientation2Goal = DTOR(180);//for distance hueristic
-    obj = new OcclusionCulling("etihad_nowheels_densed.pcd");
+    obj = new OcclusionCullingGPU("etihad_nowheels_densed.pcd");
     covFilteredCloud = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 
 }

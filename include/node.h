@@ -24,7 +24,8 @@
 #include<QPointF>
 #include "robot.h"
 #include "utils.h"
-#include "component_test/occlusion_culling.h"
+#include "component_test/occlusion_culling_gpu.h"
+#include <component_test/occlusion_culling.h>
 
 namespace SSPP
 {

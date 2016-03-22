@@ -25,7 +25,9 @@
 #include <QHash>
 #include "ssppexception.h"
 #include "node.h"
+#include <component_test/occlusion_culling_gpu.h>
 #include <component_test/occlusion_culling.h>
+
 using namespace std;
 
 namespace SSPP
