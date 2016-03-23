@@ -23,12 +23,44 @@
 
 #include <astar.h>
 #include <QTime>
+#include <stdio.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/AABB_tree.h>
+#include <CGAL/AABB_traits.h>
+#include <CGAL/Segment_3.h>
+#include <CGAL/AABB_triangle_primitive.h>
+#include "fcl/shape/geometric_shapes.h"
+#include "fcl/narrowphase/narrowphase.h"
+#include "fcl/collision.h"
+#include "fcl/ccd/motion.h"
+#include <stdlib.h>
+#include <boost/foreach.hpp>
+#include <Eigen/Eigen>
+#include "fcl/octree.h"
+#include "fcl/traversal/traversal_node_octree.h"
+#include "fcl/broadphase/broadphase.h"
+#include "fcl/shape/geometric_shape_to_BVH_model.h"
+#include "fcl/math/transform.h"
 
-static const unsigned int BRIDGE_TEST       = 1;
-static const unsigned int REGULAR_GRID      = 2;
-static const unsigned int NODES_CONNECT     = 4;
-static const unsigned int OBST_PENALTY      = 8;
-static const unsigned int OBST_EXPAND       = 16;
+#include <boost/filesystem.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/array.hpp>
+#include "fcl/BV/AABB.h"
+#include "fcl/collision_object.h"
+
+using namespace fcl;
+
+typedef CGAL::Simple_cartesian<double> K;
+typedef K::FT FT;
+typedef K::Ray_3 Ray;
+typedef K::Line_3 Line1;
+typedef K::Point_3 Point;
+typedef K::Segment_3 Segment;
+typedef K::Triangle_3 CGALTriangle;
+typedef std::list<CGALTriangle>::iterator Iterator;
+typedef CGAL::AABB_triangle_primitive<K, Iterator> Primitive;
+typedef CGAL::AABB_traits<K, Primitive> AABB_triangle_traits;
+typedef CGAL::AABB_tree<AABB_triangle_traits> Tree1;
 
 namespace SSPP
 {
@@ -36,40 +68,35 @@ namespace SSPP
     {
     public :
         ros::NodeHandle nh;
-        bool map_initialized;
-        double  obstacle_expansion_radius,bridge_length,bridge_res,regGridRes,
-                reg_grid_conn_rad,obst_penalry_radius,bridge_conn_rad;
+        double  reg_grid_conn_rad;
     public :
         unsigned int getPlanningSteps();
-        void   setExpRad(double);
-        void   setBridgeLen(double);
-        void   setBridgeRes(double);
-        void   setRegGrid(double);
+
         void   setConRad(double);
-        void   setObstDist(double);
         void   freeResources();
         void   printNodeList ();
-        void   setMap(Map *); // Reads the map file and sets the attributes
-        void   expandObstacles();
-        void   addCostToNodes();
-        void   bridgeTest();
-        void   generateRegularGrid();
+
+        void   generateRegularGrid(const char *filename1, const char *filename2);
         void   connectNodes();
         void   showConnections();
-        void   saveSearchSpace();
-        void   determineCheckPoints();
+//        void   showSearchSpace();
+//        void   displayChildren(SearchSpaceNode *temp);
+
+//	visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
         void   findRoot();
         void   freePath();
-        void   updateMap(Map *mapPatch);
-        bool   checkShortestDistance(geometry_msgs::Pose p, double neigbhour_pixel_distance);
-        bool   readSpaceFromFile(const char *filename,unsigned _planningSteps);
-        bool   saveSpace2File(const char *filename);
-        PathPlanner(ros::NodeHandle & nh, Robot *,double dG,double bridge_len,double bridge_res,double regGridRes,double reg_grid_conn_rad,double obst_pen,double bridge_conn_rad);
+        void   loadOBJFile(const char* filename, std::vector<Vec3f>& points, std::list<CGALTriangle>& triangles);
+
+//        bool   checkShortestDistance(geometry_msgs::Pose p, double neigbhour_pixel_distance);
+        PathPlanner(ros::NodeHandle & nh, Robot *,double dG,double cT,double reg_grid_conn_rad);
         ~PathPlanner();
     private:
-        unsigned int planningSteps;
-        bool obstaclesExpanded;
-        Map *originalMap;
+	ros::Publisher searchSpacePub;
+	std::vector<geometry_msgs::Point> pts;
+    std::list<CGALTriangle> triangles;
+    std::vector<Vec3f> p1;
+    std::string pathDir;
+    Tree1* tree_cgal;
 };
 
 }

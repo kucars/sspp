@@ -34,10 +34,11 @@ namespace SSPP
 class SearchSpaceNode
 	{
 	public :
-        geometry_msgs::Pose location;
+        geometry_msgs::Pose location;//uavposition TODO: change it later to uavLocation
+        geometry_msgs::Pose sensorLocation;//sensorposition
 		SearchSpaceNode * parent, * next;
 		int type,id;
-		double obstacle_cost;
+// 		double obstacle_cost;
 		QVector <SearchSpaceNode *>  children;
 		 SearchSpaceNode ();
 		~SearchSpaceNode ();

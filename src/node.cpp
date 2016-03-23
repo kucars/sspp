@@ -27,9 +27,13 @@ Node :: Node ():
     nearest_obstacle(0.0),
     g_value(0.0),
     h_value(0.0),
-    f_value(0.0)
+    f_value(0.0),
+    distance(0.0),
+    coverage(0.0)
 {
     parent = next = prev = NULL;
+//    obj = new OcclusionCulling("scaled_desktop.pcd");
+    cloud_filtered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 }
 
 Node :: ~Node ()
@@ -39,12 +43,14 @@ Node :: ~Node ()
 
 bool Node ::operator == (Node a)
 {
-    return ( isEqual(this->pose.p.position.x,a.pose.p.position.x) && isEqual(this->pose.p.position.y,a.pose.p.position.y) && isEqual(this->pose.p.position.z,a.pose.p.position.z));
+    return ( isPositionEqual(this->pose.p.position,a.pose.p.position)  && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation));
 }
 
 bool Node ::operator != (Node a)
 {
-    return ( !isEqual(this->pose.p.position.x,a.pose.p.position.x) || !isEqual(this->pose.p.position.y,a.pose.p.position.y) || !isEqual(this->pose.p.position.z,a.pose.p.position.z));
+//    return ( !isEqual(this->pose.p.position.x,a.pose.p.position.x) || !isEqual(this->pose.p.position.y,a.pose.p.position.y) || !isEqual(this->pose.p.position.z,a.pose.p.position.z));
+    return ( !(isPositionEqual(this->pose.p.position,a.pose.p.position) && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation)));
+
 }
 
 }

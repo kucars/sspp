@@ -24,6 +24,8 @@
 #include<QPointF>
 #include "robot.h"
 #include "utils.h"
+#include "component_test/occlusion_culling_gpu.h"
+#include <component_test/occlusion_culling.h>
 
 namespace SSPP
 {
@@ -36,9 +38,13 @@ class Node
 {
 public :
     int id,depth,direction;
-    double nearest_obstacle,g_value,h_value,f_value;
+    double nearest_obstacle,g_value,h_value,f_value,distance,coverage;
     Node  * parent, * next, * prev;
-    Pose   pose;
+//    pcl::VoxelGridOcclusionEstimationT voxels;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
+//    OcclusionCulling* obj;
+    Pose   pose;//UAV position
+    Pose   senPose;
     Node ();
     bool operator == (Node);
     bool operator != (Node);

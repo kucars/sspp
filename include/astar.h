@@ -58,31 +58,47 @@ private:
     Node  *makeChildrenNodes(Node *parent) ;
     ros::NodeHandle  nh;
 public:
-    Astar(ros::NodeHandle & n,Robot *,double dG, QString heuristicType);
+    Astar(ros::NodeHandle & n,Robot *,double dG, double cT, QString heuristicType);
     Astar();
     void setRobot(Robot *);
     long int MAXNODES;
     QString hType;
     double distGoal;
+    double covTolerance;
     double orientation2Goal;
     Heuristic *heuristic;
-    Map    * map;
+    bool debug;
+    OcclusionCullingGPU* obj;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr covFilteredCloud;
     Pose start,end;
+    double targetCov;
+    int globalcount;
     Robot *robot;
     Node *root, *dest, *current, *childList, *curChild, *q, * test,*path, *p;
     LList *openList,*closedList;
     vector <Tree> tree;
     void displayTree();
-    visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links);
-    void setSocialReward(QHash<QString, int>*);
+
+    visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration, double scale);
+    visualization_msgs::Marker drawPoints(std::vector<geometry_msgs::Point> points, int c_color, int duration);
     void freeNode     (Node *);
-    int  inObstacle   (geometry_msgs::Pose p, double angle);
     bool goalReached  (Node *n);
-    Node*  startSearch  (Pose start,Pose end,int);
+    bool surfaceCoverageReached (Node *n);// newly added
+//    Node*  startSearch  (Pose start,Pose end,int);
+    Node*  startSearch  (Pose start,double targetCov,int);
     virtual ~Astar();
     std::vector<geometry_msgs::Point> lineSegments;
     geometry_msgs::Point linePoint;
     ros::Publisher treePub;
+    ros::Publisher connectionPub;
+    ros::Publisher pathPub;
+    ros::Publisher pathPointPub;
+    ros::Publisher testPointPub;
+    ros::Publisher coveredPointsPub;
+    ros::Publisher connectionDebugPub;
+
+
+
 };
 
 }

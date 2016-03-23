@@ -42,15 +42,18 @@ void LList::prev()
 
 Node * LList::find(Node * q)
 {
+//     std::cout<<"\nI'm in find function\n";
 	Node *p = Start;
 	while (p)
 	{
 		if(*q==*p)
 		{
+//             std::cout<<"Found it\n";
 			return p;
 		}
 		p = p->next;				
 	}
+//     std::cout<<"DID NOT Find it\n";
 	return NULL;
 }
 
@@ -83,14 +86,14 @@ void LList::free()
 
 void LList::add(Node * curChild)
 {
-	Node * p,* q ;
+    Node * p,* q ;
 	p = this->Start;
-	q = p;
-	// now insert the child into the open list according to the f value
+    q = p;
+    // now insert the child into the open list according to the f value
 	while (p) 
-	{
-		// insert before p, sorted ascending
-		if (p->f_value >= curChild->f_value) 	       
+    {
+        // insert before p, sorted descending (cuz a reward function is used) *** it was ascending
+        if (p->f_value < curChild->f_value) //			if (p->f_value >= curChild->f_value)
 		{
 			// test head of the list case
 			if (p == Start)
@@ -104,21 +107,21 @@ void LList::add(Node * curChild)
 		}
 		q = p;
 		p = p->next;
-	}		
-	if (p == NULL)       
-	{
-		if (q != NULL) // insert at the end
-		{
-      		q->next = curChild;
+    }
+    if (p == NULL)
+    {
+        if (q != NULL) // insert at the end
+        {
+            q->next = curChild;
 			curChild->prev = q;
 			curChild->next = NULL;
 		}
 		else	      // insert at the beginning
-		{
-			Start = curChild;
+        {
+            Start = curChild;
 			curChild->prev = NULL;
 		}
-	}			
+    }
 }
 
 bool LList::remove(Node *q)
@@ -150,7 +153,7 @@ void LList::print()
 	p = Start;
 	while(p)
 	{
-        cout<<"\n Node["<<++i<<"] X="<<p->pose.p.position.x<<" Y="<<p->pose.p.position.y<<" Z="<<p->pose.p.position.z;
+        cout<<"\n Node["<<++i<<"] X="<<p->pose.p.position.x<<" Y="<<p->pose.p.position.y<<" Z="<<p->pose.p.position.z<<" F value="<<p->f_value;
 		p = p->next;
 	}
 }
