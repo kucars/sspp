@@ -25,8 +25,6 @@
 #include <ostream>
 #include <cstdio>
 
-//#include "logger.h"
-
 class QObject;
 
 class Map

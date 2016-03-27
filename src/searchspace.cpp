@@ -24,107 +24,85 @@ namespace SSPP
 {
 
 SearchSpace::SearchSpace():
-search_space(NULL)
+    searchspace(NULL),
+    idCount(0)
 {
 }
 
 SearchSpace::~SearchSpace()
 {
     SearchSpaceNode *temp;
-    while (search_space != NULL)
+    while (searchspace != NULL)
     {
-        temp = search_space;
-        search_space = search_space->next;
+        temp = searchspace;
+        searchspace = searchspace->next;
         delete temp;
     }
 }
 
-SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose loc,int id)
+SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose)
 {
-    SearchSpaceNode *temp;
-    if(!(temp=nodeExists(loc)))
-    {
-        if (search_space == NULL ) // Constructing the ROOT NODE
-        {
-            temp = new SearchSpaceNode;
-            temp->location.position.x = loc.position.x;
-            temp->location.position.y = loc.position.y;
-            temp->location.position.z = loc.position.z;
-            temp->location.orientation.x = loc.orientation.x;//newly added
-            temp->location.orientation.y = loc.orientation.y;//newly added
-            temp->location.orientation.z = loc.orientation.z;//newly added
-            temp->location.orientation.w = loc.orientation.w;//newly added
-//            temp->obstacle_cost = 0;
-            temp->parent   	= NULL;
-            temp->next     	= NULL;
-            temp->id 	= id;
-            search_space 	= temp;
-        }
-        else
-        {
-            temp = new SearchSpaceNode;
-            temp->location.position.x = loc.position.x;
-            temp->location.position.y = loc.position.y;
-            temp->location.position.z = loc.position.z;
-            temp->location.orientation.x = loc.orientation.x;//newly added
-            temp->location.orientation.y = loc.orientation.y;//newly added
-            temp->location.orientation.z = loc.orientation.z;//newly added
-            temp->location.orientation.w = loc.orientation.w;//newly added
-//            temp->obstacle_cost = 0;
-            temp->parent 	= NULL;
-            temp->next   	= search_space;
-            temp->id 	= id;
-            search_space 	= temp;
-        }
-    }
-    return temp;
+    geometry_msgs::Pose correspondingSensorPose;
+    correspondingSensorPose.position.x = 0; correspondingSensorPose.position.y = 0; correspondingSensorPose.position.z = 0;
+    correspondingSensorPose.orientation.x = 0; correspondingSensorPose.orientation.y = 0; correspondingSensorPose.orientation.z = 0; correspondingSensorPose.orientation.w = 0;
+    return insertNode(nodePose,correspondingSensorPose,idCount++);
 }
 
-SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose loc)
+SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose,int id)
+{
+    geometry_msgs::Pose correspondingSensorPose;
+    correspondingSensorPose.position.x = 0; correspondingSensorPose.position.y = 0; correspondingSensorPose.position.z = 0;
+    correspondingSensorPose.orientation.x = 0; correspondingSensorPose.orientation.y = 0; correspondingSensorPose.orientation.z = 0; correspondingSensorPose.orientation.w = 0;
+    return insertNode(nodePose,correspondingSensorPose,id);
+}
+
+SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry_msgs::Pose correspondingSensorPose)
+{
+    return insertNode(nodePose,correspondingSensorPose,idCount++);
+}
+
+SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry_msgs::Pose correspondingSensorPose, int id)
 {
     SearchSpaceNode *temp;
-    if(!(temp=nodeExists(loc)))
+    if(!nodeExists(nodePose))
     {
-        if (search_space == NULL ) // Constructing the ROOT NODE
+        // Constructing the ROOT NODE
+        if (searchspace == NULL )
         {
             temp = new SearchSpaceNode;
-            temp->location.position.x = loc.position.x;
-            temp->location.position.y = loc.position.y;
-            temp->location.position.z = loc.position.z;
-            temp->location.orientation.x = loc.orientation.x;//newly added
-            temp->location.orientation.y = loc.orientation.y;//newly added
-            temp->location.orientation.z = loc.orientation.z;//newly added
-            temp->location.orientation.w = loc.orientation.w;//newly added
-//            temp->obstacle_cost = 0;
+            temp->location.position          = nodePose.position;
+            temp->location.orientation       = nodePose.orientation;
+            temp->sensorLocation.position    = correspondingSensorPose.position;
+            temp->sensorLocation.orientation = correspondingSensorPose.orientation;
             temp->parent   = NULL;
             temp->next     = NULL;
-            search_space = temp;
+            temp->type     = RegGridNode;
+            temp->id 	   = id;
+            searchspace    = temp;
         }
         else
         {
             temp = new SearchSpaceNode;
-            temp->location.position.x = loc.position.x;
-            temp->location.position.y = loc.position.y;
-            temp->location.position.z = loc.position.z;
-            temp->location.orientation.x = loc.orientation.x;//newly added
-            temp->location.orientation.y = loc.orientation.y;//newly added
-            temp->location.orientation.z = loc.orientation.z;//newly added
-            temp->location.orientation.w = loc.orientation.w;//newly added
-//            temp->obstacle_cost = 0;
+            temp->location.position          = nodePose.position;
+            temp->location.orientation       = nodePose.orientation;
+            temp->sensorLocation.position    = correspondingSensorPose.position;
+            temp->sensorLocation.orientation = correspondingSensorPose.orientation;
             temp->parent = NULL;
-            temp->next   = search_space;
-            search_space = temp;
+            temp->next   = searchspace;
+            temp->type   = RegGridNode;
+            temp->id 	 = id;
+            searchspace  = temp;
         }
     }
     return temp;
 }
 
-SearchSpaceNode * SearchSpace::nodeExists(geometry_msgs::Pose loc)
+SearchSpaceNode * SearchSpace::nodeExists(geometry_msgs::Pose nodePose)
 {
-    SearchSpaceNode *temp = search_space;
+    SearchSpaceNode *temp = searchspace;
     while (temp != NULL)
     {
-        if(samePosition(loc,temp->location))
+        if(samePosition(nodePose,temp->location))
             return temp;
         temp = temp->next;
     }
@@ -132,12 +110,12 @@ SearchSpaceNode * SearchSpace::nodeExists(geometry_msgs::Pose loc)
     return NULL;
 }
 
-bool SearchSpace::removeNode(geometry_msgs::Pose loc)
+bool SearchSpace::removeNode(geometry_msgs::Pose nodePose)
 {
-    SearchSpaceNode *temp = search_space;
+    SearchSpaceNode *temp = searchspace;
     while (temp != NULL)
     {
-        if(samePosition(loc,temp->location))
+        if(samePosition(nodePose,temp->location))
         {
             temp->parent->next = temp->next;
             delete temp;
@@ -152,10 +130,10 @@ bool SearchSpace::removeNode(geometry_msgs::Pose loc)
 void SearchSpace:: freeSearchSpace()
 {
     SearchSpaceNode *temp;
-    while (search_space != NULL)
+    while (searchspace != NULL)
     {
-        temp = search_space;
-        search_space = search_space->next;
+        temp = searchspace;
+        searchspace = searchspace->next;
         delete temp;
     };
 }

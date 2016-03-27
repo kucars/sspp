@@ -18,36 +18,42 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
+#ifndef DIST_HEURISTICT_H_
+#define DIST_HEURISTICT_H_
+
+#include <QString>
+#include <QHash>
+#include "ssppexception.h"
 #include "node.h"
+#include <component_test/occlusion_culling_gpu.h>
+#include <component_test/occlusion_culling.h>
+#include "heuristic_interface.h"
+
+using namespace std;
 
 namespace SSPP
 {
 
-Node :: Node ():
-    nearest_obstacle(0.0),
-    g_value(0.0),
-    h_value(0.0),
-    f_value(0.0),
-    distance(0.0),
-    coverage(0.0)
+class DistanceHeuristic:public Heuristic
 {
-    parent = next = prev = NULL;
-    cloud_filtered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
-}
+public:
+    DistanceHeuristic(ros::NodeHandle &n, bool d=false);
+    ~DistanceHeuristic(){}
+    double gCost(Node *node);
+    double hCost(Node *node);
+    bool isCost();
+    void setDebug(bool debug);
+    void setEndPose(geometry_msgs::Pose pose);
+    void setTolerance2Goal(double tolerance2Distance);
+    void calculateHeuristic(Node *n);
+    bool terminateConditionReached(Node *node);
 
-Node :: ~Node ()
-{
-    parent = next = prev = NULL;
-}
-
-bool Node ::operator == (Node a)
-{
-    return ( isPositionEqual(this->pose.p.position,a.pose.p.position)  && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation));
-}
-
-bool Node ::operator != (Node a)
-{
-    return ( !(isPositionEqual(this->pose.p.position,a.pose.p.position) && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation)));
-}
+private:
+    OcclusionCullingGPU* obj;
+    bool debug;
+    geometry_msgs::Pose endPose;
+    double tolerance2Goal;
+};
 
 }
+#endif /*DIST_HEURISTICT_H_*/

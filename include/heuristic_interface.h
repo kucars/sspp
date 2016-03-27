@@ -18,36 +18,35 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
+#ifndef HEURISTICT_H_
+#define HEURISTICT_H_
+
+#include <QString>
+#include <QHash>
+#include "ssppexception.h"
 #include "node.h"
+#include <component_test/occlusion_culling_gpu.h>
+#include <component_test/occlusion_culling.h>
+
+using namespace std;
 
 namespace SSPP
 {
 
-Node :: Node ():
-    nearest_obstacle(0.0),
-    g_value(0.0),
-    h_value(0.0),
-    f_value(0.0),
-    distance(0.0),
-    coverage(0.0)
+class Heuristic
 {
-    parent = next = prev = NULL;
-    cloud_filtered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
-}
-
-Node :: ~Node ()
-{
-    parent = next = prev = NULL;
-}
-
-bool Node ::operator == (Node a)
-{
-    return ( isPositionEqual(this->pose.p.position,a.pose.p.position)  && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation));
-}
-
-bool Node ::operator != (Node a)
-{
-    return ( !(isPositionEqual(this->pose.p.position,a.pose.p.position) && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation)));
-}
+public:
+    Heuristic(){}
+    virtual ~Heuristic(){}
+    virtual void calculateHeuristic(Node *)=0;
+    virtual bool terminateConditionReached(Node *)=0;
+    /*!
+     * \brief isCost
+     * \return
+     * Defines whether this heuristic function is a cost or reward function
+     */
+    virtual bool isCost()=0;
+};
 
 }
+#endif /*HEURISTICT_H_*/

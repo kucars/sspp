@@ -364,8 +364,8 @@ class Line
 {
 	public:
 		QPointF start,end;
-		Line(){};
-		Line(QPointF a,QPointF b): start(a),end(b) {};
+        Line(){}
+        Line(QPointF a,QPointF b): start(a),end(b) {}
 		void SetStart(QPointF a) 
 		{
 			start = a;
@@ -383,7 +383,8 @@ class Line
 
 inline bool samePosition(geometry_msgs::Pose pose,geometry_msgs::Pose a)
 {
-     return ( isEqual(pose.position.x,a.position.x) && isEqual(pose.position.y,a.position.y) && isEqual(pose.position.z,a.position.z));
+     return (   isEqual(pose.position.x,a.position.x) && isEqual(pose.position.y,a.position.y) && isEqual(pose.position.z,a.position.z)
+              &&isEqual(pose.orientation.x,a.orientation.x) && isEqual(pose.orientation.y,a.orientation.y) && isEqual(pose.orientation.z,a.orientation.z) && isEqual(pose.orientation.w,a.orientation.w));
 }
 
 class Pose

@@ -20,12 +20,6 @@
  ***************************************************************************/
 #include "robot.h"
 
-Robot::Robot(ConfigFile *cf,int secId)
-{
-	readConfigs(cf,secId);
-	findR();
-}
-
 //! Consturctor for the Robot Class
 /*! This constructor take the following Parameters:
  * @param name is a string variable representing the Robot's Name.
@@ -36,66 +30,77 @@ Robot::Robot(ConfigFile *cf,int secId)
  * @param center is a #Point variable representing the position of the center of rotation of the Robot with respect
  * to the center of Area. This is also used for collision detection.
  */
-Robot::Robot(QString name,double length,double width,double narrowDist,QPointF center):
+Robot::Robot(std::string name,double length,double width,double narrowDist,QPointF center, double safetyTolerance):
 robotLength(length),
 robotWidth(width),
 narrowestPathDist(narrowDist),
 robotName(name),
-robotCenter(center)
+robotCenter(center),
+safetyTolerance(safetyTolerance)
 {
-    this->setCheckPoints(narrowDist);
+    //setCheckPoints(narrowDist);
 }
 
-int Robot::readConfigs(ConfigFile *cf,int secId)
+int Robot::readConfigs(ros::NodeHandle nh,std::string nameSpace)
 {
-    int cnt;
-    // Read Parameters of interest
-    robotName  =           cf->ReadString(secId, "robotName", "No-Name");
-    robotModel =           cf->ReadString(secId, "robotModel", "Diff");
-    robotIp =              cf->ReadString(secId, "robotIp", "127.0.0.1");
-    robotPort =            cf->ReadInt   (secId, "robotPort", 6665);
-    robotLength =          cf->ReadFloat (secId, "robotLength", 1.2);
-    robotWidth =           cf->ReadFloat (secId, "robotWidth", 0.65);
-    robotMass =            cf->ReadFloat (secId, "robotMass", 50);
-    robotMI =              cf->ReadFloat (secId, "robotMI", 10);
-    cnt =	 		   	   cf->GetTupleCount(secId,"robotCenter");
-    if (cnt != 2)
+    if(nh.getParam(nameSpace + "/robotName", robotName))
     {
-        cout<<"\n ERROR: center should consist of 2 tuples !!!";
-        exit(1);
+        std::cout<<"robotName file is:"<<robotName;
+    }
+    else
+    {
+        std::cout<<"\nRobot must be provided";
+        return -1;
     }
 
-    robotCenter.setX(cf->ReadTupleFloat(secId,"robotCenter",0 ,0));
-    robotCenter.setY(cf->ReadTupleFloat(secId,"robotCenter",1 ,0));
+    if(nh.getParam(nameSpace + "/robotModel", robotName))
+    {
+        std::cout<<"robotModel file is:"<<robotName;
+    }
+    else
+    {
+        std::cout<<"robotModel must be provided";
+        return -1;
+    }
+
+    nh.param<double>("/robotLength", robotLength,  1.2);
+    nh.param<double>("/robotWidth",  robotWidth,   0.8);
+    nh.param<double>("/robotMass",   robotMass,    50);
+    nh.param<double>("/robotMI",     robotMI,      10);
+    nh.param<double>("/robotCenterX",robotCenterX, 0);
+    nh.param<double>("/robotCenterY",robotCenterY, 0);
+    nh.param<double>("/safetyTolerance",safetyTolerance, 0.05);
+    robotCenter.setX(robotCenterX);
+    robotCenter.setY(robotCenterY);
+
     return 1;
 }
 
 /*!
  * This Determines the locations of the points to be checked in the Vehicle Coordinates,
  * should be rotated at each node
+ * TODO: change this to 3D and use FCL
  */
 void Robot::setCheckPoints(double obst_r)
 {
     /*
-         * Based on our environment, the narrowest passage is 26 pixels of width
-         * and this should be taken into consideration while expanding and checking
-         * for collision. check my "An Efficient Path Planner for Large Mobile Platforms" paper
-         * for more information
-         */
-//    LOG(Logger::Info,"Robot:"<<robotName)
-    narrowestPathDist = 21*0.047;
-    safetyTolerance = 0.05;
+     * Based on our environment, the narrowest passage is 26 pixels of width
+     * and this should be taken into consideration while expanding and checking
+     * for collision. check my "An Efficient Path Planner for Large Mobile Platforms" paper
+     * for more information
+     */
     if(narrowestPathDist < 2*robotWidth)
     {
         expansionRadius = (narrowestPathDist - safetyTolerance)/2.0f;
     }
     else
         expansionRadius = robotWidth/2.0f - safetyTolerance;
-//    LOG(Logger::Info,"  Obstacle Expansion Radius="<<expansionRadius)
+    std::cout<<"\n Exp Rad:"<<expansionRadius;fflush(stdout);
     this->obstacleRadius = obst_r;
     int point_index=0,points_per_height,points_per_width,n;
     double i,j, l = robotLength , w = robotWidth;
     check_points.clear();
+
     // The edges of the robot in -ve quadrant
     QPointF temp,edges[4];
     edges[0].setX(-l/2);		edges[0].setY(w/2);
@@ -103,8 +108,7 @@ void Robot::setCheckPoints(double obst_r)
     edges[2].setX(l/2);			edges[2].setY(-w/2);
     edges[3].setX(-l/2);		edges[3].setY(-w/2);
     Pose pose(-robotCenter.x(),-robotCenter.y(),0,0);
-    //	cout <<"\nCenter Point X:"<<center.x()<<" Y:"<<center.y();
-    // am determining here the location of the edges in the robot coordinate system
+    // I am determining here the location of the edges in the robot coordinate system
     startx = -l/2 - robotCenter.x();
     starty = -w/2 - robotCenter.y();
     // These Points are used for drawing the Robot rectangle
@@ -112,17 +116,10 @@ void Robot::setCheckPoints(double obst_r)
     {
         local_edge_points.push_back(Trans2Global(edges[s],pose));
     }
-//    qDebug()<<"Test Test Test";
-//    for (int s=0 ;s < 4; s++)
-//        LOG(Logger::Info,"  Edge->"<< s<<" X="<<local_edge_points[s].x()<<" Y="<<local_edge_points[s].y())
-    // Create a Matrix of the points to check for collision detection
-    //	internal_radius = this->obstacleRadius/sqrt(2);
 
-    points_per_height = 2;//(int)(ceil(l/(double)(2*expansionRadius)));
+    points_per_height = (int)(ceil(l/(double)(2*expansionRadius)));
     points_per_width  = (int)(ceil(w/(double)(2*expansionRadius)));
     n = points_per_height*points_per_width;
-//    LOG(Logger::Info,"  Per H ="<<points_per_height<<" Per W="<<points_per_width<<" Total ="<<n)
-//    LOG(Logger::Info,"  Obstacle Radius="<<expansionRadius; fflush(stdout))
 
     // The location of the current edges at each NODE
     i = startx + sqrt(expansionRadius*expansionRadius - pow(w/2.0f,2) - safetyTolerance);
@@ -136,10 +133,9 @@ void Robot::setCheckPoints(double obst_r)
             temp.setY(j);
             check_points.push_back(temp);
             point_index++;
-            //cout<<"\n I="<<i<<" J="<<j;
             /* Determining the next center it should be 2*r away from the previous
-                         * and it's circle should not exceed the boundaries
-                         */
+             * and it's circle should not exceed the boundaries
+             */
             if ( (j+2*expansionRadius + expansionRadius) >= (w + starty) )
                 j = (w + starty - expansionRadius);// Allow overlap
             else
@@ -158,17 +154,16 @@ void Robot::setCheckPoints(double obst_r)
     for (int k=0;k<check_points.size();k++)
     {
         check_points[k].setY(0);
-//        LOG(Logger::Info,"  Point to check "<<k<<"'---> X="<<check_points[k].x()<<" Y="<<check_points[k].y())
         fflush(stdout);
     }
     findR();
-};
+}
+
 void Robot::findR()
 {
     double dist,max_dist=-10;
     for (int i = 0; i < 4; i++)
     {
-        // dist = Dist(robotCenter,local_edge_points[i]);
         dist = Dist(QPointF(0,0),local_edge_points[i]);
         if (dist > max_dist)
             max_dist = dist;

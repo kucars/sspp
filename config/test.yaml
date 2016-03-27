@@ -1,0 +1,9 @@
+robotName: AwesomeRobot
+robotModel: Diff
+robotLength: 1.2
+robotWidth: 0.8
+robotMass: 50
+robotMI: 10
+robotCenterX: 0
+robotCenterY: 0
+safetyTolerance: 0.05

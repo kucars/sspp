@@ -30,14 +30,17 @@ namespace SSPP
 class SearchSpace
 {
 public:
-    SearchSpaceNode * search_space;
+    SearchSpaceNode * searchspace;
     void freeSearchSpace();
-    SearchSpaceNode * insertNode(geometry_msgs::Pose loc);
-    SearchSpaceNode * insertNode(geometry_msgs::Pose loc, int id);
-    SearchSpaceNode * nodeExists(geometry_msgs::Pose loc);
-    bool              removeNode(geometry_msgs::Pose loc);
+    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose);
+    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, int id);
+    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::Pose correspondingSensorPose);
+    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::Pose correspondingSensorPose, int id);
+    SearchSpaceNode * nodeExists(geometry_msgs::Pose nodePose);
+    bool              removeNode(geometry_msgs::Pose nodePose);
     SearchSpace();
     virtual ~SearchSpace();
+    int idCount;
 };
 
 }

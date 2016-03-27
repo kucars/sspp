@@ -22,25 +22,24 @@
 namespace SSPP
 {
 
-
-    PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double dG, double cT, double conn_rad):
+PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double conn_rad):
     nh(n),
-    Astar(n,rob,dG,cT,"SurfaceCoveragewithOrientation"),
-    reg_grid_conn_rad(conn_rad)
+    Astar(n,rob),
+    reg_grid_conn_rad(conn_rad),
+    sampleOrientations(false)
 {
-    treePub = n.advertise<visualization_msgs::Marker>("search_tree", 10);
-    connectionPub = n.advertise<visualization_msgs::Marker>("connectivity", 10);
-    searchSpacePub = n.advertise<visualization_msgs::Marker>("search_space", 100);
-    pathPub = n.advertise<visualization_msgs::Marker>("path_testing", 100);
-    pathPointPub = n.advertise<visualization_msgs::Marker>("path_point", 100);
-    testPointPub = n.advertise<visualization_msgs::Marker>("test_point", 100);
-    coveredPointsPub = n.advertise<sensor_msgs::PointCloud2>("gradual_coverage", 100);
-    connectionDebugPub = n.advertise<visualization_msgs::Marker>("debug", 10);
+    treePub             = nh.advertise<visualization_msgs::Marker>("search_tree", 10);
+    connectionPub       = nh.advertise<visualization_msgs::Marker>("connectivity", 10);
+    searchSpacePub      = nh.advertise<visualization_msgs::Marker>("search_space", 100);
+    pathPub             = nh.advertise<visualization_msgs::Marker>("path_testing", 100);
+    pathPointPub        = nh.advertise<visualization_msgs::Marker>("path_point", 100);
+    testPointPub        = nh.advertise<visualization_msgs::Marker>("test_point", 100);
+    coveredPointsPub    = nh.advertise<sensor_msgs::PointCloud2>("gradual_coverage", 100);
+    connectionDebugPub  = nh.advertise<visualization_msgs::Marker>("debug", 10);
 
     pathDir = ros::package::getPath("component_test");
     std::string str = pathDir+"/src/mesh/etihad_nowheels.obj";
     loadOBJFile(str.c_str(), p1, triangles);
-//    std::cout<<"triangles size: "<<triangles.size()<<std::endl;
     tree_cgal = new Tree1(triangles.begin(),triangles.end());
 
 }
@@ -69,41 +68,74 @@ void PathPlanner::freePath()
     }
 }
 
-
 void   PathPlanner::setConRad(double a)
 {
     reg_grid_conn_rad = a;
 }
 
-//void PathPlanner::displayChildren(SearchSpaceNode *temp)
-//{
-////    SearchSpaceNode *temp;
+void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations)
+{
+    gridResolution = gridRes;
+    this->sampleOrientations = sampleOrientations;
+    generateRegularGrid(gridStartPose,gridSize);
+}
 
-//    for (int i=0;i<temp->children.size();i++)
-//    {
+void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes)
+{
+    gridResolution = gridRes;
+    generateRegularGrid(gridStartPose,gridSize);
+}
 
-//        linePoint.x = temp->location.position.x;
-//        linePoint.y = temp->location.position.y;
-//        linePoint.z = temp->location.position.z;
-//        lineSegments1.push_back(linePoint);
-//        linePoint.x = temp->children[i]->location.position.x;
-//        linePoint.y = temp->children[i]->location.position.y;
-//        linePoint.z = temp->children[i]->location.position.z;
-//        lineSegments1.push_back(linePoint);
+void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize)
+{
+    geometry_msgs::Pose pose;
+    geometry_msgs::Pose correspondingSensorPose;
+    int numSamples = 0;
+    for(float x = gridStartPose.position.x; x<=(gridStartPose.position.x + gridSize.x); x+=gridResolution)
+        for(float y = gridStartPose.position.y; y<=(gridStartPose.position.y + gridSize.y); y+=gridResolution)
+            for(float z = gridStartPose.position.z; z<=(gridStartPose.position.z + gridSize.z); z+=gridResolution)
+            {
+                pose.position.z=z;
+                pose.position.y=y;
+                pose.position.x=x;
+                //TODO:: add corresponding sensor transformation for CPP
+                if(sampleOrientations)
+                {
+                    int orientationsNum= 360.0f/orientationResolution;
+                    // in radians
+                    double yaw=0.0;
+                    tf::Quaternion tf ;
+                    for(int i=0; i<orientationsNum;i++)
+                    {
+                        tf = tf::createQuaternionFromYaw(yaw);
+                        pose.orientation.x = tf.getX();
+                        pose.orientation.y = tf.getY();
+                        pose.orientation.z = tf.getZ();
+                        pose.orientation.w = tf.getW();
+                        yaw+=(orientationResolution*M_PI/180.0f);
+                        insertNode(pose,correspondingSensorPose);
+                        numSamples++;
+                    }
+                }
+                else
+                {
+                    pose.orientation.x=0;pose.orientation.y=0;pose.orientation.z=0;pose.orientation.w=1;
+                    insertNode(pose,correspondingSensorPose);
+                    numSamples++;
+                }
 
-//    }
-//    visualization_msgs::Marker linesList = drawLines(lineSegments1);
-//    childrenPub.publish(linesList);
-//}
-
+            }
+    std::cout<<"\n	--->>> REGULAR GRID GENERATED SUCCESSFULLY <<<--- Samples:"<<numSamples++;;
+}
 
 //***************linked list based search space*************
-void PathPlanner::generateRegularGrid(const char *filename1, const char *filename2)
+void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2)
 {
-    SearchSpaceNode *temp;
-    geometry_msgs::Pose p;
+    geometry_msgs::Pose pose;
+    geometry_msgs::Pose correspondingSensorPose;
     double locationx,locationy,locationz,qx,qy,qz,qw;
     double senLocx,senLocy,senLocz,senqx,senqy,senqz,senqw;
+
     assert(filename1 != NULL);
     filename1 = strdup(filename1);
     FILE *file1 = fopen(filename1, "r");
@@ -121,110 +153,71 @@ void PathPlanner::generateRegularGrid(const char *filename1, const char *filenam
     {
         fscanf(file1,"%lf %lf %lf %lf %lf %lf %lf\n",&locationx,&locationy,&locationz,&qx,&qy,&qz,&qw);
         fscanf(file2,"%lf %lf %lf %lf %lf %lf %lf\n",&senLocx,&senLocy,&senLocz,&senqx,&senqy,&senqz,&senqw);
-//        std::cout<<locationx<<" "<<locationy<<" "<<locationz<<endl;
-        if (search_space == NULL ) // Constructing the ROOT NODE
-        {
-            temp = new SearchSpaceNode;
-            temp->location.position.x = locationx;//i
-            temp->location.position.y = locationy;//j
-            temp->location.position.z = locationz;
-            temp->location.orientation.x = qx;
-            temp->location.orientation.y = qy;
-            temp->location.orientation.z = qz;
-            temp->location.orientation.w = qw;
-            temp->sensorLocation.position.x = senLocx;
-            temp->sensorLocation.position.y = senLocy;
-            temp->sensorLocation.position.z = senLocz;
-            temp->sensorLocation.orientation.x = senqx;
-            temp->sensorLocation.orientation.y = senqy;
-            temp->sensorLocation.orientation.z = senqz;
-            temp->sensorLocation.orientation.w = senqw;
-            temp->parent   = NULL;
-            temp->next     = NULL;
-            temp->type     = RegGridNode;
-            search_space = temp;
-        }
-        else
-        {
-            //it was done this way when the check the shortest distance was used
-            p.position.x = locationx;//i
-            p.position.y = locationy;//j
-            p.position.z = locationz;//was not written
-            p.orientation.x = qx;
-            p.orientation.y = qy;
-            p.orientation.z = qz;
-            p.orientation.w = qw;
-            //if (checkShortestDistance(p,regGridRes))
-            {
-                temp = new SearchSpaceNode;
-                temp->location.position.x = p.position.x;
-                temp->location.position.y = p.position.y;
-                temp->location.position.z = p.position.z;
-                temp->location.orientation.x = p.orientation.x;
-                temp->location.orientation.y = p.orientation.y;
-                temp->location.orientation.z = p.orientation.z;
-                temp->location.orientation.w = p.orientation.w;
-                temp->sensorLocation.position.x = senLocx;
-                temp->sensorLocation.position.y = senLocy;
-                temp->sensorLocation.position.z = senLocz;
-                temp->sensorLocation.orientation.x = senqx;
-                temp->sensorLocation.orientation.y = senqy;
-                temp->sensorLocation.orientation.z = senqz;
-                temp->sensorLocation.orientation.w = senqw;
-                temp->parent = NULL;
-                temp->next   = search_space;
-                temp->type     = RegGridNode;
-                search_space = temp;
-            }
-        }
+
+        pose.position.x = locationx;
+        pose.position.y = locationy;
+        pose.position.z = locationz;
+        pose.orientation.x = qx;
+        pose.orientation.y = qy;
+        pose.orientation.z = qz;
+        pose.orientation.w = qw;
+
+        correspondingSensorPose.position.x = senLocx;
+        correspondingSensorPose.position.y = senLocy;
+        correspondingSensorPose.position.z = senLocz;
+        correspondingSensorPose.orientation.x = senqx;
+        correspondingSensorPose.orientation.y = senqy;
+        correspondingSensorPose.orientation.z = senqz;
+        correspondingSensorPose.orientation.w = senqw;
+
+        insertNode(pose,correspondingSensorPose);
     }
     fclose(file1);
     fclose(file2);
     std::cout<<"\n	--->>> REGULAR GRID GENERATED SUCCESSFULLY <<<---	";
 }
-//void   PathPlanner::showSearchSpace()
-//{
-////    geometry_msgs::Point p;
-//    SearchSpaceNode *temp = search_space;
-//    int n=0;
-//    while (temp != NULL)
-//    {
-//        geometry_msgs::Point pt;
-//        pt.x= temp->location.position.x;
-//        pt.y= temp->location.position.y;
-//        pt.z= temp->location.position.z;
-//        pts.push_back(pt);
-//        temp = temp->next;
-//        n++;
-//    }
-//    visualization_msgs::Marker points_vector = drawpoints(pts);
-//    searchSpacePub.publish(points_vector);
-//    std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(n).toStdString();
-//}
-//visualization_msgs::Marker PathPlanner::drawpoints(std::vector<geometry_msgs::Point> points)
-//{
-//    visualization_msgs::Marker pointMarkerMsg;
-//    pointMarkerMsg.header.frame_id="/map";
-//    pointMarkerMsg.header.stamp=ros::Time::now();
-//    pointMarkerMsg.ns="point_marker";
-//    pointMarkerMsg.id = 1000;
-//    pointMarkerMsg.type = visualization_msgs::Marker::POINTS;
-//    pointMarkerMsg.scale.x = 0.1;
-//    pointMarkerMsg.scale.y = 0.1;
-//    pointMarkerMsg.action  = visualization_msgs::Marker::ADD;
-//    pointMarkerMsg.lifetime  = ros::Duration(100.0);
-//    std_msgs::ColorRGBA color;
-//    color.r = 0.0f; color.g=1.0f; color.b=0.0f, color.a=1.0f;
-//    std::vector<geometry_msgs::Point>::iterator pointsIterator;
-//    for(pointsIterator = points.begin();pointsIterator != points.end();pointsIterator++)
-//    {
-//        pointMarkerMsg.points.push_back(*pointsIterator);
-//        pointMarkerMsg.colors.push_back(color);
-//    }
-//   return pointMarkerMsg;
-//}
 
+void  PathPlanner::showSearchSpace()
+{
+    SearchSpaceNode *temp = searchspace;
+    int n=0;
+    while (temp != NULL)
+    {
+        geometry_msgs::Point pt;
+        pt.x= temp->location.position.x;
+        pt.y= temp->location.position.y;
+        pt.z= temp->location.position.z;
+        pts.push_back(pt);
+        temp = temp->next;
+        n++;
+    }
+    visualization_msgs::Marker points_vector = drawpoints(pts);
+    searchSpacePub.publish(points_vector);
+    std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(n).toStdString();
+}
 
+visualization_msgs::Marker PathPlanner::drawpoints(std::vector<geometry_msgs::Point> points)
+{
+    visualization_msgs::Marker pointMarkerMsg;
+    pointMarkerMsg.header.frame_id="/map";
+    pointMarkerMsg.header.stamp=ros::Time::now();
+    pointMarkerMsg.ns="point_marker";
+    pointMarkerMsg.id = 1000;
+    pointMarkerMsg.type = visualization_msgs::Marker::POINTS;
+    pointMarkerMsg.scale.x = 0.1;
+    pointMarkerMsg.scale.y = 0.1;
+    pointMarkerMsg.action  = visualization_msgs::Marker::ADD;
+    pointMarkerMsg.lifetime  = ros::Duration(100.0);
+    std_msgs::ColorRGBA color;
+    color.r = 0.0f; color.g=1.0f; color.b=0.0f, color.a=1.0f;
+    std::vector<geometry_msgs::Point>::iterator pointsIterator;
+    for(pointsIterator = points.begin();pointsIterator != points.end();pointsIterator++)
+    {
+        pointMarkerMsg.points.push_back(*pointsIterator);
+        pointMarkerMsg.colors.push_back(color);
+    }
+    return pointMarkerMsg;
+}
 
 void PathPlanner :: printNodeList()
 {
@@ -239,8 +232,8 @@ void PathPlanner :: printNodeList()
         pixel.position.y =  p->pose.p.position.y;
         pixel.position.z =  p->pose.p.position.z;
 
-        cout <<"Step [" << step++ <<"] x["<< pixel.position.x<<"] y["<<pixel.position.y<<"] z["<<pixel.position.z;//<< "] Direction="<<p->direction;
-        std::cout<<"\n\tG cost="<<p->g_value<<"\tH cost="<<p->h_value<<"\tFcost="<<p->f_value;
+        std::cout<<"\nStep [" << step++ <<"] x["<< pixel.position.x<<"] y["<<pixel.position.y<<"] z["<<pixel.position.z<< "]";
+        std::cout<<"\tG cost="<<p->g_value<<"\tH cost="<<p->h_value<<"\tFcost="<<p->f_value;
         //cout<<"\tStored Angle = "<< setiosflags(ios::fixed) << setprecision(2)<<RTOD(p->angle);
         if (p->next !=NULL)
         {
@@ -252,40 +245,40 @@ void PathPlanner :: printNodeList()
     std::cout<<"\n--------------------   END OF LIST ---------------------- ";
 }
 
-
-
 void PathPlanner::connectNodes()
 {
     SearchSpaceNode * S;
     SearchSpaceNode *temp;
-    double distance,angle;
-    if (!search_space) // Do nothing if Search Space is not Yet Created
+    double distance;
+    if (!searchspace)
         return;
-    temp = search_space;
-    //	cout<<"\n RegGrid Conn:"<<reg_grid_conn_rad<<" Bridge Conn:"<<bridge_conn_rad;
-    int i =0;
+    temp = searchspace;
+    int i = 0;
     while (temp!=NULL)
     {
-        S = search_space;
+        S = searchspace;
         while (S!=NULL)
         {
             distance = Dist(S->location,temp->location);
-
             if (distance <= reg_grid_conn_rad && S != temp)// && distance !=0)
             {
                 //collision check
                 int intersectionsCount=0;
-                Point a(temp->location.position.x , temp->location.position.y ,temp->location.position.z );//parent
+                //parent
+                Point a(temp->location.position.x , temp->location.position.y ,temp->location.position.z );
                 //check if parent and child are in the same position (it affects the cgal intersection)
                 if (S->location.position.x != temp->location.position.x || S->location.position.y != temp->location.position.y || S->location.position.z != temp->location.position.z )
                 {
-                    Point b(S->location.position.x, S->location.position.y, S->location.position.z);//child
+                    //child
+                    Point b(S->location.position.x, S->location.position.y, S->location.position.z);
                     Segment seg_query(a,b);
                     intersectionsCount = tree_cgal->number_of_intersected_primitives(seg_query);
-//                    std::cout << "intersections: "<<intersectionsCount<< " intersections(s) with line query" << std::endl;
-                    if (intersectionsCount==0){
+                    if (intersectionsCount==0)
+                    {
                         temp->children.push_back(S);
-                    }else {
+                    }
+                    else
+                    {
                         std::vector<geometry_msgs::Point> lineSegments3;
                         geometry_msgs::Point pt;
                         pt.x = temp->location.position.x;
@@ -305,7 +298,8 @@ void PathPlanner::connectNodes()
                     }
 
                 }
-                else //child and parent are in the same position
+                //child and parent are in the same position
+                else
                 {
                     temp->children.push_back(S);
                 }
@@ -313,24 +307,18 @@ void PathPlanner::connectNodes()
             }
             S = S->next;
         }
-//        displayChildren(temp);
-
-
         temp = temp->next;
     }
-    showConnections();
-    showConnections();
-
     std::cout<<"\n	--->>> NODES CONNECTED <<<---	";
+    this->MAXNODES = i*searchspace->id;
 }
-
 
 void PathPlanner::showConnections()
 {
     std::vector<geometry_msgs::Point> lineSegments1;
     geometry_msgs::Point pt;
     geometry_msgs::Pose loc1,loc2;
-    SearchSpaceNode *temp = search_space;
+    SearchSpaceNode *temp = searchspace;
     int m=0,n=0;
     while (temp != NULL)
     {
@@ -355,7 +343,6 @@ void PathPlanner::showConnections()
     visualization_msgs::Marker linesList = drawLines(lineSegments1,2000000,3,100000000,0.08);
     connectionPub.publish(linesList);
     std::cout<<"\n"<<QString("\n---->>> TOTAL NUMBER OF CONNECTIONS =%1\n---->>> Total Nodes in search Space =%2").arg(m).arg(n).toStdString();
-    this->MAXNODES = 2*m;
 }
 
 void PathPlanner::loadOBJFile(const char* filename, std::vector<Vec3f>& points, std::list<CGALTriangle>& triangles)

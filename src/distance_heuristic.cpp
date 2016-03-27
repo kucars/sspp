@@ -18,36 +18,76 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "node.h"
+#include "heuristic_interface.h"
+#include "distance_heuristic.h"
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 namespace SSPP
 {
 
-Node :: Node ():
-    nearest_obstacle(0.0),
-    g_value(0.0),
-    h_value(0.0),
-    f_value(0.0),
-    distance(0.0),
-    coverage(0.0)
+DistanceHeuristic::DistanceHeuristic(ros::NodeHandle & nh, bool d)
 {
-    parent = next = prev = NULL;
-    cloud_filtered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
+    debug = d;
 }
 
-Node :: ~Node ()
+double DistanceHeuristic::gCost(Node *node)
 {
-    parent = next = prev = NULL;
+    double cost;
+    if(node == NULL || node->parent==NULL)
+        return 0.0;
+    cost = node->parent->g_value + Dist(node->pose.p,node->parent->pose.p);
+    return cost;
 }
 
-bool Node ::operator == (Node a)
+double DistanceHeuristic::hCost(Node *node)
 {
-    return ( isPositionEqual(this->pose.p.position,a.pose.p.position)  && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation));
+    double h=0;
+    if(node == NULL)
+        return(0);
+    // Using the Euclidean distance
+    h = Dist(endPose,node->pose.p);
+    return h;
 }
 
-bool Node ::operator != (Node a)
+bool DistanceHeuristic::terminateConditionReached(Node *node)
 {
-    return ( !(isPositionEqual(this->pose.p.position,a.pose.p.position) && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation)));
+    double deltaDist;
+    deltaDist = Dist(node->pose.p,endPose);
+    if ( deltaDist <= tolerance2Goal)
+        return true;
+    else
+        return false;
+}
+
+bool DistanceHeuristic::isCost()
+{
+    return false;
+}
+
+void DistanceHeuristic::setDebug(bool debug)
+{
+    this->debug = debug;
+}
+
+void DistanceHeuristic::setEndPose(geometry_msgs::Pose p)
+{
+    this->endPose = p;
+}
+
+void DistanceHeuristic::setTolerance2Goal(double tolerance2Goal)
+{
+    this->tolerance2Goal = tolerance2Goal;
+}
+
+void DistanceHeuristic::calculateHeuristic(Node *node)
+{
+    if(node==NULL)
+        return;
+    node->g_value = gCost(node);
+    node->h_value = hCost(node);
+    node->f_value = node->g_value + node->h_value;
 }
 
 }

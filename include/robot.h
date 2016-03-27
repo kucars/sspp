@@ -26,18 +26,16 @@
 #include <iostream>
 #include <math.h>
 #include "utils.h"
-#include "configfile.h"
-//#include "logger.h"
+#include "ros/ros.h"
 
 using namespace std;
 class Robot
 {
 public :
-    double robotLength,robotWidth,obstacleRadius,robotMass,robotMI,robotRadius,
+    double robotLength,robotWidth,obstacleRadius,robotMass,robotMI,robotRadius,robotCenterX,robotCenterY,
     robotSpeed,robotTurnRate,expansionRadius,narrowestPathDist,safetyTolerance, startx,starty;
-    int robotPort;
     //! Motion model
-    QString robotModel,robotName,robotIp;
+    std::string robotModel,robotName;
     //! Holds the Latest Robot Position
     Pose robotLocation;
     // Center of Rotation
@@ -49,9 +47,8 @@ public :
     void setSpeed(double speed);
     void setTurnRate(double turnRate);
     void findR();
-    int  readConfigs(ConfigFile *cf,int secId);
-    Robot(QString name,double length,double width,double narrowDist,QPointF center);
-    Robot(ConfigFile *cf,int secId);
+    int  readConfigs(ros::NodeHandle nh, string nameSpace);
+    Robot(std::string name, double length, double width, double narrowDist, QPointF center, double safetyTolerance=0.05);
     Robot();
     ~Robot();
 };

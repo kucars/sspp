@@ -25,136 +25,139 @@ namespace SSPP
 
 Node * LList::getHead()
 {
-	return this->Start;
+    return this->Start;
 }
 
 void LList::next()
 {
-	Start = Start->next;
-	if(Start != NULL)
-		Start->prev = NULL;
+    Start = Start->next;
+    if(Start != NULL)
+        Start->prev = NULL;
 }
 
 void LList::prev()
 {
-	Start = Start->prev;
+    Start = Start->prev;
 }
 
 Node * LList::find(Node * q)
 {
-//     std::cout<<"\nI'm in find function\n";
-	Node *p = Start;
-	while (p)
-	{
-		if(*q==*p)
-		{
-//             std::cout<<"Found it\n";
-			return p;
-		}
-		p = p->next;				
-	}
-//     std::cout<<"DID NOT Find it\n";
-	return NULL;
+    Node *p = Start;
+    while (p)
+    {
+        if(*q==*p)
+        {
+            return p;
+        }
+        p = p->next;
+    }
+    return NULL;
 }
 
 LList::LList()
 {
-	Start = NULL;
+    Start = NULL;
 }
 
 LList::~LList()
 {
-	Node *p;
-	while (Start != NULL)
-	{
-		p = Start->next;
-		delete Start;
-		Start = p;
-	}		
+    Node *p;
+    while (Start != NULL)
+    {
+        p = Start->next;
+        delete Start;
+        Start = p;
+    }
 }
 
 void LList::free()
 {
-	Node *p;
-	while (Start != NULL)
-	{
-		p = Start->next;
-		delete Start;
-		Start = p;
-	}		
+    Node *p;
+    while (Start != NULL)
+    {
+        p = Start->next;
+        delete Start;
+        Start = p;
+    }
 }
 
-void LList::add(Node * curChild)
+void LList::add(Node * curChild, bool ascending)
 {
     Node * p,* q ;
-	p = this->Start;
+    bool condition;
+    p = this->Start;
     q = p;
     // now insert the child into the open list according to the f value
-	while (p) 
+    while (p)
     {
-        // insert before p, sorted descending (cuz a reward function is used) *** it was ascending
-        if (p->f_value < curChild->f_value) //			if (p->f_value >= curChild->f_value)
-		{
-			// test head of the list case
-			if (p == Start)
-				Start = curChild;
-			curChild->next = p;
-			curChild->prev = p->prev;
-			p->prev = curChild;
-			if (curChild->prev)
-				(curChild->prev)->next = curChild;
-			break;
-		}
-		q = p;
-		p = p->next;
+        //reward function
+        if(ascending)
+            condition = (p->f_value < curChild->f_value);
+        // cost function
+        else
+            condition = (p->f_value >= curChild->f_value);
+        if(condition)
+        {
+            // test head of the list case
+            if (p == Start)
+                Start = curChild;
+            curChild->next = p;
+            curChild->prev = p->prev;
+            p->prev = curChild;
+            if (curChild->prev)
+                (curChild->prev)->next = curChild;
+            break;
+        }
+        q = p;
+        p = p->next;
     }
     if (p == NULL)
     {
         if (q != NULL) // insert at the end
         {
             q->next = curChild;
-			curChild->prev = q;
-			curChild->next = NULL;
-		}
-		else	      // insert at the beginning
+            curChild->prev = q;
+            curChild->next = NULL;
+        }
+        else	      // insert at the beginning
         {
             Start = curChild;
-			curChild->prev = NULL;
-		}
+            curChild->prev = NULL;
+        }
     }
 }
 
 bool LList::remove(Node *q)
 {
-	Node *p;
-	p = Start;
-	while (p)
-	{
-		if(*q==*p)
-			{
-				if (p->prev != NULL)	        
-		      		(p->prev)->next = p->next;
-				if (p->next != NULL)	        
-					(p->next)->prev = p->prev;								
-				if (p == Start)
-					Start = p->next;
-				delete p;
-				return 1;
-			}
-		p = p->next;
-	}
-	return 0;	
+    Node *p;
+    p = Start;
+    while (p)
+    {
+        if(*q==*p)
+        {
+            if (p->prev != NULL)
+                (p->prev)->next = p->next;
+            if (p->next != NULL)
+                (p->next)->prev = p->prev;
+            if (p == Start)
+                Start = p->next;
+            delete p;
+            return 1;
+        }
+        p = p->next;
+    }
+    return 0;
 }
 
 void LList::print()
 {
-	Node *p;
-	int i=0;
-	p = Start;
-	while(p)
-	{
+    Node *p;
+    int i=0;
+    p = Start;
+    while(p)
+    {
         cout<<"\n Node["<<++i<<"] X="<<p->pose.p.position.x<<" Y="<<p->pose.p.position.y<<" Z="<<p->pose.p.position.z<<" F value="<<p->f_value;
-		p = p->next;
-	}
+        p = p->next;
+    }
 }
 }

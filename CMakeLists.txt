@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(sspp)
 SET ( CMAKE_CXX_FLAGS "-frounding-math" )
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#set(CMAKE_BUILD_TYPE "Debug")
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -15,13 +17,13 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   component_test
   )
-#find_package(component_test REQUIRED)
+
 find_package( CGAL QUIET COMPONENTS  )
 find_package(fcl REQUIRED)
 find_package(CUDA REQUIRED)
 
 include(FindPkgConfig)
-  
+
 catkin_package(CATKIN_DEPENDS component_test)
 
 include_directories(include
@@ -30,26 +32,17 @@ include_directories(include
   /usr/local/cuda/include/
 )
 
-pkg_check_modules(PLAYER REQUIRED playercore playerc++ playerc)
+#pkg_check_modules(PLAYER REQUIRED playercore playerc++ playerc)
 
 ##################
 #    QT STUFF    #
 ##################
-
-ADD_DEFINITIONS( ${QT_DEFINITIONS} )
-FIND_PACKAGE( Qt4 REQUIRED )
-
-SET(QT_USE_QTGUI TRUE )
-SET(QT_USE_QTOPENGL TRUE )
-SET(QT_USE_XML TRUE )
-SET(QT_USE_QTXMLPATTERNS TRUE)
-
-
-
-INCLUDE( ${QT_USE_FILE} )
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+find_package(Qt4 REQUIRED)
 
 # Set include directories
-include_directories(include ${QT_INCLUDES} ${PLAYER_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS})
+include_directories(include ${QT_INCLUDES} ${component_test_INCLUDE_DIRS} )
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
@@ -62,20 +55,22 @@ add_library(SSPathPlanner SHARED
     src/robot.cpp
     src/searchspace.cpp
     src/searchspacenode.cpp
-    src/configfile.cc
     src/ssppexception.cpp
-    src/heuristic.cpp
+    src/coverage_path_planning_heuristic.cpp
+    src/distance_heuristic.cpp
+    )
+target_link_libraries(SSPathPlanner
+    Qt4::QtGui
+    Qt4::QtCore
     )
 add_executable(ssppTest src/test.cpp)
-target_include_directories(ssppTest PUBLIC include ${catkin_INCLUDE_DIRS} ${GTK_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS})
+target_include_directories(ssppTest PUBLIC include ${catkin_INCLUDE_DIRS})
 target_link_libraries( ssppTest SSPathPlanner
-    -lgmp -lmpfr ${CGAL_LIBRARY} ${CGAL_Core_LIBRARY}
-    ${QT_QTGUI_LIBRARY}
-    ${QT_QTCORE_LIBRARY}
-    ${QT_QTOPENGL_LIBRARY}
-    ${QT_QTXML_LIBRARY}
-    ${QT_LIBRARIES}
-    ${PLAYER_LIBRARIES}
+    -lgmp -lmpfr
+    ${CGAL_LIBRARY}
+    ${CGAL_Core_LIBRARY}
+    Qt4::QtGui
+    Qt4::QtCore
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
     ${component_test_LIBRARIES}

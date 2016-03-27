@@ -71,25 +71,33 @@ namespace SSPP
         double  reg_grid_conn_rad;
     public :
         unsigned int getPlanningSteps();
-
         void   setConRad(double);
         void   freeResources();
         void   printNodeList ();
-
-        void   generateRegularGrid(const char *filename1, const char *filename2);
+        void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize);
+        void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize, float gridRes);
+        void   generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations);
         void   connectNodes();
         void   showConnections();
-//        void   showSearchSpace();
-//        void   displayChildren(SearchSpaceNode *temp);
-
-//	visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
+        void   showSearchSpace();
+        visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
         void   findRoot();
         void   freePath();
         void   loadOBJFile(const char* filename, std::vector<Vec3f>& points, std::list<CGALTriangle>& triangles);
-
-//        bool   checkShortestDistance(geometry_msgs::Pose p, double neigbhour_pixel_distance);
-        PathPlanner(ros::NodeHandle & nh, Robot *,double dG,double cT,double reg_grid_conn_rad);
+        PathPlanner(ros::NodeHandle & nh, Robot *, double reg_grid_conn_rad);
         ~PathPlanner();
+        void loadRegularGrid(const char *filename1, const char *filename2);
+        bool sampleOrientations;
+        /*!
+         * \brief gridResolution
+         * Grid Resolution in meters used while generating the samples
+         */
+        float gridResolution;
+        /*!
+         * \brief orientationResolution
+         * Orientation resolution in degrees used while generating the samples
+         */
+        float orientationResolution;
     private:
 	ros::Publisher searchSpacePub;
 	std::vector<geometry_msgs::Point> pts;

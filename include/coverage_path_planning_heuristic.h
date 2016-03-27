@@ -18,8 +18,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#ifndef HEURISTICT_H_
-#define HEURISTICT_H_
+#ifndef CPP_HEURISTICT_H_
+#define CPP_HEURISTICT_H_
 
 #include <QString>
 #include <QHash>
@@ -27,61 +27,31 @@
 #include "node.h"
 #include <component_test/occlusion_culling_gpu.h>
 #include <component_test/occlusion_culling.h>
+#include "heuristic_interface.h"
 
 using namespace std;
 
 namespace SSPP
 {
 
-class Heuristic
+class CoveragePathPlanningHeuristic:public Heuristic
 {
 public:
-    virtual ~Heuristic(){}
-    virtual double gCost(Node *)=0;
-    virtual double hCost(Node *,Node * )=0;
-    virtual double hCost(Node *)=0;
-//    double hCovCost(Node *n);
-    static Heuristic * factory(QString type, bool debug) throw(SSPPException);
-};
+    CoveragePathPlanningHeuristic(ros::NodeHandle &n, string modelName, bool d=false);
+    ~CoveragePathPlanningHeuristic();
+    bool isCost();
+    void setCoverageTarget(double coverageTarget);
+    void setCoverageTolerance(double coverageTolerance);
+    void setDebug(bool debug);
+    void calculateHeuristic(Node *n);
+    bool terminateConditionReached(Node *node);
 
-class DistanceHeuristic : public Heuristic
-{
-public:
-    bool H_debug;
-    DistanceHeuristic(bool d){H_debug=d;}
-    friend class Heuristic;
-public:
-    double gCost(Node *n);
-    double hCost(Node *n, Node * end);
-    double hCost(Node *n){}
-    ~DistanceHeuristic(){}
-};
-
-class SurfaceCoverageHeuristic : public Heuristic
-{
-public:
-    bool H_debug;
-    SurfaceCoverageHeuristic(bool d){H_debug=d;}
-    friend class Heuristic;
-public:
-    double gCost(Node *n);
-    double hCost(Node *n, Node * end){}
-    double hCost(Node *n);
-    ~SurfaceCoverageHeuristic(){}
-};
-
-class SCwithOrientationHeuristic : public Heuristic
-{
-public:
-    bool H_debug;
-    SCwithOrientationHeuristic(bool d){H_debug=d;}
-    friend class Heuristic;
-public:
-    double gCost(Node *n);
-    double hCost(Node *n, Node * end){}
-    double hCost(Node *n);
-    ~SCwithOrientationHeuristic(){}
+private:
+    OcclusionCullingGPU* obj;
+    bool debug;
+    double coverageTarget;
+    double coverageTolerance;
 };
 
 }
-#endif /*HEURISTICT_H_*/
+#endif /*CPP_HEURISTICT_H_*/

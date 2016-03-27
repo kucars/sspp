@@ -33,7 +33,7 @@
 #include "utils.h"
 #include "robot.h"
 #include "searchspace.h"
-#include "heuristic.h"
+#include "heuristic_interface.h"
 #include "ssppexception.h"
 #include "map.h"
 #include "ros/ros.h"
@@ -58,20 +58,15 @@ private:
     Node  *makeChildrenNodes(Node *parent) ;
     ros::NodeHandle  nh;
 public:
-    Astar(ros::NodeHandle & n,Robot *,double dG, double cT, QString heuristicType);
+    Astar(ros::NodeHandle & n, Robot *);
     Astar();
+    virtual ~Astar();
     void setRobot(Robot *);
+    void setHeuristicFucntion(Heuristic *heuristicFun);
     long int MAXNODES;
-    QString hType;
-    double distGoal;
-    double covTolerance;
-    double orientation2Goal;
     Heuristic *heuristic;
     bool debug;
-    OcclusionCullingGPU* obj;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr covFilteredCloud;
-    Pose start,end;
-    double targetCov;
+    Pose start;
     int globalcount;
     Robot *robot;
     Node *root, *dest, *current, *childList, *curChild, *q, * test,*path, *p;
@@ -81,12 +76,9 @@ public:
 
     visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration, double scale);
     visualization_msgs::Marker drawPoints(std::vector<geometry_msgs::Point> points, int c_color, int duration);
-    void freeNode     (Node *);
-    bool goalReached  (Node *n);
-    bool surfaceCoverageReached (Node *n);// newly added
-//    Node*  startSearch  (Pose start,Pose end,int);
-    Node*  startSearch  (Pose start,double targetCov,int);
-    virtual ~Astar();
+    void freeNode   (Node *);
+    bool goalReached(Node *n);
+    Node*  startSearch  (Pose start);
     std::vector<geometry_msgs::Point> lineSegments;
     geometry_msgs::Point linePoint;
     ros::Publisher treePub;
@@ -96,8 +88,6 @@ public:
     ros::Publisher testPointPub;
     ros::Publisher coveredPointsPub;
     ros::Publisher connectionDebugPub;
-
-
 
 };
 

@@ -31,11 +31,15 @@
 #include <QThread>
 
 //PCL
+/*
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
+*/
 #include <component_test/occlusion_culling_gpu.h>
 #include <component_test/occlusion_culling.h>
+#include "coverage_path_planning_heuristic.h"
+#include "distance_heuristic.h"
 
 using namespace SSPP;
 visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int c_color, float scale);
@@ -43,54 +47,81 @@ visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
 
 int main( int argc, char **  argv)
 {
+    std::cout<<"\nHere -1"; fflush(stdout);
+
     ros::init(argc, argv, "path_planning");
-    ros::NodeHandle n;
-    ros::Publisher original_cloud = n.advertise<sensor_msgs::PointCloud2>("original_point_cloud", 100);
-    ros::Publisher visible_pub = n.advertise<sensor_msgs::PointCloud2>("occlusion_free_cloud", 100);
-    ros::Publisher path_pub = n.advertise<visualization_msgs::Marker>("generated_path", 10);
-    ros::Publisher searchSpace_pub = n.advertise<visualization_msgs::Marker>("search_space", 10);
-    ros::Publisher connectivity_pub = n.advertise<visualization_msgs::Marker>("connections", 10);
-    ros::Publisher vector_pub = n.advertise<geometry_msgs::PoseArray>("pose", 10);
-    ros::Publisher sen_vector_pub = n.advertise<geometry_msgs::PoseArray>("sensor_pose", 10);
+    ros::NodeHandle nh;
+    ros::Publisher path_pub         = nh.advertise<visualization_msgs::Marker>("generated_path", 10);
+    ros::Publisher searchSpace_pub  = nh.advertise<visualization_msgs::Marker>("search_space", 10);
+    ros::Publisher connectivity_pub = nh.advertise<visualization_msgs::Marker>("connections", 10);
+    ros::Publisher vector_pub       = nh.advertise<geometry_msgs::PoseArray>("pose", 10);
+    ros::Publisher sen_vector_pub   = nh.advertise<geometry_msgs::PoseArray>("sensor_pose", 10);
 
-    PathPlanner * pathPlanner;
+    std::cout<<"\nHere 0"; fflush(stdout);
 
-    //test
-    OcclusionCullingGPU obj(n, "etihad_nowheels_densed.pcd");
+    QTime timer;
+    geometry_msgs::Pose gridStartPose;
+    geometry_msgs::Vector3 gridSize;
+    gridStartPose.position.x = 0 ;
+    gridStartPose.position.y = 0 ;
+    gridStartPose.position.z = 0 ;
+    gridSize.x = 20;
+    gridSize.y = 10;
+    gridSize.z = 2;
 
-    //display the aircraft point cloud
-//    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
     std::string path = ros::package::getPath("sspp");
-//    pcl::io::loadPCDFile<pcl::PointXYZ> (path+"/src/pcd/scaled_desktop.pcd", *cloud);
-
-
-//    bool negate = false;
-//    Pose start(0.0,1.0,-37,DTOR(-127.304)),end(-4.0,1.0,-19,DTOR(140.194));
-//    Pose start(0.0,37.0,18,DTOR(0.0)),end(0.0,1.0,-37,DTOR(0.0));start is at the tail
-//    Pose start(4.0,-30.0,15,DTOR(0.0));//start is at the front of the plane
-    Pose start(3.0,-34.0,10,DTOR(0.0));//start is at the front of the plane
+    PathPlanner * pathPlanner;
+    Pose start(0.0,0.0,0,DTOR(0.0));
+    Pose   end(19.0,7.0,2,DTOR(0.0));
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
-    double distanceToGoal = 0.1,regGridConRad=2.5, coverageTolerance=1.00, targetCov=5;
-    QPointF robotCenter(-0.3f,0.0f);
-    Robot *robot= new Robot(QString("Robot"),robotH,robotW,narrowestPath,robotCenter);
-    pathPlanner = new PathPlanner(n,robot,distanceToGoal,coverageTolerance,regGridConRad);
-    QTime timer;
-//    const char * filename1 = "SearchSpaceUAV_1.5m_2to4_NEW_etihadNoWheels.txt";//"SearchSpaceUAV_2_2to4.txt"
-//    const char * filename2 = "SearchSpaceCam_1.5m_2to4_NEW_etihadNoWheels.txt";//"SearchSpaceCam_2_2to4.txt"
-    std::string str1 = path+"/resources/SearchSpaceUAV_1.5m_1to4_NEW_etihadNoWheels.txt";
-    std::string str2 = path+"/resources/SearchSpaceCam_1.5m_1to4_NEW_etihadNoWheels.txt";
-    const char * filename1 = str1.c_str();
-    const char * filename2 = str2.c_str();
+    double distanceToGoal = 1.0,regGridConRad = 1.5;
 
-    pathPlanner->generateRegularGrid(filename1, filename2);//IMPORTANT
-//    pathPlanner->showSearchSpace();//visualization (not working for some reason)
-    pathPlanner->connectNodes();//IMPORTANT
+    std::cout<<"\nHere 1"; fflush(stdout);
+    QPointF robotCenter(-0.3f,0.0f);    
+    Robot *robot= new Robot("Robot",robotH,robotW,narrowestPath,robotCenter);
+
+    pathPlanner = new PathPlanner(nh,robot,regGridConRad);
+    std::cout<<"\nHere 2"; fflush(stdout);
+    /*
+    double coverageTolerance=0.5, targetCov=10;
+    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,"etihad_nowheels_densed.pcd",false);
+    coveragePathPlanningHeuristic.setCoverageTarget(targetCov);
+    coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
+    pathPlanner->setHeuristicFucntion(&coveragePathPlanningHeuristic);
+    */
+
+    DistanceHeuristic distanceHeuristic(nh,false);
+    distanceHeuristic.setEndPose(end.p);
+    distanceHeuristic.setTolerance2Goal(distanceToGoal);
+    pathPlanner->setHeuristicFucntion(&distanceHeuristic);
+    std::cout<<"\nHere 3"; fflush(stdout);
+
+    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.0,false);
+    //visualization (not working for some reason)
+    pathPlanner->showSearchSpace();
+    pathPlanner->connectNodes();
     std::cout<<"\nSpace Generation took:"<<timer.elapsed()/double(1000.00)<<" secs";
-    pathPlanner->showConnections();
+//    pathPlanner->showConnections();
+
+    std::cout<<"\nHere 4"; fflush(stdout);
+    timer.restart();
+    Node * retval = pathPlanner->startSearch(start);
+    std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
+    std::cout<<"\nHere 5"; fflush(stdout);
+
+    //path print and visualization
+    if(retval)
+    {
+        pathPlanner->printNodeList();
+    }
+    else
+    {
+        std::cout<<"\nNo Path Found";
+    }
 
     //******for visualizing the search space & connectivity********
-    SearchSpaceNode *temp = pathPlanner->search_space;
+    SearchSpaceNode *temp = pathPlanner->searchspace;
     std::vector<geometry_msgs::Point> pts;
     std::vector<geometry_msgs::Point> lineSegments1;
     while (temp != NULL)
@@ -123,100 +154,47 @@ int main( int argc, char **  argv)
 
     //**************************************************************
 
-    timer.restart();
-    ros::Time coverage_begin = ros::Time::now();
-//    Node * retval = pathPlanner->startSearch(start,end,METRIC);
-    Node * retval = pathPlanner->startSearch(start,targetCov,METRIC);
-    std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
-    ros::Time coverage_end = ros::Time::now();
-    double elapsed =  coverage_end.toSec() - coverage_begin.toSec();
-    std::cout<<"search duration (s) = "<<elapsed<<"\n";
-    //path print and visualization
-    if(retval)
-    {
-        pathPlanner->printNodeList();
-    }
-    else
-    {
-        std::cout<<"\nNo Path Found";
-    }
+
 
     Node * p = pathPlanner->path;
     std::vector<geometry_msgs::Point> lineSegments;
     geometry_msgs::Point linePoint;
     pcl::PointCloud<pcl::PointXYZ> temp_cloud, combined;
     geometry_msgs::PoseArray vec,sensor_vec;
-    int cnt=0;
     double dist=0;
-    ofstream pathFile;
-
-    //write to file
     double yaw;
-    std::stringstream ss,cc;
-    ss << targetCov;
-    cc <<regGridConRad;
-    std::string file_loc = path+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests1to4.txt";
-    pathFile.open (file_loc.c_str());
 
     while(p !=NULL)
     {
         tf::Quaternion qt(p->pose.p.orientation.x,p->pose.p.orientation.y,p->pose.p.orientation.z,p->pose.p.orientation.w);
         yaw = tf::getYaw(qt);
-        pathFile << p->pose.p.position.x<<" "<<p->pose.p.position.y<<" "<<p->pose.p.position.z<<" "<<yaw<<"\n";
-
         if (p->next !=NULL)
         {
             linePoint.x = p->pose.p.position.x;
             linePoint.y = p->pose.p.position.y;
             linePoint.z = p->pose.p.position.z;
-            temp_cloud=obj.extractVisibleSurface(p->pose.p);
-//            std::cout<<"path position: "<<p->pose.p.orientation.x<<" "<<p->pose.p.orientation.y<<" "<<p->pose.p.orientation.z<<" "<<p->pose.p.orientation.w<<std::endl;
             combined += temp_cloud;
             vec.poses.push_back(p->pose.p);
             lineSegments.push_back(linePoint);
-//            obj.visualizeFOV(p->senPose.p);
             sensor_vec.poses.push_back(p->senPose.p);
-
             linePoint.x = p->next->pose.p.position.x;
             linePoint.y = p->next->pose.p.position.y;
             linePoint.z = p->next->pose.p.position.z;
             lineSegments.push_back(linePoint);
             dist=dist+ Dist(p->next->pose.p,p->pose.p);
             vec.poses.push_back(p->next->pose.p);//ADD ME RANDA
-//            obj.visualizeFOV(p->next->senPose.p);
             sensor_vec.poses.push_back(p->next->senPose.p);
-
         }
         p = p->next;
     }
-    pathFile.close();
-    std::cout<<"\nDONE writing file :)\n";
     visualization_msgs::Marker linesList = drawLines(lineSegments,1,0.15);
+
     ros::Rate loop_rate(10);
     pathPlanner->showConnections();
-    std::cout<<"\nsearch duration (s) = "<<elapsed<<"\n";
-    std::cout<<"distance calculated from the path = "<<dist<<" \n";
-    std::cout<<"covered cloud filtered (s) = "<<pathPlanner->covFilteredCloud->size()<<"\n";
-    std::cout<<"original cloud filtered (s) = "<<obj.filtered_cloud->size()<<"\n";
+    std::cout<<"\nDistance calculated from the path = "<<dist<<" \n";
 
-    pathPlanner->covFilteredCloud->width = pathPlanner->covFilteredCloud->points.size();
-    pathPlanner->covFilteredCloud->height = 1;
-    pcl::PCDWriter writer,writer1;
-//    writer.write<pcl::PointXYZRGB> (path+"/src/pcd/trial.pcd", *(tempCloud2), false);
-    writer1.write<pcl::PointXYZ> (path+"/resources/3_5percent.pcd", *(pathPlanner->covFilteredCloud), false);
     while (ros::ok())
     {
-        sensor_msgs::PointCloud2 cloud1;
-        pcl::toROSMsg(*obj.filtered_cloud, cloud1);
-        cloud1.header.frame_id = "map";
-        cloud1.header.stamp = ros::Time::now();
-        original_cloud.publish(cloud1);
-
-        sensor_msgs::PointCloud2 cloud2;
-        pcl::toROSMsg(*pathPlanner->covFilteredCloud, cloud2);
-        cloud2.header.frame_id = "map";
-        cloud2.header.stamp = ros::Time::now();
-        visible_pub.publish(cloud2);
 
         vec.header.frame_id= "map";
         vec.header.stamp = ros::Time::now();
@@ -226,8 +204,6 @@ int main( int argc, char **  argv)
         sensor_vec.header.stamp = ros::Time::now();
         sen_vector_pub.publish(sensor_vec);
 
-
-        //ROS_INFO("Publishing Marker");
         path_pub.publish(linesList);
         searchSpace_pub.publish(points_vector);
         connectivity_pub.publish(linesList1);
@@ -235,7 +211,6 @@ int main( int argc, char **  argv)
         loop_rate.sleep();
     }
     delete robot;
-//    delete map;
     delete pathPlanner;
     return 0;
 }

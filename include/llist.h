@@ -22,27 +22,28 @@
 #define LLIST_H_
 #include <iostream>
 #include <node.h>
+#include "heuristic_interface.h"
 using namespace std;
 
 namespace SSPP
 {
 
 class LList
-	{
-		public :
-			Node * 	Start;
-		public :
-			     	LList();
-			     	~LList();
-            void 	add(Node *);
-            bool 	remove(Node *);
-            void 	print();
-            void	free();
-            Node *  find(Node *);
-            void   	next();
-            void    prev();
-            Node *  getHead();
-	};
+{
+public :
+    Node * 	Start;
+public :
+    LList();
+    ~LList();
+    void  add(Node *, bool ascending);
+    bool  remove(Node *);
+    void  print();
+    void  free();
+    Node *find(Node *);
+    void  next();
+    void  prev();
+    Node *getHead();
+};
 
 }
 
