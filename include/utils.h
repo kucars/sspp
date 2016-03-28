@@ -483,9 +483,9 @@ inline double DotMultiply(QPointF p1,QPointF p2,QPointF p0)
 }
 /*****************************************************************/
 typedef struct _tree
-	{
-        geometry_msgs::Pose location;
-        std::vector<geometry_msgs::Pose> children;
-	}   Tree;
+{
+    geometry_msgs::Pose location;
+    std::vector<geometry_msgs::Pose> children;
+}   Tree;
 enum {LOCALPATH,GLOBALPATH,BOTHPATHS};
 #endif

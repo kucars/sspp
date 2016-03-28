@@ -1,6 +1,8 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Tarek Taha                                      *
- *   tataha@eng.uts.edu.au                                                 *
+ *   Copyright (C) 2006 - 2016 by                                          *
+ *      Tarek Taha, KURI  <tataha@tarektaha.com>                           *
+ *      Randa Almadhoun   <randa.almadhoun@kustar.ac.ae>                   *
+ *                                                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -15,7 +17,7 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
 
 #include "pathplanner.h"
@@ -25,10 +27,9 @@
 #include <tf_conversions/tf_eigen.h>
 #include <geometry_msgs/Pose.h>
 #include <eigen_conversions/eigen_msg.h>
-#include <visualization_msgs/Marker.h>
+
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseArray.h>
-#include <QThread>
 
 //PCL
 /*
@@ -40,22 +41,21 @@
 #include <component_test/occlusion_culling.h>
 #include "coverage_path_planning_heuristic.h"
 #include "distance_heuristic.h"
+#include "rviz_drawing_tools.h"
 
 using namespace SSPP;
-visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int c_color, float scale);
-visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points);
+
+//TODO: use rviz_visual_tools for drawing stuff
 
 int main( int argc, char **  argv)
 {
-    std::cout<<"\nHere -1"; fflush(stdout);
-
     ros::init(argc, argv, "path_planning");
     ros::NodeHandle nh;
-    ros::Publisher path_pub         = nh.advertise<visualization_msgs::Marker>("generated_path", 10);
-    ros::Publisher searchSpace_pub  = nh.advertise<visualization_msgs::Marker>("search_space", 10);
-    ros::Publisher connectivity_pub = nh.advertise<visualization_msgs::Marker>("connections", 10);
-    ros::Publisher vector_pub       = nh.advertise<geometry_msgs::PoseArray>("pose", 10);
-    ros::Publisher sen_vector_pub   = nh.advertise<geometry_msgs::PoseArray>("sensor_pose", 10);
+    ros::Publisher pathPub         = nh.advertise<visualization_msgs::Marker>("generated_path", 10);
+    ros::Publisher searchSpacePub  = nh.advertise<visualization_msgs::Marker>("search_space", 10);
+    ros::Publisher connectivityPub = nh.advertise<visualization_msgs::Marker>("connections", 10);
+    ros::Publisher robotPosePub    = nh.advertise<geometry_msgs::PoseArray>("robot_pose", 10);
+    ros::Publisher sensorPosePub   = nh.advertise<geometry_msgs::PoseArray>("sensor_pose", 10);
 
     std::cout<<"\nHere 0"; fflush(stdout);
 
@@ -69,7 +69,6 @@ int main( int argc, char **  argv)
     gridSize.y = 10;
     gridSize.z = 2;
 
-    std::string path = ros::package::getPath("sspp");
     PathPlanner * pathPlanner;
     Pose start(0.0,0.0,0,DTOR(0.0));
     Pose   end(19.0,7.0,2,DTOR(0.0));
@@ -80,12 +79,14 @@ int main( int argc, char **  argv)
     std::cout<<"\nHere 1"; fflush(stdout);
     QPointF robotCenter(-0.3f,0.0f);    
     Robot *robot= new Robot("Robot",robotH,robotW,narrowestPath,robotCenter);
-
-    pathPlanner = new PathPlanner(nh,robot,regGridConRad);
+    // Every how many iterations to display the tree
+    int progressDisplayFrequency = 10;
+    pathPlanner = new PathPlanner(nh,robot,regGridConRad,progressDisplayFrequency);
     std::cout<<"\nHere 2"; fflush(stdout);
     /*
     double coverageTolerance=0.5, targetCov=10;
-    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,"etihad_nowheels_densed.pcd",false);
+    std::string modelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels.obj";
+    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,modelPath,false);
     coveragePathPlanningHeuristic.setCoverageTarget(targetCov);
     coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
     pathPlanner->setHeuristicFucntion(&coveragePathPlanningHeuristic);
@@ -98,13 +99,21 @@ int main( int argc, char **  argv)
     std::cout<<"\nHere 3"; fflush(stdout);
 
     pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.0,false);
-    //visualization (not working for some reason)
-    pathPlanner->showSearchSpace();
+    std::vector<geometry_msgs::Point> pts = pathPlanner->getSearchSpace();
+    searchSpacePub.publish(drawPoints(pts,3,100));
+    std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(pts.size()).toStdString();
+
     pathPlanner->connectNodes();
     std::cout<<"\nSpace Generation took:"<<timer.elapsed()/double(1000.00)<<" secs";
-//    pathPlanner->showConnections();
 
-    std::cout<<"\nHere 4"; fflush(stdout);
+
+    std::vector<geometry_msgs::Point> lineSegments;
+    visualization_msgs::Marker linesList;
+
+    lineSegments = pathPlanner->getConnections();
+    linesList = drawLines(lineSegments,2000000,3,100000000,0.08);
+    connectivityPub.publish(linesList);
+
     timer.restart();
     Node * retval = pathPlanner->startSearch(start);
     std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
@@ -122,8 +131,9 @@ int main( int argc, char **  argv)
 
     //******for visualizing the search space & connectivity********
     SearchSpaceNode *temp = pathPlanner->searchspace;
-    std::vector<geometry_msgs::Point> pts;
-    std::vector<geometry_msgs::Point> lineSegments1;
+    visualization_msgs::Marker searchSpaceConnectivityList;
+    lineSegments.clear();
+    pts.clear();
     while (temp != NULL)
     {
         //vertex visualization
@@ -140,143 +150,77 @@ int main( int argc, char **  argv)
             linept.x = temp->location.position.x;
             linept.y = temp->location.position.y;
             linept.z = temp->location.position.z;
-            lineSegments1.push_back(linept);
+            lineSegments.push_back(linept);
             //point2
             linept.x= temp->children[i]->location.position.x;
             linept.y= temp->children[i]->location.position.y;
             linept.z= temp->children[i]->location.position.z;
-            lineSegments1.push_back(linept);
+            lineSegments.push_back(linept);
         }
         temp = temp->next;
     }
-    visualization_msgs::Marker points_vector = drawpoints(pts);
-    visualization_msgs::Marker linesList1 = drawLines(lineSegments1,3,0.03);
+    visualization_msgs::Marker searchSpacePoints = drawPoints(pts,1,0);
+    //Link,id, color,duration,scale
+    searchSpaceConnectivityList = drawLines(lineSegments,1,3,0,0.03);
 
-    //**************************************************************
-
-
-
-    Node * p = pathPlanner->path;
-    std::vector<geometry_msgs::Point> lineSegments;
+    Node * path = pathPlanner->path;
     geometry_msgs::Point linePoint;
     pcl::PointCloud<pcl::PointXYZ> temp_cloud, combined;
-    geometry_msgs::PoseArray vec,sensor_vec;
+    std::vector<geometry_msgs::Point> pathSegments;
+    geometry_msgs::PoseArray robotPose,sensorPose;
+    visualization_msgs::Marker pathList;
     double dist=0;
     double yaw;
-
-    while(p !=NULL)
+    while(path !=NULL)
     {
-        tf::Quaternion qt(p->pose.p.orientation.x,p->pose.p.orientation.y,p->pose.p.orientation.z,p->pose.p.orientation.w);
+        tf::Quaternion qt(path->pose.p.orientation.x,path->pose.p.orientation.y,path->pose.p.orientation.z,path->pose.p.orientation.w);
         yaw = tf::getYaw(qt);
-        if (p->next !=NULL)
+        if (path->next !=NULL)
         {
-            linePoint.x = p->pose.p.position.x;
-            linePoint.y = p->pose.p.position.y;
-            linePoint.z = p->pose.p.position.z;
+            linePoint.x = path->pose.p.position.x;
+            linePoint.y = path->pose.p.position.y;
+            linePoint.z = path->pose.p.position.z;
             combined += temp_cloud;
-            vec.poses.push_back(p->pose.p);
-            lineSegments.push_back(linePoint);
-            sensor_vec.poses.push_back(p->senPose.p);
-            linePoint.x = p->next->pose.p.position.x;
-            linePoint.y = p->next->pose.p.position.y;
-            linePoint.z = p->next->pose.p.position.z;
-            lineSegments.push_back(linePoint);
-            dist=dist+ Dist(p->next->pose.p,p->pose.p);
-            vec.poses.push_back(p->next->pose.p);//ADD ME RANDA
-            sensor_vec.poses.push_back(p->next->senPose.p);
+            robotPose.poses.push_back(path->pose.p);
+            pathSegments.push_back(linePoint);
+            sensorPose.poses.push_back(path->senPose.p);
+            linePoint.x = path->next->pose.p.position.x;
+            linePoint.y = path->next->pose.p.position.y;
+            linePoint.z = path->next->pose.p.position.z;
+            pathSegments.push_back(linePoint);
+            dist=dist+ Dist(path->next->pose.p,path->pose.p);
+            robotPose.poses.push_back(path->next->pose.p);
+            sensorPose.poses.push_back(path->next->senPose.p);
         }
-        p = p->next;
+        path = path->next;
     }
-    visualization_msgs::Marker linesList = drawLines(lineSegments,1,0.15);
+    //Link,id, color,duration,scale
+   pathList = drawLines(pathSegments,2,1,0,0.15);
 
-    ros::Rate loop_rate(10);
-    pathPlanner->showConnections();
+    ros::Rate loopRate(10);
     std::cout<<"\nDistance calculated from the path = "<<dist<<" \n";
 
     while (ros::ok())
     {
 
-        vec.header.frame_id= "map";
-        vec.header.stamp = ros::Time::now();
-        vector_pub.publish(vec);
+        robotPose.header.frame_id= "map";
+        robotPose.header.stamp = ros::Time::now();
+        robotPosePub.publish(robotPose);
 
-        sensor_vec.header.frame_id= "map";
-        sensor_vec.header.stamp = ros::Time::now();
-        sen_vector_pub.publish(sensor_vec);
+        sensorPose.header.frame_id= "map";
+        sensorPose.header.stamp = ros::Time::now();
+        sensorPosePub.publish(sensorPose);
 
-        path_pub.publish(linesList);
-        searchSpace_pub.publish(points_vector);
-        connectivity_pub.publish(linesList1);
+        pathPub.publish(pathList);
+        searchSpacePub.publish(searchSpacePoints);
+        connectivityPub.publish(searchSpaceConnectivityList);
+
         ros::spinOnce();
-        loop_rate.sleep();
+        loopRate.sleep();
     }
     delete robot;
     delete pathPlanner;
     return 0;
 }
 
-visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int c_color, float scale)
-{
-    visualization_msgs::Marker linksMarkerMsg;
-    linksMarkerMsg.header.frame_id="/map";
-    linksMarkerMsg.header.stamp=ros::Time::now();
-    linksMarkerMsg.ns="link_marker";
-    linksMarkerMsg.id = 0;
-    linksMarkerMsg.type = visualization_msgs::Marker::LINE_LIST;
-    linksMarkerMsg.scale.x = scale;
-    linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
-    linksMarkerMsg.lifetime  = ros::Duration(10000.0);
-    std_msgs::ColorRGBA color;
-//    color.r = 1.0f; color.g=.0f; color.b=.0f, color.a=1.0f;
-    if(c_color == 1)
-    {
-        color.r = 1.0;
-        color.g = 0.0;
-        color.b = 0.0;
-        color.a = 1.0;
-    }
-    else if(c_color == 2)
-    {
-        color.r = 0.0;
-        color.g = 1.0;
-        color.b = 0.0;
-        color.a = 1.0;
-    }
-    else
-    {
-        color.r = 0.0;
-        color.g = 0.0;
-        color.b = 1.0;
-        color.a = 1.0;
-    }
-    std::vector<geometry_msgs::Point>::iterator linksIterator;
-    for(linksIterator = links.begin();linksIterator != links.end();linksIterator++)
-    {
-        linksMarkerMsg.points.push_back(*linksIterator);
-        linksMarkerMsg.colors.push_back(color);
-    }
-   return linksMarkerMsg;
-}
 
-visualization_msgs::Marker drawpoints(std::vector<geometry_msgs::Point> points)
-{
-    visualization_msgs::Marker pointMarkerMsg;
-    pointMarkerMsg.header.frame_id="/map";
-    pointMarkerMsg.header.stamp=ros::Time::now();
-    pointMarkerMsg.ns="point_marker";
-    pointMarkerMsg.id = 2000;
-    pointMarkerMsg.type = visualization_msgs::Marker::POINTS;
-    pointMarkerMsg.scale.x = 0.1;
-    pointMarkerMsg.scale.y = 0.1;
-    pointMarkerMsg.action  = visualization_msgs::Marker::ADD;
-    pointMarkerMsg.lifetime  = ros::Duration(100.0);
-    std_msgs::ColorRGBA color;
-    color.r = 0.0f; color.g=1.0f; color.b=0.0f, color.a=1.0f;
-    std::vector<geometry_msgs::Point>::iterator pointsIterator;
-    for(pointsIterator = points.begin();pointsIterator != points.end();pointsIterator++)
-    {
-        pointMarkerMsg.points.push_back(*pointsIterator);
-        pointMarkerMsg.colors.push_back(color);
-    }
-   return pointMarkerMsg;
-}

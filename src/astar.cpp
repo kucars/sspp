@@ -1,6 +1,7 @@
 /***************************************************************************
- *   Copyright (C) 2006 - 2007 by                                          *
- *      Tarek Taha, CAS-UTS  <tataha@tarektaha.com>                        *
+ *   Copyright (C) 2006 - 2016 by                                          *
+ *      Tarek Taha, KURI  <tataha@tarektaha.com>                           *
+ *      Randa Almadhoun   <randa.almadhoun@kustar.ac.ae>                   *
  *                                                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -23,7 +24,7 @@
 namespace SSPP
 {
 
-Astar::Astar(ros::NodeHandle & n,Robot *rob):
+Astar::Astar(ros::NodeHandle & n, Robot *rob, int progressDisplayFrequency):
     nh(n),
     robot(rob),
     root(NULL),
@@ -33,7 +34,8 @@ Astar::Astar(ros::NodeHandle & n,Robot *rob):
     openList(NULL),
     closedList(NULL),
     globalcount(0),
-    debug(false)
+    debug(false),
+    progressDisplayFrequency(progressDisplayFrequency)
 {    
 }
 
@@ -62,118 +64,6 @@ Astar::~Astar()
         closedList->free();
         delete closedList;
     }
-}
-
-void Astar::displayTree()
-{
-    geometry_msgs::Pose child;
-    for(unsigned int k=0;k<tree.size();k++)
-    {
-        for(int j=0;j<tree[k].children.size();j++)
-        {
-            child = tree[k].children[j];
-
-            linePoint.x = tree[k].location.position.x;
-            linePoint.y = tree[k].location.position.y;
-            linePoint.z = tree[k].location.position.z;
-            lineSegments.push_back(linePoint);
-            linePoint.x = child.position.x;
-            linePoint.y = child.position.y;
-            linePoint.z = child.position.z;
-            lineSegments.push_back(linePoint);
-
-        }
-    }
-    visualization_msgs::Marker linesList = drawLines(lineSegments,1000000,2,100000000,0.08);
-    treePub.publish(linesList);
-}
-
-visualization_msgs::Marker Astar::drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration, double scale)
-{
-    visualization_msgs::Marker linksMarkerMsg;
-    linksMarkerMsg.header.frame_id="map";
-    linksMarkerMsg.header.stamp=ros::Time::now();
-    linksMarkerMsg.ns="link_marker1";
-    linksMarkerMsg.id = id;
-    linksMarkerMsg.type = visualization_msgs::Marker::LINE_LIST;
-    linksMarkerMsg.scale.x = scale;//0.08;
-    linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
-    linksMarkerMsg.lifetime  = ros::Duration(duration);
-    std_msgs::ColorRGBA color;
-    //    color.r = 1.0f; color.g=.0f; color.b=.0f, color.a=1.0f;
-    if(c_color == 1)
-    {
-        color.r = 1.0;
-        color.g = 0.0;
-        color.b = 0.0;
-        color.a = 1.0;
-    }
-    else if(c_color == 2)
-    {
-        color.r = 0.0;
-        color.g = 1.0;
-        color.b = 0.0;
-        color.a = 1.0;
-    }
-    else
-    {
-        color.r = 0.0;
-        color.g = 0.0;
-        color.b = 1.0;
-        color.a = 1.0;
-    }
-    std::vector<geometry_msgs::Point>::iterator linksIterator;
-    for(linksIterator = links.begin();linksIterator != links.end();linksIterator++)
-    {
-        linksMarkerMsg.points.push_back(*linksIterator);
-        linksMarkerMsg.colors.push_back(color);
-    }
-    return linksMarkerMsg;
-}
-
-
-visualization_msgs::Marker Astar::drawPoints(std::vector<geometry_msgs::Point> points, int c_color, int duration)
-{
-    visualization_msgs::Marker pointMarkerMsg;
-    pointMarkerMsg.header.frame_id="/map";
-    pointMarkerMsg.header.stamp=ros::Time::now();
-    pointMarkerMsg.ns="point_marker";
-    pointMarkerMsg.id = 444444;
-    pointMarkerMsg.type = visualization_msgs::Marker::POINTS;
-    pointMarkerMsg.scale.x = 0.35;
-    pointMarkerMsg.scale.y = 0.35;
-    pointMarkerMsg.action  = visualization_msgs::Marker::ADD;
-    pointMarkerMsg.lifetime  = ros::Duration(duration);
-    std_msgs::ColorRGBA color;
-    //    color.r = 1.0f; color.g=.0f; color.b=.0f, color.a=1.0f;
-    if(c_color == 1)
-    {
-        color.r = 1.0;
-        color.g = 0.0;
-        color.b = 0.0;
-        color.a = 1.0;
-    }
-    else if(c_color == 2)
-    {
-        color.r = 0.0;
-        color.g = 1.0;
-        color.b = 0.0;
-        color.a = 1.0;
-    }
-    else
-    {
-        color.r = 0.0;
-        color.g = 0.0;
-        color.b = 1.0;
-        color.a = 1.0;
-    }
-    std::vector<geometry_msgs::Point>::iterator pointsIterator;
-    for(pointsIterator = points.begin();pointsIterator != points.end();pointsIterator++)
-    {
-        pointMarkerMsg.points.push_back(*pointsIterator);
-        pointMarkerMsg.colors.push_back(color);
-    }
-    return pointMarkerMsg;
 }
 
 // find the nearest node to the start
@@ -240,7 +130,7 @@ void Astar::setHeuristicFucntion(Heuristic* heuristicFun)
 }
 
 
-Node *  Astar::startSearch(Pose start)
+Node *Astar::startSearch(Pose start)
 {
     int ID = 1;
     int NodesExpanded = 0;
@@ -280,9 +170,9 @@ Node *  Astar::startSearch(Pose start)
     int count = 0;
     while (openList->Start != NULL)
     {
-        if((count++%10) == 0)
+        if((count++%progressDisplayFrequency) == 0)
         {
-            displayTree();
+            heuristic->displayProgress(tree);
         }
 
         // Get the node with the highest cost (first node) (it was the cheapest one before since we were taking the lower cost but now it is converted to a reward function)
@@ -397,14 +287,13 @@ Node *  Astar::startSearch(Pose start)
                     else
                     {
                         if (debug == true)
-                            std::cout<<"the parent f value is less than the child"<<"\n";
+                            std::cout<<"the parent f value is less than the child"<<"\n"; fflush(stdout);
                         /* This is the tricky part, it rarely happens, but in my case it happenes all the time :s
                          * Anyways, we are here cause we found a better path to a node that we already visited, we will have to
                          * Update the cost of that node and ALL ITS DESCENDENTS because their cost is parent dependent ;)
                          * Another Solution is simply to comment everything and do nothing, doing this, the child will be added to the
                          * Open List and it will be investigated further later on.
                          */
-                        fflush(stdout);
                     }
                 }
                 if (debug == true)
@@ -514,6 +403,11 @@ Node *Astar::makeChildrenNodes(Node *parent)
 void Astar::freeNode(Node *n)
 {
     delete n;
+}
+
+void Astar::setProgressDisplayFrequency(int progressDisplayFrequency)
+{
+    this->progressDisplayFrequency = progressDisplayFrequency;
 }
 
 }

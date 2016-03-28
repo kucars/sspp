@@ -58,7 +58,9 @@ add_library(SSPathPlanner SHARED
     src/ssppexception.cpp
     src/coverage_path_planning_heuristic.cpp
     src/distance_heuristic.cpp
+    src/rviz_drawing_tools.cpp
     )
+
 target_link_libraries(SSPathPlanner
     Qt4::QtGui
     Qt4::QtCore

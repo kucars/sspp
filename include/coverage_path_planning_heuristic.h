@@ -1,6 +1,7 @@
 /***************************************************************************
- *   Copyright (C) 2006 - 2007 by                                          *
- *      Tarek Taha, CAS-UTS  <tataha@tarektaha.com>                        *
+ *   Copyright (C) 2006 - 2016 by                                          *
+ *      Tarek Taha, KURI  <tataha@tarektaha.com>                           *
+ *      Randa Almadhoun   <randa.almadhoun@kustar.ac.ae>                   *
  *                                                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -20,16 +21,38 @@
  ***************************************************************************/
 #ifndef CPP_HEURISTICT_H_
 #define CPP_HEURISTICT_H_
-
-#include <QString>
-#include <QHash>
-#include "ssppexception.h"
-#include "node.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <component_test/occlusion_culling_gpu.h>
 #include <component_test/occlusion_culling.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/AABB_tree.h>
+#include <CGAL/AABB_traits.h>
+#include <CGAL/Segment_3.h>
+#include <CGAL/AABB_triangle_primitive.h>
+#include "fcl/math/vec_3f.h"
+#include "fcl/math/transform.h"
+#include "ssppexception.h"
+#include "node.h"
 #include "heuristic_interface.h"
+#include "rviz_drawing_tools.h"
 
 using namespace std;
+
+typedef CGAL::Simple_cartesian<double> K;
+typedef K::FT FT;
+typedef K::Ray_3 Ray;
+typedef K::Line_3 Line1;
+typedef K::Point_3 Point;
+typedef K::Segment_3 Segment;
+typedef K::Triangle_3 CGALTriangle;
+typedef std::list<CGALTriangle>::iterator Iterator;
+typedef CGAL::AABB_triangle_primitive<K, Iterator> Primitive;
+typedef CGAL::AABB_traits<K, Primitive> AABB_triangle_traits;
+typedef CGAL::AABB_tree<AABB_triangle_traits> Tree1;
 
 namespace SSPP
 {
@@ -45,12 +68,19 @@ public:
     void setDebug(bool debug);
     void calculateHeuristic(Node *n);
     bool terminateConditionReached(Node *node);
+    bool isConnectionConditionSatisfied(SearchSpaceNode *temp, SearchSpaceNode *S);
+    void displayProgress(vector<Tree> tree);
 
 private:
-    OcclusionCullingGPU* obj;
+    void loadOBJFile(const char* filename, std::vector<fcl::Vec3f>& points, std::list<CGALTriangle>& triangles);
+    OcclusionCullingGPU* occlussionCulling;
     bool debug;
     double coverageTarget;
     double coverageTolerance;
+    ros::Publisher treePub;
+    std::list<CGALTriangle> triangles;
+    std::vector<fcl::Vec3f> modelPoints;
+    Tree1* cgalTree;
 };
 
 }

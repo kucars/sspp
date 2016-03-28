@@ -1,6 +1,7 @@
 /***************************************************************************
- *   Copyright (C) 2006 - 2007 by                                          *
- *      Tarek Taha, CAS-UTS  <tataha@tarektaha.com>                        *
+ *   Copyright (C) 2006 - 2016 by                                          *
+ *      Tarek Taha, KURI  <tataha@tarektaha.com>                           *
+ *      Randa Almadhoun   <randa.almadhoun@kustar.ac.ae>                   *
  *                                                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *

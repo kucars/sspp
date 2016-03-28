@@ -28,6 +28,7 @@
 #include <component_test/occlusion_culling_gpu.h>
 #include <component_test/occlusion_culling.h>
 #include "heuristic_interface.h"
+#include "rviz_drawing_tools.h"
 
 using namespace std;
 
@@ -47,12 +48,14 @@ public:
     void setTolerance2Goal(double tolerance2Distance);
     void calculateHeuristic(Node *n);
     bool terminateConditionReached(Node *node);
-
+    bool isConnectionConditionSatisfied(SearchSpaceNode*temp, SearchSpaceNode*S);
+    void displayProgress(vector<Tree> tree);
 private:
     OcclusionCullingGPU* obj;
     bool debug;
     geometry_msgs::Pose endPose;
     double tolerance2Goal;
+    ros::Publisher treePub;
 };
 
 }

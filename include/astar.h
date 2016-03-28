@@ -1,6 +1,7 @@
 /***************************************************************************
- *   Copyright (C) 2006 - 2007 by                                          *
- *      Tarek Taha, CAS-UTS  <tataha@tarektaha.com>                        *
+ *   Copyright (C) 2006 - 2016 by                                          *
+ *      Tarek Taha, KURI  <tataha@tarektaha.com>                           *
+ *      Randa Almadhoun   <randa.almadhoun@kustar.ac.ae>                   *
  *                                                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -45,6 +46,7 @@
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseArray.h>
+#include "rviz_drawing_tools.h"
 
 enum{METRIC,PIXEL};
 namespace SSPP
@@ -58,7 +60,7 @@ private:
     Node  *makeChildrenNodes(Node *parent) ;
     ros::NodeHandle  nh;
 public:
-    Astar(ros::NodeHandle & n, Robot *);
+    Astar(ros::NodeHandle & n, Robot *,int progressDisplayFrequency);
     Astar();
     virtual ~Astar();
     void setRobot(Robot *);
@@ -72,15 +74,12 @@ public:
     Node *root, *dest, *current, *childList, *curChild, *q, * test,*path, *p;
     LList *openList,*closedList;
     vector <Tree> tree;
-    void displayTree();
-
-    visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration, double scale);
-    visualization_msgs::Marker drawPoints(std::vector<geometry_msgs::Point> points, int c_color, int duration);
     void freeNode   (Node *);
     bool goalReached(Node *n);
+    void setProgressDisplayFrequency(int progressDisplayFrequency);
+    int progressDisplayFrequency;
     Node*  startSearch  (Pose start);
-    std::vector<geometry_msgs::Point> lineSegments;
-    geometry_msgs::Point linePoint;
+    /*
     ros::Publisher treePub;
     ros::Publisher connectionPub;
     ros::Publisher pathPub;
@@ -88,6 +87,7 @@ public:
     ros::Publisher testPointPub;
     ros::Publisher coveredPointsPub;
     ros::Publisher connectionDebugPub;
+    */
 
 };
 

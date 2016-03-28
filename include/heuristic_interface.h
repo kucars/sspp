@@ -1,6 +1,7 @@
 /***************************************************************************
- *   Copyright (C) 2006 - 2007 by                                          *
- *      Tarek Taha, CAS-UTS  <tataha@tarektaha.com>                        *
+ *   Copyright (C) 2006 - 2016 by                                          *
+ *      Tarek Taha, KURI  <tataha@tarektaha.com>                           *
+ *      Randa Almadhoun   <randa.almadhoun@kustar.ac.ae>                   *
  *                                                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -23,10 +24,12 @@
 
 #include <QString>
 #include <QHash>
-#include "ssppexception.h"
-#include "node.h"
 #include <component_test/occlusion_culling_gpu.h>
 #include <component_test/occlusion_culling.h>
+#include "ssppexception.h"
+#include "searchspacenode.h"
+#include "node.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -40,6 +43,8 @@ public:
     virtual ~Heuristic(){}
     virtual void calculateHeuristic(Node *)=0;
     virtual bool terminateConditionReached(Node *)=0;
+    virtual bool isConnectionConditionSatisfied(SearchSpaceNode*,SearchSpaceNode*)=0;
+    virtual void displayProgress(vector<Tree> tree)=0;
     /*!
      * \brief isCost
      * \return

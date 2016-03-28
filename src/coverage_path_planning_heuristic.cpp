@@ -1,6 +1,7 @@
 /***************************************************************************
- *   Copyright (C) 2006 - 2007 by                                          *
- *      Tarek Taha, CAS-UTS  <tataha@tarektaha.com>                        *
+ *   Copyright (C) 2006 - 2016 by                                          *
+ *      Tarek Taha, KURI  <tataha@tarektaha.com>                           *
+ *      Randa Almadhoun   <randa.almadhoun@kustar.ac.ae>                   *
  *                                                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,24 +19,24 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "heuristic_interface.h"
 #include "coverage_path_planning_heuristic.h"
-#include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-#include <pcl_conversions/pcl_conversions.h>
 
 namespace SSPP
 {
 
 CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & nh,std::string modelName, bool d)
 {
-    obj   = new OcclusionCullingGPU(nh, modelName);
-    debug = d;
+
+    loadOBJFile(modelName.c_str(), modelPoints, triangles);
+    cgalTree           = new Tree1(triangles.begin(),triangles.end());
+    occlussionCulling  = new OcclusionCullingGPU(nh, modelName);
+    debug              = d;
+    treePub            = nh.advertise<visualization_msgs::Marker>("search_tree", 10);
 }
 
 CoveragePathPlanningHeuristic::~CoveragePathPlanningHeuristic()
 {
-    delete obj;
+    delete occlussionCulling;
 }
 
 bool CoveragePathPlanningHeuristic::terminateConditionReached(Node *node)
@@ -50,6 +51,48 @@ bool CoveragePathPlanningHeuristic::terminateConditionReached(Node *node)
         return true;
     else
         return false;
+}
+
+bool CoveragePathPlanningHeuristic::isConnectionConditionSatisfied(SearchSpaceNode *temp, SearchSpaceNode *S)
+{
+    //collision check
+    int intersectionsCount=0;
+    //parent
+    Point a(temp->location.position.x , temp->location.position.y ,temp->location.position.z );
+    //child
+    Point b(S->location.position.x, S->location.position.y, S->location.position.z);
+    Segment seg_query(a,b);
+    intersectionsCount = cgalTree->number_of_intersected_primitives(seg_query);
+    if(intersectionsCount==0)
+        return true;
+    else
+        return false;
+}
+
+void CoveragePathPlanningHeuristic::displayProgress(vector<Tree> tree)
+{
+    geometry_msgs::Pose child;
+    std::vector<geometry_msgs::Point> lineSegments;
+    geometry_msgs::Point linePoint;
+    for(unsigned int k=0;k<tree.size();k++)
+    {
+        for(int j=0;j<tree[k].children.size();j++)
+        {
+            child = tree[k].children[j];
+
+            linePoint.x = tree[k].location.position.x;
+            linePoint.y = tree[k].location.position.y;
+            linePoint.z = tree[k].location.position.z;
+            lineSegments.push_back(linePoint);
+            linePoint.x = child.position.x;
+            linePoint.y = child.position.y;
+            linePoint.z = child.position.z;
+            lineSegments.push_back(linePoint);
+
+        }
+    }
+    visualization_msgs::Marker linesList = drawLines(lineSegments,1000000,2,0,0.08);
+    treePub.publish(linesList);
 }
 
 bool CoveragePathPlanningHeuristic::isCost()
@@ -79,7 +122,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ> visibleCloud, collectiveCloud;
-    visibleCloud = obj->extractVisibleSurface(node->senPose.p);
+    visibleCloud = occlussionCulling->extractVisibleSurface(node->senPose.p);
     if(node->parent)
     {
         collectiveCloud.points = node->parent->cloud_filtered->points;
@@ -91,7 +134,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
     voxelgrid.setInputCloud (tempCloud);
     voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
     voxelgrid.filter(*node->cloud_filtered);
-    node->coverage = obj->calcCoveragePercent(node->cloud_filtered);
+    node->coverage = occlussionCulling->calcCoveragePercent(node->cloud_filtered);
     node->h_value  = 0;
     node->g_value  = 0;
 
@@ -119,6 +162,105 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
     node->distance = node->parent->distance + d;
     if(debug)
         std::cout<<"parent f value calculation: "<<f<<"\n";
+}
+
+void CoveragePathPlanningHeuristic::loadOBJFile(const char* filename, std::vector<fcl::Vec3f>& points, std::list<CGALTriangle>& triangles)
+{
+
+    FILE* file = fopen(filename, "rb");
+    if(!file)
+    {
+        std::cerr << "file not exist" << std::endl;
+        return;
+    }
+
+    bool has_normal = false;
+    bool has_texture = false;
+    char line_buffer[2000];
+    while(fgets(line_buffer, 2000, file))
+    {
+        char* first_token = strtok(line_buffer, "\r\n\t ");
+        if(!first_token || first_token[0] == '#' || first_token[0] == 0)
+            continue;
+
+        switch(first_token[0])
+        {
+        case 'v':
+        {
+            if(first_token[1] == 'n')
+            {
+                strtok(NULL, "\t ");
+                strtok(NULL, "\t ");
+                strtok(NULL, "\t ");
+                has_normal = true;
+            }
+            else if(first_token[1] == 't')
+            {
+                strtok(NULL, "\t ");
+                strtok(NULL, "\t ");
+                has_texture = true;
+            }
+            else
+            {
+                fcl::FCL_REAL x = (fcl::FCL_REAL)atof(strtok(NULL, "\t "));
+                fcl::FCL_REAL y = (fcl::FCL_REAL)atof(strtok(NULL, "\t "));
+                fcl::FCL_REAL z = (fcl::FCL_REAL)atof(strtok(NULL, "\t "));
+                fcl::Vec3f p(x, y, z);
+                points.push_back(p);
+            }
+        }
+            break;
+        case 'f':
+        {
+            CGALTriangle tri;
+            char* data[30];
+            int n = 0;
+            while((data[n] = strtok(NULL, "\t \r\n")) != NULL)
+            {
+                if(strlen(data[n]))
+                    n++;
+            }
+
+            for(int t = 0; t < (n - 2); ++t)
+            {
+                if((!has_texture) && (!has_normal))
+                {
+                    Point p1(points[atoi(data[0]) - 1][0],points[atoi(data[0]) - 1][1],points[atoi(data[0]) - 1][2]);
+                    Point p2(points[atoi(data[1]) - 1][0],points[atoi(data[1]) - 1][1],points[atoi(data[1]) - 1][2]);
+                    Point p3(points[atoi(data[2]) - 1][0],points[atoi(data[2]) - 1][1],points[atoi(data[2]) - 1][2]);
+                    tri = CGALTriangle(p1,p2,p3);
+                    if(!CGAL::collinear(p1,p2,p3))
+                    {
+                        triangles.push_back(tri);
+                    }
+                }
+                else
+                {
+                    const char *v1;
+                    uint indxs[3];
+                    for(int i = 0; i < 3; i++)
+                    {
+                        // vertex ID
+                        if(i == 0)
+                            v1 = data[0];
+                        else
+                            v1 = data[t + i];
+
+                        indxs[i] = atoi(v1) - 1;
+                    }
+                    Point p1(points[indxs[0]][0],points[indxs[0]][1],points[indxs[0]][2]);
+                    Point p2(points[indxs[1]][0],points[indxs[1]][1],points[indxs[1]][2]);
+                    Point p3(points[indxs[2]][0],points[indxs[2]][1],points[indxs[2]][2]);
+                    tri = CGALTriangle(p1,p2,p3);
+                    if(!CGAL::collinear(p1,p2,p3))
+                    {
+                        triangles.push_back(tri);
+                    }
+                }
+            }
+        }
+        }
+    }
 }
 
 }

@@ -1,6 +1,7 @@
 /***************************************************************************
- *   Copyright (C) 2006 - 2007 by                                          *
- *      Tarek Taha, CAS-UTS  <tataha@tarektaha.com>                        *
+ *   Copyright (C) 2006 - 2016 by                                          *
+ *      Tarek Taha, KURI  <tataha@tarektaha.com>                           *
+ *      Randa Almadhoun   <randa.almadhoun@kustar.ac.ae>                   *
  *                                                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -29,7 +30,8 @@ namespace SSPP
 
 DistanceHeuristic::DistanceHeuristic(ros::NodeHandle & nh, bool d)
 {
-    debug = d;
+    debug   = d;
+    treePub = nh.advertise<visualization_msgs::Marker>("search_tree", 10);
 }
 
 double DistanceHeuristic::gCost(Node *node)
@@ -59,6 +61,38 @@ bool DistanceHeuristic::terminateConditionReached(Node *node)
         return true;
     else
         return false;
+}
+
+bool DistanceHeuristic::isConnectionConditionSatisfied(SearchSpaceNode *temp, SearchSpaceNode *S)
+{
+    //TODO::do a collision check with the map
+    return true;
+}
+
+void DistanceHeuristic::displayProgress(vector<Tree> tree)
+{
+    geometry_msgs::Pose child;
+    std::vector<geometry_msgs::Point> lineSegments;
+    geometry_msgs::Point linePoint;
+    for(unsigned int k=0;k<tree.size();k++)
+    {
+        for(int j=0;j<tree[k].children.size();j++)
+        {
+            child = tree[k].children[j];
+
+            linePoint.x = tree[k].location.position.x;
+            linePoint.y = tree[k].location.position.y;
+            linePoint.z = tree[k].location.position.z;
+            lineSegments.push_back(linePoint);
+            linePoint.x = child.position.x;
+            linePoint.y = child.position.y;
+            linePoint.z = child.position.z;
+            lineSegments.push_back(linePoint);
+
+        }
+    }
+    visualization_msgs::Marker linesList = drawLines(lineSegments,1000000,2,100000000,0.08);
+    treePub.publish(linesList);
 }
 
 bool DistanceHeuristic::isCost()

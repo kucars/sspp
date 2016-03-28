@@ -19,31 +19,11 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#ifndef SEARCHSPACE_H_
-#define SEARCHSPACE_H_
+#ifndef RVIZ_DRAWING_TOOLS_H_
+#define RVIZ_DRAWING_TOOLS_H_
+#include <visualization_msgs/Marker.h>
 
-#include "searchspacenode.h"
-#include "utils.h"
+visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration, double scale);
+visualization_msgs::Marker drawPoints(std::vector<geometry_msgs::Point> points, int c_color, int duration);
 
-namespace SSPP
-{
-
-class SearchSpace
-{
-public:
-    SearchSpaceNode * searchspace;
-    void freeSearchSpace();
-    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose);
-    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, int id);
-    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::Pose correspondingSensorPose);
-    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::Pose correspondingSensorPose, int id);
-    SearchSpaceNode * nodeExists(geometry_msgs::Pose nodePose);
-    bool              removeNode(geometry_msgs::Pose nodePose);
-    SearchSpace();
-    virtual ~SearchSpace();
-    int idCount;
-};
-
-}
-
-#endif /*SEARCHSPACE_H_*/
+#endif //RVIZ_DRAWING_TOOLS_H_
