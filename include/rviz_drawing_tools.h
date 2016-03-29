@@ -23,7 +23,7 @@
 #define RVIZ_DRAWING_TOOLS_H_
 #include <visualization_msgs/Marker.h>
 
-visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration, double scale);
-visualization_msgs::Marker drawPoints(std::vector<geometry_msgs::Point> points, int c_color, int duration);
+visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int inColor, int duration, double scale);
+visualization_msgs::Marker drawPoints(std::vector<geometry_msgs::Point> points, int inColor, int duration);
 
 #endif //RVIZ_DRAWING_TOOLS_H_

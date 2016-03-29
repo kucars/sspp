@@ -35,7 +35,8 @@ Astar::Astar(ros::NodeHandle & n, Robot *rob, int progressDisplayFrequency):
     closedList(NULL),
     globalcount(0),
     debug(false),
-    progressDisplayFrequency(progressDisplayFrequency)
+    progressDisplayFrequency(progressDisplayFrequency),
+    debugDelay(0)
 {    
 }
 
@@ -173,6 +174,7 @@ Node *Astar::startSearch(Pose start)
         if((count++%progressDisplayFrequency) == 0)
         {
             heuristic->displayProgress(tree);
+            ros::Duration(debugDelay).sleep();
         }
 
         // Get the node with the highest cost (first node) (it was the cheapest one before since we were taking the lower cost but now it is converted to a reward function)
@@ -408,6 +410,11 @@ void Astar::freeNode(Node *n)
 void Astar::setProgressDisplayFrequency(int progressDisplayFrequency)
 {
     this->progressDisplayFrequency = progressDisplayFrequency;
+}
+
+void Astar::setDebugDelay(double delay)
+{
+    this->debugDelay = delay;
 }
 
 }

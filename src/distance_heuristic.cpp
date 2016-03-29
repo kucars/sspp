@@ -24,6 +24,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include "rviz_visual_tools/rviz_visual_tools.h"
 
 namespace SSPP
 {
@@ -71,28 +72,35 @@ bool DistanceHeuristic::isConnectionConditionSatisfied(SearchSpaceNode *temp, Se
 
 void DistanceHeuristic::displayProgress(vector<Tree> tree)
 {
+    rviz_visual_tools::RvizVisualToolsPtr visualTools;
+    visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/sspp_visualisation"));
     geometry_msgs::Pose child;
     std::vector<geometry_msgs::Point> lineSegments;
-    geometry_msgs::Point linePoint;
+    geometry_msgs::Point linePoint1,linePoint2;
     for(unsigned int k=0;k<tree.size();k++)
     {
         for(int j=0;j<tree[k].children.size();j++)
         {
             child = tree[k].children[j];
 
-            linePoint.x = tree[k].location.position.x;
-            linePoint.y = tree[k].location.position.y;
-            linePoint.z = tree[k].location.position.z;
-            lineSegments.push_back(linePoint);
-            linePoint.x = child.position.x;
-            linePoint.y = child.position.y;
-            linePoint.z = child.position.z;
-            lineSegments.push_back(linePoint);
+            linePoint1.x = tree[k].location.position.x;
+            linePoint1.y = tree[k].location.position.y;
+            linePoint1.z = tree[k].location.position.z;
+            lineSegments.push_back(linePoint1);
 
+            linePoint2.x = child.position.x;
+            linePoint2.y = child.position.y;
+            linePoint2.z = child.position.z;
+            lineSegments.push_back(linePoint2);
+
+            visualTools->publishLine(linePoint1,linePoint2,rviz_visual_tools::GREEN, rviz_visual_tools::LARGE);
         }
     }
+    //visualTools->publishPath(lineSegments, rviz_visual_tools::GREEN, rviz_visual_tools::LARGE,"search_tree");
+    /*
     visualization_msgs::Marker linesList = drawLines(lineSegments,1000000,2,100000000,0.08);
     treePub.publish(linesList);
+    */
 }
 
 bool DistanceHeuristic::isCost()

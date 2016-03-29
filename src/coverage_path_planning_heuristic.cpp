@@ -91,7 +91,7 @@ void CoveragePathPlanningHeuristic::displayProgress(vector<Tree> tree)
 
         }
     }
-    visualization_msgs::Marker linesList = drawLines(lineSegments,1000000,2,0,0.08);
+    visualization_msgs::Marker linesList = drawLines(lineSegments,1,2,1000000,0.08);
     treePub.publish(linesList);
 }
 

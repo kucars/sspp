@@ -77,18 +77,10 @@ public:
     void freeNode   (Node *);
     bool goalReached(Node *n);
     void setProgressDisplayFrequency(int progressDisplayFrequency);
+    void setDebugDelay(double delay);
     int progressDisplayFrequency;
     Node*  startSearch  (Pose start);
-    /*
-    ros::Publisher treePub;
-    ros::Publisher connectionPub;
-    ros::Publisher pathPub;
-    ros::Publisher pathPointPub;
-    ros::Publisher testPointPub;
-    ros::Publisher coveredPointsPub;
-    ros::Publisher connectionDebugPub;
-    */
-
+    double debugDelay;
 };
 
 }

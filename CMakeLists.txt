@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   shape_msgs
   std_msgs
   component_test
+  rviz_visual_tools
   )
 
 find_package( CGAL QUIET COMPONENTS  )
@@ -29,6 +30,7 @@ catkin_package(CATKIN_DEPENDS component_test)
 include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${component_test_INCLUDE_DIRS}
+  ${rviz_visual_tools_INCLUDE_DIRS}
   /usr/local/cuda/include/
 )
 
@@ -65,9 +67,9 @@ target_link_libraries(SSPathPlanner
     Qt4::QtGui
     Qt4::QtCore
     )
-add_executable(ssppTest src/test.cpp)
-target_include_directories(ssppTest PUBLIC include ${catkin_INCLUDE_DIRS})
-target_link_libraries( ssppTest SSPathPlanner
+add_executable(distance_heuristic_test src/distance_heuristic_test.cpp)
+target_include_directories(distance_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS})
+target_link_libraries(distance_heuristic_test SSPathPlanner
     -lgmp -lmpfr
     ${CGAL_LIBRARY}
     ${CGAL_Core_LIBRARY}
@@ -77,4 +79,5 @@ target_link_libraries( ssppTest SSPathPlanner
     ${PCL_LIBRARIES}
     ${component_test_LIBRARIES}
     occlusion_culling_gpu
+    ${rviz_visual_tools_LIBRARIES}
     )

@@ -21,7 +21,7 @@
  ***************************************************************************/
 #include "rviz_drawing_tools.h"
 
-visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int c_color, int duration, double scale)
+visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int inColor, int duration, double scale)
 {
     visualization_msgs::Marker linksMarkerMsg;
     linksMarkerMsg.header.frame_id="/map";
@@ -33,14 +33,14 @@ visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, in
     linksMarkerMsg.action  = visualization_msgs::Marker::ADD;
     linksMarkerMsg.lifetime  = ros::Duration(duration);
     std_msgs::ColorRGBA color;
-    if(c_color == 1)
+    if(inColor == 1)
     {
         color.r = 1.0;
         color.g = 0.0;
         color.b = 0.0;
         color.a = 1.0;
     }
-    else if(c_color == 2)
+    else if(inColor == 2)
     {
         color.r = 0.0;
         color.g = 1.0;
@@ -63,7 +63,7 @@ visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, in
     return linksMarkerMsg;
 }
 
-visualization_msgs::Marker drawPoints(std::vector<geometry_msgs::Point> points, int c_color, int duration)
+visualization_msgs::Marker drawPoints(std::vector<geometry_msgs::Point> points, int inColor, int duration)
 {
     visualization_msgs::Marker pointMarkerMsg;
     pointMarkerMsg.header.frame_id="/map";
@@ -76,14 +76,14 @@ visualization_msgs::Marker drawPoints(std::vector<geometry_msgs::Point> points, 
     pointMarkerMsg.action  = visualization_msgs::Marker::ADD;
     pointMarkerMsg.lifetime  = ros::Duration(duration);
     std_msgs::ColorRGBA color;
-    if(c_color == 1)
+    if(inColor == 1)
     {
         color.r = 1.0;
         color.g = 0.0;
         color.b = 0.0;
         color.a = 1.0;
     }
-    else if(c_color == 2)
+    else if(inColor == 2)
     {
         color.r = 0.0;
         color.g = 1.0;
