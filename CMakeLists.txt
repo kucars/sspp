@@ -81,3 +81,17 @@ target_link_libraries(distance_heuristic_test SSPathPlanner
     occlusion_culling_gpu
     ${rviz_visual_tools_LIBRARIES}
     )
+add_executable(coverage_heuristic_test src/coverage_heuristic_test.cpp)
+target_include_directories(coverage_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS})
+target_link_libraries(coverage_heuristic_test SSPathPlanner
+    -lgmp -lmpfr
+    ${CGAL_LIBRARY}
+    ${CGAL_Core_LIBRARY}
+    Qt4::QtGui
+    Qt4::QtCore
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+    ${component_test_LIBRARIES}
+    occlusion_culling_gpu
+    ${rviz_visual_tools_LIBRARIES}
+    )

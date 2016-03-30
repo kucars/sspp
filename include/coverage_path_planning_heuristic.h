@@ -54,13 +54,15 @@ typedef CGAL::AABB_triangle_primitive<K, Iterator> Primitive;
 typedef CGAL::AABB_traits<K, Primitive> AABB_triangle_traits;
 typedef CGAL::AABB_tree<AABB_triangle_traits> Tree1;
 
+enum{SurfaceCoverageH,SurfaceCoveragewithOrientationH};
+
 namespace SSPP
 {
 
 class CoveragePathPlanningHeuristic:public Heuristic
 {
 public:
-    CoveragePathPlanningHeuristic(ros::NodeHandle &n, string modelName, bool d=false);
+    CoveragePathPlanningHeuristic(ros::NodeHandle & nh, std::string collisionCheckModelP, std::string occlusionCullingModelN, bool d, int hType);
     ~CoveragePathPlanningHeuristic();
     bool isCost();
     void setCoverageTarget(double coverageTarget);
@@ -75,6 +77,7 @@ private:
     void loadOBJFile(const char* filename, std::vector<fcl::Vec3f>& points, std::list<CGALTriangle>& triangles);
     OcclusionCullingGPU* occlussionCulling;
     bool debug;
+    int heuristicType;
     double coverageTarget;
     double coverageTolerance;
     ros::Publisher treePub;

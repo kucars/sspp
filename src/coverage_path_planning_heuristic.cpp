@@ -24,13 +24,14 @@
 namespace SSPP
 {
 
-CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & nh,std::string modelName, bool d)
+CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & nh, std::string collisionCheckModelP, std::string occlusionCullingModelN, bool d, int hType)
 {
 
-    loadOBJFile(modelName.c_str(), modelPoints, triangles);
+    loadOBJFile(collisionCheckModelP.c_str(), modelPoints, triangles);
     cgalTree           = new Tree1(triangles.begin(),triangles.end());
-    occlussionCulling  = new OcclusionCullingGPU(nh, modelName);
+    occlussionCulling  = new OcclusionCullingGPU(nh, occlusionCullingModelN);
     debug              = d;
+    heuristicType      = hType;
     treePub            = nh.advertise<visualization_msgs::Marker>("search_tree", 10);
 }
 
@@ -117,56 +118,72 @@ void CoveragePathPlanningHeuristic::setDebug(bool debug)
 
 void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 {
+
     if(node==NULL)
         return;
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ> visibleCloud, collectiveCloud;
     visibleCloud = occlussionCulling->extractVisibleSurface(node->senPose.p);
+
     if(node->parent)
     {
+
         collectiveCloud.points = node->parent->cloud_filtered->points;
-    }
-    collectiveCloud +=visibleCloud;
-    tempCloud->points = collectiveCloud.points;
+        collectiveCloud +=visibleCloud;
+        tempCloud->points = collectiveCloud.points;
 
-    pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
-    voxelgrid.setInputCloud (tempCloud);
-    voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
-    voxelgrid.filter(*node->cloud_filtered);
-    node->coverage = occlussionCulling->calcCoveragePercent(node->cloud_filtered);
-    node->h_value  = 0;
-    node->g_value  = 0;
+        pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+        voxelgrid.setInputCloud (tempCloud);
 
-    double f=0,d,c;
+        voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
+        voxelgrid.filter(*node->cloud_filtered);
 
-    // Using the coverage percentage
-    d = Dist(node->pose.p,node->parent->pose.p);
-    c = node->coverage - node->parent->coverage;
+        node->coverage = occlussionCulling->calcCoveragePercent(node->cloud_filtered);
 
-    if(debug)
-    {
-        std::cout<<"\nchild collective cloud after filtering size: "<<node->cloud_filtered->size()<<"\n";
-        std::cout<<"parent distance :"<<node->parent->distance<<" current node distance: "<<node->distance<<"\n";
-        std::cout<<"parent coverage :"<<node->parent->coverage<<" current node coverage: "<<node->coverage<<"\n";
-        std::cout<<"Calculated local distance d:"<<d<<" comulative distance: "<<node->distance<<"\n";
-        std::cout<<"extra coverage c : "<<c<<"\n";
-    }
+        node->h_value  = 0;
+        node->g_value  = 0;
 
-    if(d!=0.0)
-        f = node->parent->f_value + ((1/d)*c);
-    else
-        f = node->parent->f_value + c;
+        double f=0,d,c;
 
-    node->f_value  = f;
-    node->distance = node->parent->distance + d;
-    if(debug)
-        std::cout<<"parent f value calculation: "<<f<<"\n";
+        // Using the coverage percentage
+        d = Dist(node->pose.p,node->parent->pose.p);
+        c = node->coverage - node->parent->coverage;
+
+        if(debug)
+        {
+            std::cout<<"\nchild collective cloud after filtering size: "<<node->cloud_filtered->size()<<"\n";
+            std::cout<<"parent distance :"<<node->parent->distance<<" current node distance: "<<node->distance<<"\n";
+            std::cout<<"parent coverage :"<<node->parent->coverage<<" current node coverage: "<<node->coverage<<"\n";
+            std::cout<<"Calculated local distance d:"<<d<<" comulative distance: "<<node->distance<<"\n";
+            std::cout<<"extra coverage c : "<<c<<"\n";
+        }
+
+
+        if(d!=0.0)
+            f = node->parent->f_value + ((1/d)*c);
+        else{
+            if(heuristicType==SurfaceCoverageH)
+                f = node->parent->f_value + c;
+            else {
+                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
+                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
+                double angle, normAngle;
+                angle=qtParent.angleShortestPath(qtNode);
+                normAngle=1-angle/(2*M_PI);
+                f = node->parent->f_value + normAngle*c;
+            }
+        }
+        node->f_value  = f;
+        node->distance = node->parent->distance + d;
+        if(debug)
+            std::cout<<"parent f value calculation: "<<f<<"\n";
+    }else
+        node->f_value =0;//root node
 }
 
 void CoveragePathPlanningHeuristic::loadOBJFile(const char* filename, std::vector<fcl::Vec3f>& points, std::list<CGALTriangle>& triangles)
 {
-
     FILE* file = fopen(filename, "rb");
     if(!file)
     {
