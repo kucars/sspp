@@ -91,12 +91,12 @@ void LList::add(Node * curChild, bool ascending)
     // now insert the child into the open list according to the f value
     while (p)
     {
-        //reward function
+        //cost function
         if(ascending)
-            condition = (p->f_value < curChild->f_value);
-        // cost function
-        else
             condition = (p->f_value >= curChild->f_value);
+        //reward function
+        else
+            condition = (p->f_value <= curChild->f_value);
         if(condition)
         {
             // test head of the list case

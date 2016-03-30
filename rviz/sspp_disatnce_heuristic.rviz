@@ -56,7 +56,7 @@ Visualization Manager:
       Name: MarkerArray
       Namespaces:
         Arrow: true
-        Line: false
+        Line: true
         generated_path: true
         search_space: false
         search_space_nodes: true
@@ -86,22 +86,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 33.5174
+      Distance: 25.7458
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 4.14174
-        Y: -0.915422
-        Z: 0.726049
+        X: 6.2646
+        Y: 2.15263
+        Z: 1.91314
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.795398
+      Pitch: 0.715399
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.82539
+      Yaw: 4.24537
     Saved: ~
 Window Geometry:
   Displays:

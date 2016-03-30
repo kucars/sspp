@@ -174,7 +174,9 @@ Node *Astar::startSearch(Pose start)
         if((count++%progressDisplayFrequency) == 0)
         {
             heuristic->displayProgress(tree);
-            ros::Duration(debugDelay).sleep();
+            //seconds to usec
+            if(debugDelay!=0)
+                usleep(debugDelay*1000000);
         }
 
         // Get the node with the highest cost (first node) (it was the cheapest one before since we were taking the lower cost but now it is converted to a reward function)
@@ -233,16 +235,16 @@ Node *Astar::startSearch(Pose start)
             heuristic->calculateHeuristic(curChild);
             globalcount++;
             Node * p;
-            if (debug == true)
+            if(debug)
             {
-                std::cout<<"curChildren f value= "<<curChild->f_value<<"\n";
-                std::cout<<"\n Finding the curchild : "<<curChild->pose.p.position.x<<" "<< curChild->pose.p.position.y<<" "<<curChild->pose.p.position.z<<" "<<curChild->pose.p.orientation.x<<" "<<curChild->pose.p.orientation.y<<" "<<curChild->pose.p.orientation.z<<" "<<curChild->pose.p.orientation.w<< std::endl;
+                std::cout<<"\ncurChildren f value= "<<curChild->f_value;
+                std::cout<<"\nFinding the curchild : "<<curChild->pose.p.position.x<<" "<< curChild->pose.p.position.y<<" "<<curChild->pose.p.position.z<<" "<<curChild->pose.p.orientation.x<<" "<<curChild->pose.p.orientation.y<<" "<<curChild->pose.p.orientation.z<<" "<<curChild->pose.p.orientation.w<< std::endl;
             }
 
-            if( (p = openList->find(curChild)))
+            if((p = openList->find(curChild)))
             {
-                if (debug == true)
-                    std::cout<<"check if the child is already in the open list"<<"\n";
+                if (debug)
+                    std::cout<<"\nCheck if the child is already in the open list"<<"\n";
                 if(heuristic->isCost())
                     condition = (p->f_value <=curChild->f_value);
                 else
@@ -262,7 +264,7 @@ Node *Astar::startSearch(Pose start)
             // test whether the child is in the closed list (already been there)
             if (curChild)
             {
-                if (debug == true)
+                if (debug)
                 {
                     std::cout<<" check if the current child in the closed list\n"<<std::endl;
                     std::cout<<" CLOSED LIST NODES\n"<<std::endl;
@@ -271,8 +273,8 @@ Node *Astar::startSearch(Pose start)
                 }
                 if((p = closedList->find(curChild)))
                 {
-                    if (debug == true)
-                        std::cout<<"the child is already in the closed list"<<"\n";
+                    if (debug)
+                        std::cout<<"The child is already in the closed list"<<"\n";
 
                     if(heuristic->isCost())
                         condition = (p->f_value <=curChild->f_value);
@@ -280,7 +282,7 @@ Node *Astar::startSearch(Pose start)
                         condition = (p->f_value >=curChild->f_value);
                     if(condition)
                     {
-                        if (debug == true)
+                        if (debug)
                             std::cout<<"Free the node the closed list check, parent is bigger than the child"<<"\n";
                         freeNode(curChild);
                         curChild = NULL;
@@ -288,7 +290,7 @@ Node *Astar::startSearch(Pose start)
                     // the child is a shorter path to this point, delete p from  the closed list
                     else
                     {
-                        if (debug == true)
+                        if (debug)
                             std::cout<<"the parent f value is less than the child"<<"\n"; fflush(stdout);
                         /* This is the tricky part, it rarely happens, but in my case it happenes all the time :s
                          * Anyways, we are here cause we found a better path to a node that we already visited, we will have to
@@ -298,13 +300,13 @@ Node *Astar::startSearch(Pose start)
                          */
                     }
                 }
-                if (debug == true)
+                if (debug)
                     std::cout<<"DID NOT find the child in the closed list\n";
             }
             // ADD the child to the OPEN List
             if (curChild)
             {
-                if (debug == true)
+                if (debug)
                     std::cout<<"adding the cur child to the openlist"<<"\n";
                 openList->add(curChild,heuristic->isCost());
             }

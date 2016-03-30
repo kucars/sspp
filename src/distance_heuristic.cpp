@@ -105,7 +105,7 @@ void DistanceHeuristic::displayProgress(vector<Tree> tree)
 
 bool DistanceHeuristic::isCost()
 {
-    return false;
+    return true;
 }
 
 void DistanceHeuristic::setDebug(bool debug)
