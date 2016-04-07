@@ -15,23 +15,37 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   shape_msgs
   std_msgs
-  component_test
   rviz_visual_tools
   )
 
 find_package( CGAL QUIET COMPONENTS  )
 find_package(fcl REQUIRED)
-find_package(CUDA REQUIRED)
+find_package(PCL REQUIRED)
+find_package(CUDA QUIET)
+find_package(component_test QUIET)
+
+if ( NOT CUDA_FOUND )
+  message(STATUS "You will not be able to use coverage heuristic, it requires CUDA")
+#  return()
+endif()
+
+if ( NOT component_test_FOUND )
+  message(STATUS "You will not be able to use coverage heuristic, it requires component test package")
+#  return()
+endif()
 
 include(FindPkgConfig)
 
-catkin_package(CATKIN_DEPENDS component_test)
+#catkin_package(CATKIN_DEPENDS component_test)
+catkin_package(
+   INCLUDE_DIRS include
+   LIBRARIES
+   CATKIN_DEPENDS roscpp pcl_ros
+)
 
 include_directories(include
   ${catkin_INCLUDE_DIRS}
-  ${component_test_INCLUDE_DIRS}
   ${rviz_visual_tools_INCLUDE_DIRS}
-  /usr/local/cuda/include/
 )
 
 #pkg_check_modules(PLAYER REQUIRED playercore playerc++ playerc)
@@ -44,9 +58,11 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 find_package(Qt4 REQUIRED)
 
 # Set include directories
-include_directories(include ${QT_INCLUDES} ${component_test_INCLUDE_DIRS} )
+include_directories(include ${QT_INCLUDES})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
+
+
 
 add_library(SSPathPlanner SHARED
     src/astar.cpp
@@ -58,7 +74,6 @@ add_library(SSPathPlanner SHARED
     src/searchspace.cpp
     src/searchspacenode.cpp
     src/ssppexception.cpp
-    src/coverage_path_planning_heuristic.cpp
     src/distance_heuristic.cpp
     src/rviz_drawing_tools.cpp
     )
@@ -77,21 +92,26 @@ target_link_libraries(distance_heuristic_test SSPathPlanner
     Qt4::QtCore
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
-    ${component_test_LIBRARIES}
-    occlusion_culling_gpu
     ${rviz_visual_tools_LIBRARIES}
     )
-add_executable(coverage_heuristic_test src/coverage_heuristic_test.cpp)
-target_include_directories(coverage_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS})
-target_link_libraries(coverage_heuristic_test SSPathPlanner
-    -lgmp -lmpfr
-    ${CGAL_LIBRARY}
-    ${CGAL_Core_LIBRARY}
-    Qt4::QtGui
-    Qt4::QtCore
-    ${catkin_LIBRARIES}
-    ${PCL_LIBRARIES}
-    ${component_test_LIBRARIES}
-    occlusion_culling_gpu
-    ${rviz_visual_tools_LIBRARIES}
-    )
+
+if (component_test_FOUND)
+        add_library(CoverageHeuristic SHARED src/coverage_path_planning_heuristic.cpp)
+        target_link_libraries(CoverageHeuristic Qt4::QtGui Qt4::QtCore ${component_test_LIBRARIES} occlusion_culling_gpu)
+        target_include_directories(CoverageHeuristic PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
+        add_executable(coverage_heuristic_test src/coverage_heuristic_test.cpp)
+        target_include_directories(coverage_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
+        target_link_libraries(coverage_heuristic_test SSPathPlanner
+            -lgmp -lmpfr
+            ${CGAL_LIBRARY}
+            ${CGAL_Core_LIBRARY}
+            Qt4::QtGui
+            Qt4::QtCore
+            ${catkin_LIBRARIES}
+            ${PCL_LIBRARIES}
+            ${component_test_LIBRARIES}
+            occlusion_culling_gpu
+            ${rviz_visual_tools_LIBRARIES}
+            CoverageHeuristic
+            )
+endif (component_test)

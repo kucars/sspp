@@ -24,8 +24,9 @@
 #include<QPointF>
 #include "robot.h"
 #include "utils.h"
-#include "component_test/occlusion_culling_gpu.h"
-#include <component_test/occlusion_culling.h>
+#include <pcl/point_types.h>
+#include <pcl/common/eigen.h>
+#include <pcl/common/transforms.h>
 
 namespace SSPP
 {

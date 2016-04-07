@@ -24,8 +24,6 @@
 
 #include <QString>
 #include <QHash>
-#include <component_test/occlusion_culling_gpu.h>
-#include <component_test/occlusion_culling.h>
 #include "ssppexception.h"
 #include "searchspacenode.h"
 #include "node.h"
