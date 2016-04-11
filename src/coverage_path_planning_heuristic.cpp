@@ -144,7 +144,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
         node->h_value  = 0;
         node->g_value  = 0;
 
-        double f=0,d,c;
+        double f=0,d,c,a;
 
         // Using the coverage percentage
         d = Dist(node->pose.p,node->parent->pose.p);
@@ -165,13 +165,23 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
         else{
             if(heuristicType==SurfaceCoverageH)
                 f = node->parent->f_value + c;
-            else {
+            else if(heuristicType==SurfaceCoveragewithOrientationH) {
                 tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
                 tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
                 double angle, normAngle;
                 angle=qtParent.angleShortestPath(qtNode);
                 normAngle=1-angle/(2*M_PI);
                 f = node->parent->f_value + normAngle*c;
+            } else if(heuristicType==SurfaceCoveragewithAccuracyH){
+                std::cout<<"inside the accuracy heuristic\n";
+                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
+                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
+                double angle, normAngle;
+                angle=qtParent.angleShortestPath(qtNode);
+                normAngle=1-angle/(2*M_PI);
+                f = node->parent->f_value + normAngle*c;
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                f = node->parent->f_value + a*c*normAngle;
             }
         }
         node->f_value  = f;

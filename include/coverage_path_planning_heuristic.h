@@ -54,7 +54,7 @@ typedef CGAL::AABB_triangle_primitive<K, Iterator> Primitive;
 typedef CGAL::AABB_traits<K, Primitive> AABB_triangle_traits;
 typedef CGAL::AABB_tree<AABB_triangle_traits> Tree1;
 
-enum{SurfaceCoverageH,SurfaceCoveragewithOrientationH};
+enum{SurfaceCoverageH,SurfaceCoveragewithOrientationH,SurfaceCoveragewithAccuracyH};
 
 namespace SSPP
 {
