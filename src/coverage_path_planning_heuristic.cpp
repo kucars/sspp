@@ -160,8 +160,15 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
         }
 
 
-        if(d!=0.0)
-            f = node->parent->f_value + ((1/d)*c);
+        if(d!=0.0){
+            if(heuristicType==SurfaceCoverageH || heuristicType==SurfaceCoveragewithOrientationH)
+                f = node->parent->f_value + ((1/d)*c);
+            else if(heuristicType==SurfaceCoveragewithAccuracyH)
+            {
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                f = node->parent->f_value + ((1/d)*c*a);
+            }
+        }
         else{
             if(heuristicType==SurfaceCoverageH)
                 f = node->parent->f_value + c;
@@ -173,7 +180,6 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 normAngle=1-angle/(2*M_PI);
                 f = node->parent->f_value + normAngle*c;
             } else if(heuristicType==SurfaceCoveragewithAccuracyH){
-                std::cout<<"inside the accuracy heuristic\n";
                 tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
                 tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
                 double angle, normAngle;

@@ -46,7 +46,7 @@ int main( int argc, char **  argv)
     ros::NodeHandle nh;
 
     ros::Publisher originalCloudPub  = nh.advertise<sensor_msgs::PointCloud2>("original_point_cloud", 100);
-//    ros::Publisher visiblePub      = nh.advertise<sensor_msgs::PointCloud2>("occlusion_free_cloud", 100);
+    ros::Publisher visiblePub        = nh.advertise<sensor_msgs::PointCloud2>("occlusion_free_cloud", 100);
     ros::Publisher pathPub           = nh.advertise<visualization_msgs::Marker>("generated_path", 10);
     ros::Publisher searchSpacePub    = nh.advertise<visualization_msgs::Marker>("search_space", 10);
     ros::Publisher connectionsPub    = nh.advertise<visualization_msgs::Marker>("connections", 10);
@@ -55,6 +55,9 @@ int main( int argc, char **  argv)
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr originalCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::io::loadPCDFile<pcl::PointXYZ> (ros::package::getPath("component_test")+"/src/pcd/etihad_nowheels_densed.pcd", *originalCloudPtr);
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr coveredCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
+    OcclusionCullingGPU occlusionCulling(nh,"etihad_nowheels_densed.pcd");
 
     rviz_visual_tools::RvizVisualToolsPtr visualTools;
     visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/sspp_visualisation"));
@@ -89,7 +92,7 @@ int main( int argc, char **  argv)
 
 
 
-    double coverageTolerance=0.5, targetCov=10;
+    double coverageTolerance=1.0, targetCov=5;
     std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels.obj";
     std::string occlusionCullingModelName = "etihad_nowheels_densed.pcd";
     CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, SurfaceCoveragewithAccuracyH);
@@ -144,6 +147,7 @@ int main( int argc, char **  argv)
     geometry_msgs::PoseArray robotPose,sensorPose;
     double dist=0;
     double yaw;
+    pcl::PointCloud<pcl::PointXYZ> temp_cloud, combined;
     while(path !=NULL)
     {
         tf::Quaternion qt(path->pose.p.orientation.x,path->pose.p.orientation.y,path->pose.p.orientation.z,path->pose.p.orientation.w);
@@ -156,6 +160,8 @@ int main( int argc, char **  argv)
             robotPose.poses.push_back(path->pose.p);
             sensorPose.poses.push_back(path->senPose.p);
             pathSegments.push_back(linePoint);
+            temp_cloud=occlusionCulling.extractVisibleSurface(path->senPose.p);
+            combined += temp_cloud;
 
             linePoint.x = path->next->pose.p.position.x;
             linePoint.y = path->next->pose.p.position.y;
@@ -163,18 +169,20 @@ int main( int argc, char **  argv)
             robotPose.poses.push_back(path->next->pose.p);
             sensorPose.poses.push_back(path->next->senPose.p);
             pathSegments.push_back(linePoint);
-
+            temp_cloud=occlusionCulling.extractVisibleSurface(path->senPose.p);
+            combined += temp_cloud;
             dist=dist+ Dist(path->next->pose.p,path->pose.p);
         }
         path = path->next;
     }
 //    visualTools->publishPath(pathSegments, rviz_visual_tools::RED, rviz_visual_tools::LARGE,"generated_path");
     visualization_msgs::Marker pathMarker = drawLines(pathSegments,20000,1,10000000,0.08);
+    coveredCloudPtr->points=combined.points;
 
     ros::Rate loopRate(10);
     std::cout<<"\nDistance calculated from the path: "<<dist<<"m\n";
 
-    sensor_msgs::PointCloud2 cloud1;
+    sensor_msgs::PointCloud2 cloud1,cloud2;
     while (ros::ok())
     {
         /*
@@ -192,6 +200,11 @@ int main( int argc, char **  argv)
         cloud1.header.stamp = ros::Time::now();
         cloud1.header.frame_id = "map"; //change according to the global frame please!!
         originalCloudPub.publish(cloud1);
+
+        pcl::toROSMsg(*coveredCloudPtr, cloud2); //cloud of original (white) using original cloud
+        cloud2.header.stamp = ros::Time::now();
+        cloud2.header.frame_id = "map"; //change according to the global frame please!!
+        visiblePub.publish(cloud2);
 
         searchSpacePub.publish(searchSpaceMarker);
         connectionsPub.publish(connectionsMarker);
