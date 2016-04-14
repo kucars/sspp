@@ -62,7 +62,7 @@ namespace SSPP
 class CoveragePathPlanningHeuristic:public Heuristic
 {
 public:
-    CoveragePathPlanningHeuristic(ros::NodeHandle & nh, std::string collisionCheckModelP, std::string occlusionCullingModelN, bool d, int hType);
+    CoveragePathPlanningHeuristic(ros::NodeHandle & nh, std::string collisionCheckModelP, std::string occlusionCullingModelN, bool d,bool gradualV, int hType);
     ~CoveragePathPlanningHeuristic();
     bool isCost();
     void setCoverageTarget(double coverageTarget);
@@ -72,15 +72,20 @@ public:
     bool terminateConditionReached(Node *node);
     bool isConnectionConditionSatisfied(SearchSpaceNode *temp, SearchSpaceNode *S);
     void displayProgress(vector<Tree> tree);
+    void displayGradualProgress(Node *node);
 
 private:
     void loadOBJFile(const char* filename, std::vector<fcl::Vec3f>& points, std::list<CGALTriangle>& triangles);
     OcclusionCullingGPU* occlussionCulling;
     bool debug;
+    bool gradualVisualization;
     int heuristicType;
     double coverageTarget;
     double coverageTolerance;
     ros::Publisher treePub;
+    ros::Publisher coveredPointsPub;
+    ros::Publisher pathPointPub;
+    ros::Publisher pathPub;
     std::list<CGALTriangle> triangles;
     std::vector<fcl::Vec3f> modelPoints;
     Tree1* cgalTree;

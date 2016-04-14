@@ -24,15 +24,19 @@
 namespace SSPP
 {
 
-CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & nh, std::string collisionCheckModelP, std::string occlusionCullingModelN, bool d, int hType)
+CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & nh, std::string collisionCheckModelP, std::string occlusionCullingModelN, bool d, bool gradualV, int hType)
 {
 
     loadOBJFile(collisionCheckModelP.c_str(), modelPoints, triangles);
-    cgalTree           = new Tree1(triangles.begin(),triangles.end());
-    occlussionCulling  = new OcclusionCullingGPU(nh, occlusionCullingModelN);
-    debug              = d;
-    heuristicType      = hType;
-    treePub            = nh.advertise<visualization_msgs::Marker>("search_tree", 10);
+    cgalTree             = new Tree1(triangles.begin(),triangles.end());
+    occlussionCulling    = new OcclusionCullingGPU(nh, occlusionCullingModelN);
+    debug                = d;
+    gradualVisualization = gradualV;
+    heuristicType        = hType;
+    treePub              = nh.advertise<visualization_msgs::Marker>("search_tree", 10);
+    coveredPointsPub     = nh.advertise<sensor_msgs::PointCloud2>("gradual_coverage", 100);;
+    pathPointPub         = nh.advertise<visualization_msgs::Marker>("path_point" , 10);
+    pathPub              = nh.advertise<visualization_msgs::Marker>("path_testing", 10);
 }
 
 CoveragePathPlanningHeuristic::~CoveragePathPlanningHeuristic()
@@ -51,7 +55,11 @@ bool CoveragePathPlanningHeuristic::terminateConditionReached(Node *node)
     if ( deltaCoverage <= coverageTolerance)
         return true;
     else
+    {
+        if(gradualVisualization)
+            displayGradualProgress(node);
         return false;
+    }
 }
 
 bool CoveragePathPlanningHeuristic::isConnectionConditionSatisfied(SearchSpaceNode *temp, SearchSpaceNode *S)
@@ -196,6 +204,70 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
             std::cout<<"parent f value calculation: "<<f<<"\n";
     }else
         node->f_value =0;//root node
+}
+void CoveragePathPlanningHeuristic::displayGradualProgress(Node *node)
+{
+            //########display the covered points##########
+            sensor_msgs::PointCloud2 cloud1;
+            pcl::toROSMsg(*(node->cloud_filtered), cloud1);
+            cloud1.header.frame_id = "map";
+            cloud1.header.stamp = ros::Time::now();
+            coveredPointsPub.publish(cloud1);
+
+
+            //########display the point selected##########
+    //        std::vector<geometry_msgs::Point> points;
+    //        geometry_msgs::Point linept;
+    //        linept.x = node->pose.p.position.x; linept.y = node->pose.p.position.y; linept.z = node->pose.p.position.z;
+    //        points.push_back(linept);
+    //        visualization_msgs::Marker pointsList = drawPoints(points,10,1,10000,0.05);
+    //        pathPointPub.publish(pointsList);
+
+
+            int coveI = (int)node->coverage;
+
+            //########display FOV##########
+    //        if (coveI != 0 && %10==0)
+    //            occlusionCulling->visualizeFOV(node->senPose.p);
+
+            //########display the path every 1% coverage########
+            if (debug == true)
+                std::cout<<"\n\n\n\n**********************COVERAGE delta:" <<coveI<<"\n\n\n\n";
+            if ( coveI%1==0)
+            {
+                if (debug == true)
+                    std::cout<<"INSIDE PUBLISHING"<<"\n";
+
+
+                //  publish path and pring the path each 1%
+                ofstream path_file;
+                std::string path = ros::package::getPath("sspp");
+                std::string fileloc = path+ "/resources/path_testfile.txt";
+                path_file.open(fileloc.c_str());
+                std::vector<geometry_msgs::Point> lines;
+                geometry_msgs::Point linepoint;
+                Node *test_path;
+                test_path = node;
+                double yaw;
+                while (test_path != NULL)
+                {
+                    tf::Quaternion qt(test_path->pose.p.orientation.x,test_path->pose.p.orientation.y,test_path->pose.p.orientation.z,test_path->pose.p.orientation.w);
+                    yaw = tf::getYaw(qt);
+                    path_file << test_path->pose.p.position.x<<" "<<test_path->pose.p.position.y<<" "<<test_path->pose.p.position.z<<" "<<yaw<<"\n";
+                    if (test_path->parent != NULL)
+                    {
+                        linepoint.x = test_path->pose.p.position.x; linepoint.y = test_path->pose.p.position.y; linepoint.z = test_path->pose.p.position.z;
+                        lines.push_back(linepoint);
+                        linepoint.x = test_path->parent->pose.p.position.x; linepoint.y = test_path->parent->pose.p.position.y; linepoint.z = test_path->parent->pose.p.position.z;
+                        lines.push_back(linepoint);
+                    }
+                    test_path = test_path->parent;
+                }
+
+                path_file.close();
+                visualization_msgs::Marker linesList = drawLines(lines,333333,1,1000000,0.2);
+                pathPub.publish(linesList);
+            }
 }
 
 void CoveragePathPlanningHeuristic::loadOBJFile(const char* filename, std::vector<fcl::Vec3f>& points, std::list<CGALTriangle>& triangles)

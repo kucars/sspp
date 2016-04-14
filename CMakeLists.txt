@@ -114,4 +114,4 @@ if (component_test_FOUND)
             ${rviz_visual_tools_LIBRARIES}
             CoverageHeuristic
             )
-endif (component_test)
+endif (component_test_FOUND)
