@@ -37,7 +37,7 @@
 #include "distance_heuristic.h"
 #include "rviz_drawing_tools.h"
 #include "rviz_visual_tools/rviz_visual_tools.h"
-
+//#include <component_test/mesh_surface.h>
 using namespace SSPP;
 
 int main( int argc, char **  argv)
@@ -95,7 +95,7 @@ int main( int argc, char **  argv)
     double coverageTolerance=1.0, targetCov=5;
     std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels.obj";
     std::string occlusionCullingModelName = "etihad_nowheels_densed.pcd";
-    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, false, SurfaceCoveragewithOrientationH);
+    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, false, SurfaceCoveragewithAccuracyH);
     coveragePathPlanningHeuristic.setCoverageTarget(targetCov);
     coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
     pathPlanner->setHeuristicFucntion(&coveragePathPlanningHeuristic);

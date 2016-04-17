@@ -27,6 +27,12 @@
 #include <pcl/point_types.h>
 #include <pcl/common/eigen.h>
 #include <pcl/common/transforms.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <CGAL/Triangle_3.h>
+
+typedef CGAL::Exact_predicates_exact_constructions_kernel exactKernel;
+typedef CGAL::Triangle_3<exactKernel> Triangle_3;
+typedef std::vector<Triangle_3> Triangles;
 
 namespace SSPP
 {
@@ -40,6 +46,7 @@ class Node
 public :
     int id,depth,direction;
     double nearest_obstacle,g_value,h_value,f_value,distance,coverage;
+    Triangles surfaceTriangles;
     Node  * parent, * next, * prev;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
     Pose   pose;

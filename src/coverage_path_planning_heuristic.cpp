@@ -37,6 +37,8 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     coveredPointsPub     = nh.advertise<sensor_msgs::PointCloud2>("gradual_coverage", 100);;
     pathPointPub         = nh.advertise<visualization_msgs::Marker>("path_point" , 10);
     pathPub              = nh.advertise<visualization_msgs::Marker>("path_testing", 10);
+    accuracySum          = 0.0;
+    extraCovSum          = 0.0;
 }
 
 CoveragePathPlanningHeuristic::~CoveragePathPlanningHeuristic()
@@ -53,7 +55,11 @@ bool CoveragePathPlanningHeuristic::terminateConditionReached(Node *node)
         std::cout<<"Delta Coverage:"<<deltaCoverage<<"\n";
 
     if ( deltaCoverage <= coverageTolerance)
+    {
+        std::cout<<"\n\nAverage Accuracy per viewpoint is "<<accuracySum/accuracyPerViewpointAvg.size()<<std::endl;
+        std::cout<<"Average extra coverage per viewpoint is "<<extraCovSum/extraCovPerViewpointAvg.size()<<std::endl;
         return true;
+    }
     else
     {
         if(gradualVisualization)
@@ -157,7 +163,8 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
         // Using the coverage percentage
         d = Dist(node->pose.p,node->parent->pose.p);
         c = node->coverage - node->parent->coverage;
-
+        extraCovPerViewpointAvg.push_back(c);
+        extraCovSum +=c;
         if(debug)
         {
             std::cout<<"\nchild collective cloud after filtering size: "<<node->cloud_filtered->size()<<"\n";
@@ -173,7 +180,10 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 f = node->parent->f_value + ((1/d)*c);
             else if(heuristicType==SurfaceCoveragewithAccuracyH)
             {
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
                 a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                accuracyPerViewpointAvg.push_back(a);
+                accuracySum += avgAcc;
                 f = node->parent->f_value + ((1/d)*c*a);
             }
         }
@@ -194,6 +204,8 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 angle=qtParent.angleShortestPath(qtNode);
                 normAngle=1-angle/(2*M_PI);
                 f = node->parent->f_value + normAngle*c;
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                accuracySum += avgAcc;
                 a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
                 f = node->parent->f_value + a*c*normAngle;
             }

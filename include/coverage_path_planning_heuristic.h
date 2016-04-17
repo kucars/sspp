@@ -39,7 +39,7 @@
 #include "node.h"
 #include "heuristic_interface.h"
 #include "rviz_drawing_tools.h"
-
+#include "component_test/mesh_surface.h"
 using namespace std;
 
 typedef CGAL::Simple_cartesian<double> K;
@@ -54,7 +54,7 @@ typedef CGAL::AABB_triangle_primitive<K, Iterator> Primitive;
 typedef CGAL::AABB_traits<K, Primitive> AABB_triangle_traits;
 typedef CGAL::AABB_tree<AABB_triangle_traits> Tree1;
 
-enum{SurfaceCoverageH,SurfaceCoveragewithOrientationH,SurfaceCoveragewithAccuracyH};
+enum{SurfaceCoverageH,SurfaceCoveragewithOrientationH,SurfaceCoveragewithAccuracyH,SurfaceAreaCoverageH};
 
 namespace SSPP
 {
@@ -82,6 +82,9 @@ private:
     int heuristicType;
     double coverageTarget;
     double coverageTolerance;
+    std::vector<double> accuracyPerViewpointAvg;
+    std::vector<double> extraCovPerViewpointAvg;
+    double accuracySum, extraCovSum;
     ros::Publisher treePub;
     ros::Publisher coveredPointsPub;
     ros::Publisher pathPointPub;

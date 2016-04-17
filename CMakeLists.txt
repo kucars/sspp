@@ -61,6 +61,7 @@ find_package(Qt4 REQUIRED)
 include_directories(include ${QT_INCLUDES})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
+add_definitions(-DQT_NO_KEYWORDS)
 
 
 

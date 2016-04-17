@@ -32,24 +32,24 @@
 #include <CGAL/AABB_traits.h>
 #include <CGAL/Segment_3.h>
 #include <CGAL/AABB_triangle_primitive.h>
-#include "fcl/octree.h"
-#include "fcl/traversal/traversal_node_octree.h"
-#include "fcl/broadphase/broadphase.h"
-#include "fcl/shape/geometric_shape_to_BVH_model.h"
-#include "fcl/math/transform.h"
-#include "fcl/shape/geometric_shapes.h"
-#include "fcl/narrowphase/narrowphase.h"
-#include "fcl/collision.h"
-#include "fcl/ccd/motion.h"
-#include "fcl/BV/AABB.h"
-#include "fcl/collision_object.h"
+//#include "fcl/octree.h"
+//#include "fcl/traversal/traversal_node_octree.h"
+//#include "fcl/broadphase/broadphase.h"
+//#include "fcl/shape/geometric_shape_to_BVH_model.h"
+//#include "fcl/math/transform.h"
+//#include "fcl/shape/geometric_shapes.h"
+//#include "fcl/narrowphase/narrowphase.h"
+//#include "fcl/collision.h"
+//#include "fcl/ccd/motion.h"
+//#include "fcl/BV/AABB.h"
+//#include "fcl/collision_object.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/array.hpp>
 #include <boost/foreach.hpp>
 
-using namespace fcl;
+//using namespace fcl;
 namespace SSPP
 {
     class PathPlanner : public Astar
