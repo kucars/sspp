@@ -41,6 +41,10 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     accuracySum          = 0.0;
     extraCovSum          = 0.0;
     extraAreaSum         = 0.0;
+
+    Triangles aircraftCGALT ;
+    meshSurface->loadOBJFile(collisionCheckModelP.c_str(), modelPoints, aircraftCGALT);
+    aircraftArea = meshSurface->calcCGALMeshSurfaceArea(aircraftCGALT);
 }
 
 CoveragePathPlanningHeuristic::~CoveragePathPlanningHeuristic()
@@ -198,8 +202,11 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 node->surfaceTriangles= node->parent->surfaceTriangles;
                 double extraCovArea = meshSurface->getExtraArea(node->surfaceTriangles);
                 extraAreaperViewpointAvg.push_back(extraCovArea);
-                extraAreaSum += extraCovArea;
-                f = node->parent->f_value + ((1/d)*extraCovArea);
+                double AreaCoveragePercent = extraCovArea/aircraftArea;
+                extraAreaSum += AreaCoveragePercent;
+                if(debug)
+                    std::cout<<"extra area: "<<extraCovArea<<" extra area percent: "<<AreaCoveragePercent<<std::endl;
+                f = node->parent->f_value + ((1/d)*AreaCoveragePercent);
             }
         }
         else{
@@ -237,8 +244,11 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 node->surfaceTriangles= node->parent->surfaceTriangles;
                 double extraCovArea = meshSurface->getExtraArea(node->surfaceTriangles);
                 extraAreaperViewpointAvg.push_back(extraCovArea);
-                extraAreaSum += extraCovArea;
-                f = node->parent->f_value + extraCovArea*normAngle;
+                double AreaCoveragePercent = extraCovArea/aircraftArea;
+                extraAreaSum += AreaCoveragePercent;
+                if(debug)
+                    std::cout<<"extra area: "<<extraCovArea<<" extra area percent: "<<AreaCoveragePercent<<std::endl;
+                f = node->parent->f_value + AreaCoveragePercent*normAngle;
             }
         }
         node->f_value  = f;

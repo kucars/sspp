@@ -53,6 +53,7 @@ typedef std::list<CGALTriangle>::iterator Iterator;
 typedef CGAL::AABB_triangle_primitive<K, Iterator> Primitive;
 typedef CGAL::AABB_traits<K, Primitive> AABB_triangle_traits;
 typedef CGAL::AABB_tree<AABB_triangle_traits> Tree1;
+typedef CGAL::Cartesian_converter<K,exactKernel > SimpleToExactConverter;
 
 enum{SurfaceCoverageH,SurfaceCoveragewithOrientationH,SurfaceCoveragewithAccuracyH,SurfaceAreaCoverageH};
 
@@ -84,7 +85,7 @@ private:
     double coverageTarget;
     double coverageTolerance;
     std::vector<double> accuracyPerViewpointAvg, extraCovPerViewpointAvg, extraAreaperViewpointAvg;
-    double accuracySum, extraCovSum, extraAreaSum;
+    double accuracySum, extraCovSum, extraAreaSum, aircraftArea;
     ros::Publisher treePub;
     ros::Publisher coveredPointsPub;
     ros::Publisher pathPointPub;
