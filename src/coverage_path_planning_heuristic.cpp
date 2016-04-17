@@ -30,6 +30,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     loadOBJFile(collisionCheckModelP.c_str(), modelPoints, triangles);
     cgalTree             = new Tree1(triangles.begin(),triangles.end());
     occlussionCulling    = new OcclusionCullingGPU(nh, occlusionCullingModelN);
+    meshSurface          = new MeshSurface(nh);
     debug                = d;
     gradualVisualization = gradualV;
     heuristicType        = hType;
@@ -39,6 +40,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     pathPub              = nh.advertise<visualization_msgs::Marker>("path_testing", 10);
     accuracySum          = 0.0;
     extraCovSum          = 0.0;
+    extraAreaSum         = 0.0;
 }
 
 CoveragePathPlanningHeuristic::~CoveragePathPlanningHeuristic()
@@ -58,6 +60,8 @@ bool CoveragePathPlanningHeuristic::terminateConditionReached(Node *node)
     {
         std::cout<<"\n\nAverage Accuracy per viewpoint is "<<accuracySum/accuracyPerViewpointAvg.size()<<std::endl;
         std::cout<<"Average extra coverage per viewpoint is "<<extraCovSum/extraCovPerViewpointAvg.size()<<std::endl;
+        std::cout<<"Average extra Area per viewpoint is "<<extraAreaSum/extraAreaperViewpointAvg.size()<<"\n\n"<<std::endl;
+
         return true;
     }
     else
@@ -185,6 +189,17 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 accuracyPerViewpointAvg.push_back(a);
                 accuracySum += avgAcc;
                 f = node->parent->f_value + ((1/d)*c*a);
+            }else if(heuristicType==SurfaceAreaCoverageH)
+            {
+                Triangles tempTri;
+                meshSurface->meshingPCL(visibleCloud, tempTri);
+                meshSurface->setCGALMeshA(node->parent->surfaceTriangles);
+                meshSurface->setCGALMeshB(tempTri);
+                node->surfaceTriangles= node->parent->surfaceTriangles;
+                double extraCovArea = meshSurface->getExtraArea(node->surfaceTriangles);
+                extraAreaperViewpointAvg.push_back(extraCovArea);
+                extraAreaSum += extraCovArea;
+                f = node->parent->f_value + ((1/d)*extraCovArea);
             }
         }
         else{
@@ -203,11 +218,27 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 double angle, normAngle;
                 angle=qtParent.angleShortestPath(qtNode);
                 normAngle=1-angle/(2*M_PI);
-                f = node->parent->f_value + normAngle*c;
                 double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
                 accuracySum += avgAcc;
                 a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
                 f = node->parent->f_value + a*c*normAngle;
+            }else if(heuristicType==SurfaceAreaCoverageH)
+            {
+                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
+                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
+                double angle, normAngle;
+                angle=qtParent.angleShortestPath(qtNode);
+                normAngle=1-angle/(2*M_PI);
+
+                Triangles tempTri;
+                meshSurface->meshingPCL(visibleCloud, tempTri);
+                meshSurface->setCGALMeshA(node->parent->surfaceTriangles);
+                meshSurface->setCGALMeshB(tempTri);
+                node->surfaceTriangles= node->parent->surfaceTriangles;
+                double extraCovArea = meshSurface->getExtraArea(node->surfaceTriangles);
+                extraAreaperViewpointAvg.push_back(extraCovArea);
+                extraAreaSum += extraCovArea;
+                f = node->parent->f_value + extraCovArea*normAngle;
             }
         }
         node->f_value  = f;

@@ -77,14 +77,14 @@ public:
 private:
     void loadOBJFile(const char* filename, std::vector<fcl::Vec3f>& points, std::list<CGALTriangle>& triangles);
     OcclusionCullingGPU* occlussionCulling;
+    MeshSurface* meshSurface;
     bool debug;
     bool gradualVisualization;
     int heuristicType;
     double coverageTarget;
     double coverageTolerance;
-    std::vector<double> accuracyPerViewpointAvg;
-    std::vector<double> extraCovPerViewpointAvg;
-    double accuracySum, extraCovSum;
+    std::vector<double> accuracyPerViewpointAvg, extraCovPerViewpointAvg, extraAreaperViewpointAvg;
+    double accuracySum, extraCovSum, extraAreaSum;
     ros::Publisher treePub;
     ros::Publisher coveredPointsPub;
     ros::Publisher pathPointPub;

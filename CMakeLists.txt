@@ -98,7 +98,7 @@ target_link_libraries(distance_heuristic_test SSPathPlanner
 
 if (component_test_FOUND)
         add_library(CoverageHeuristic SHARED src/coverage_path_planning_heuristic.cpp)
-        target_link_libraries(CoverageHeuristic Qt4::QtGui Qt4::QtCore ${component_test_LIBRARIES} occlusion_culling_gpu)
+        target_link_libraries(CoverageHeuristic Qt4::QtGui Qt4::QtCore ${component_test_LIBRARIES} occlusion_culling_gpu mesh_surface)
         target_include_directories(CoverageHeuristic PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
         add_executable(coverage_heuristic_test src/coverage_heuristic_test.cpp)
         target_include_directories(coverage_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
