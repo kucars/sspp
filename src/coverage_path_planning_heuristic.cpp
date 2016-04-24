@@ -56,6 +56,7 @@ bool CoveragePathPlanningHeuristic::terminateConditionReached(Node *node)
 {
     double deltaCoverage;
     deltaCoverage = coverageTarget - node->coverage;
+    std::cout<<"\n\n ****************** Total Area %: "<<node->coverage<<" **************************"<<std::endl;
 
     if (debug)
         std::cout<<"Delta Coverage:"<<deltaCoverage<<"\n";
@@ -195,18 +196,25 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 f = node->parent->f_value + ((1/d)*c*a);
             }else if(heuristicType==SurfaceAreaCoverageH)
             {
-                Triangles tempTri;
-                meshSurface->meshingPCL(visibleCloud, tempTri);
+                Triangles tempTri,temp;
+                meshSurface->meshingPCL(visibleCloud, tempTri, false);
+                std::cout<<"triangles :"<<tempTri.size()<<std::endl;
                 meshSurface->setCGALMeshA(node->parent->surfaceTriangles);
                 meshSurface->setCGALMeshB(tempTri);
                 node->surfaceTriangles= node->parent->surfaceTriangles;
+                std::cout<<"\nbefore getting extra area : "<<node->surfaceTriangles.size()<<std::endl;
                 double extraCovArea = meshSurface->getExtraArea(node->surfaceTriangles);
+                double interCovArea = meshSurface->getIntersectionArea(temp);//here the function should increase the number of surfaceTriangles (extra triangles)
+                std::cout<<"after getting extra area : "<<node->surfaceTriangles.size()<<std::endl<<std::endl;
+                node->coverage = (meshSurface->calcCGALMeshSurfaceArea(node->surfaceTriangles)/aircraftArea )* 100;
+//                std::cout<<"\n\n ****************** Total Area %: "<<node->coverage<<" **************************"<<std::endl;
                 extraAreaperViewpointAvg.push_back(extraCovArea);
-                double AreaCoveragePercent = extraCovArea/aircraftArea;
+                double AreaCoveragePercent = (extraCovArea/aircraftArea)*100;
                 extraAreaSum += AreaCoveragePercent;
-                if(debug)
-                    std::cout<<"extra area: "<<extraCovArea<<" extra area percent: "<<AreaCoveragePercent<<std::endl;
-                f = node->parent->f_value + ((1/d)*AreaCoveragePercent);
+//                if(debug)
+                std::cout<<"B area: "<<meshSurface->calcCGALMeshSurfaceArea(tempTri) <<"intersection B:"<<interCovArea<<std::endl;
+                    std::cout<<"Aircraft Area: "<<aircraftArea <<"extra area: "<<extraCovArea<<" extra area percent: "<<AreaCoveragePercent<<std::endl;
+                f = node->parent->f_value + (1/d)*AreaCoveragePercent;
             }
         }
         else{
@@ -237,17 +245,24 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 angle=qtParent.angleShortestPath(qtNode);
                 normAngle=1-angle/(2*M_PI);
 
-                Triangles tempTri;
-                meshSurface->meshingPCL(visibleCloud, tempTri);
+                Triangles tempTri,temp;
+                meshSurface->meshingPCL(visibleCloud, tempTri,false);
+                std::cout<<"triangles :"<<tempTri.size()<<std::endl;
                 meshSurface->setCGALMeshA(node->parent->surfaceTriangles);
                 meshSurface->setCGALMeshB(tempTri);
                 node->surfaceTriangles= node->parent->surfaceTriangles;
-                double extraCovArea = meshSurface->getExtraArea(node->surfaceTriangles);
+                std::cout<<"\nbefore getting extra area : "<<node->surfaceTriangles.size()<<std::endl;
+                double extraCovArea = meshSurface->getExtraArea(node->surfaceTriangles);//here the function should increase the number of surfaceTriangles (extra triangles)
+                double interCovArea = meshSurface->getIntersectionArea(temp);//here the function should increase the number of surfaceTriangles (extra triangles)
+                std::cout<<"after getting extra area : "<<node->surfaceTriangles.size()<<std::endl<<std::endl;
+                node->coverage = (meshSurface->calcCGALMeshSurfaceArea(node->surfaceTriangles)/aircraftArea )* 100;
+//                std::cout<<"\n\n ****************** Total Area %: "<<node->coverage<<" **************************"<<std::endl;
                 extraAreaperViewpointAvg.push_back(extraCovArea);
-                double AreaCoveragePercent = extraCovArea/aircraftArea;
+                double AreaCoveragePercent = (extraCovArea/aircraftArea)*100;
                 extraAreaSum += AreaCoveragePercent;
-                if(debug)
-                    std::cout<<"extra area: "<<extraCovArea<<" extra area percent: "<<AreaCoveragePercent<<std::endl;
+//                if(debug)
+                std::cout<<"B area: "<<meshSurface->calcCGALMeshSurfaceArea(tempTri) <<"intersection B:"<<interCovArea<<std::endl;
+                std::cout<<"Aircraft Area: "<<aircraftArea <<"extra area: "<<extraCovArea<<" extra area percent: "<<AreaCoveragePercent<<std::endl;
                 f = node->parent->f_value + AreaCoveragePercent*normAngle;
             }
         }

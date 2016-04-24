@@ -54,10 +54,10 @@ int main( int argc, char **  argv)
     ros::Publisher sensorPosePub     = nh.advertise<geometry_msgs::PoseArray>("sensor_pose", 10);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr originalCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::io::loadPCDFile<pcl::PointXYZ> (ros::package::getPath("component_test")+"/src/pcd/etihad_nowheels_densed.pcd", *originalCloudPtr);
+    pcl::io::loadPCDFile<pcl::PointXYZ> (ros::package::getPath("component_test")+"/src/pcd/etihad_nowheels_nointernal_newdensed.pcd", *originalCloudPtr);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr coveredCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
-    OcclusionCullingGPU occlusionCulling(nh,"etihad_nowheels_densed.pcd");
+    OcclusionCullingGPU occlusionCulling(nh,"etihad_nowheels_nointernal_newdensed.pcd");
 
     rviz_visual_tools::RvizVisualToolsPtr visualTools;
     visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/sspp_visualisation"));
@@ -92,16 +92,16 @@ int main( int argc, char **  argv)
 
 
 
-    double coverageTolerance=1.0, targetCov=5;
-    std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels.obj";
-    std::string occlusionCullingModelName = "etihad_nowheels_densed.pcd";
-    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, false, SurfaceCoveragewithAccuracyH);
+    double coverageTolerance=0.5, targetCov=2;
+    std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels_nointernal_new.obj";
+    std::string occlusionCullingModelName = "etihad_nowheels_nointernal_newdensed.pcd";
+    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, SurfaceAreaCoverageH);
     coveragePathPlanningHeuristic.setCoverageTarget(targetCov);
     coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
     pathPlanner->setHeuristicFucntion(&coveragePathPlanningHeuristic);
 
-    std::string str1 = ros::package::getPath("sspp")+"/resources/SearchSpaceUAV_1.5m_1to4_NEW_etihadNoWheels.txt";
-    std::string str2 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_NEW_etihadNoWheels.txt";
+    std::string str1 = ros::package::getPath("sspp")+"/resources/SearchSpaceUAV_1.5m_1to4_NEW_etihadNoWheelsNOInternal.txt";
+    std::string str2 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_NEW_etihadNoWheelsNOInternal.txt";
     const char * filename1 = str1.c_str();
     const char * filename2 = str2.c_str();
     pathPlanner->loadRegularGrid(filename1,filename2);
@@ -140,6 +140,7 @@ int main( int argc, char **  argv)
     {
         std::cout<<"\nNo Path Found";
     }
+    std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
 
     Node * path = pathPlanner->path;
     geometry_msgs::Point linePoint;
@@ -154,7 +155,7 @@ int main( int argc, char **  argv)
     std::stringstream ss,cc;
     ss << targetCov;
     cc <<regGridConRad;
-    std::string file_loc = ros::package::getPath("sspp")+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests1to4_"+occlusionCullingModelName+".txt";
+    std::string file_loc = ros::package::getPath("sspp")+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests1to4_"+occlusionCullingModelName+"O.txt";
     pathFile.open (file_loc.c_str());
     while(path !=NULL)
     {
@@ -184,6 +185,7 @@ int main( int argc, char **  argv)
         }
         path = path->next;
     }
+    pathFile.close();
 //    visualTools->publishPath(pathSegments, rviz_visual_tools::RED, rviz_visual_tools::LARGE,"generated_path");
     visualization_msgs::Marker pathMarker = drawLines(pathSegments,20000,1,10000000,0.08);
     coveredCloudPtr->points=combined.points;
