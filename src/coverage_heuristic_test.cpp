@@ -83,10 +83,16 @@ int main( int argc, char **  argv)
 
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot("Robot",robotH,robotW,narrowestPath,robotCenter);
+    Sensors sensor1(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0,-0.055), Vec3f(0,0.093,0));
+    Sensors sensor2(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0,0.055), Vec3f(0,0.0,0));
+
+    std::vector<Sensors> sensors;
+    sensors.push_back(sensor1);
+//    sensors.push_back(sensor2);
 
     // Every how many iterations to display the tree
     int progressDisplayFrequency = 1;
-    pathPlanner = new PathPlanner(nh,robot,regGridConRad,progressDisplayFrequency);
+    pathPlanner = new PathPlanner(nh,robot,regGridConRad,progressDisplayFrequency,sensors);
     // This causes the planner to pause for the desired amount of time and display the search tree, useful for debugging
     pathPlanner->setDebugDelay(0.0);
 
@@ -95,7 +101,7 @@ int main( int argc, char **  argv)
     double coverageTolerance=0.5, targetCov=5;
     std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels_nointernal_new.obj";
     std::string occlusionCullingModelName = "etihad_nowheels_nointernal_newdensed.pcd";
-    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, false, SurfaceAreaCoverageH);
+    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, SurfaceCoverageH);
     coveragePathPlanningHeuristic.setCoverageTarget(targetCov);
     coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
     pathPlanner->setHeuristicFucntion(&coveragePathPlanningHeuristic);
@@ -168,19 +174,27 @@ int main( int argc, char **  argv)
             linePoint.y = path->pose.p.position.y;
             linePoint.z = path->pose.p.position.z;
             robotPose.poses.push_back(path->pose.p);
-            sensorPose.poses.push_back(path->senPose.p);
+            for(int i =0; i<path->senPoses.size();i++)
+            {
+                sensorPose.poses.push_back(path->senPoses[i].p);
+                temp_cloud=occlusionCulling.extractVisibleSurface(path->senPoses[i].p);
+                combined += temp_cloud;
+            }
             pathSegments.push_back(linePoint);
-            temp_cloud=occlusionCulling.extractVisibleSurface(path->senPose.p);
-            combined += temp_cloud;
+
 
             linePoint.x = path->next->pose.p.position.x;
             linePoint.y = path->next->pose.p.position.y;
             linePoint.z = path->next->pose.p.position.z;
             robotPose.poses.push_back(path->next->pose.p);
-            sensorPose.poses.push_back(path->next->senPose.p);
+            for(int i =0; i<path->next->senPoses.size();i++)
+            {
+                sensorPose.poses.push_back(path->next->senPoses[i].p);
+                temp_cloud=occlusionCulling.extractVisibleSurface(path->next->senPoses[i].p);
+                combined += temp_cloud;
+            }
             pathSegments.push_back(linePoint);
-            temp_cloud=occlusionCulling.extractVisibleSurface(path->senPose.p);
-            combined += temp_cloud;
+
             dist=dist+ Dist(path->next->pose.p,path->pose.p);
         }
         path = path->next;

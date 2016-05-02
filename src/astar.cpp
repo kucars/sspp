@@ -87,6 +87,7 @@ void Astar::findRoot() throw (SSPPException)
         if (distance < shortestDist)
         {
             shortestDist = distance;
+
             root->pose.p.position.x = temp->location.position.x;
             root->pose.p.position.y = temp->location.position.y;
             root->pose.p.position.z = temp->location.position.z;
@@ -94,17 +95,26 @@ void Astar::findRoot() throw (SSPPException)
             root->pose.p.orientation.y = temp->location.orientation.y;
             root->pose.p.orientation.z = temp->location.orientation.z;
             root->pose.p.orientation.w = temp->location.orientation.w;
-            root->senPose.p.position.x = temp->sensorLocation.position.x;
-            root->senPose.p.position.y = temp->sensorLocation.position.y;
-            root->senPose.p.position.z = temp->sensorLocation.position.z;
-            root->senPose.p.orientation.x = temp->sensorLocation.orientation.x;
-            root->senPose.p.orientation.y = temp->sensorLocation.orientation.y;
-            root->senPose.p.orientation.z = temp->sensorLocation.orientation.z;
-            root->senPose.p.orientation.w = temp->sensorLocation.orientation.w;
+            root->senPoses.erase(root->senPoses.begin(),root->senPoses.end());
+            for(int i=0; i<temp->sensorLocation.poses.size();i++)
+            {
+                Pose tempPose;
+                tempPose.p.position.x = temp->sensorLocation.poses[i].position.x;
+                tempPose.p.position.y = temp->sensorLocation.poses[i].position.y;
+                tempPose.p.position.z = temp->sensorLocation.poses[i].position.z;
+                tempPose.p.orientation.x = temp->sensorLocation.poses[i].orientation.x;
+                tempPose.p.orientation.y = temp->sensorLocation.poses[i].orientation.y;
+                tempPose.p.orientation.z = temp->sensorLocation.poses[i].orientation.z;
+                tempPose.p.orientation.w = temp->sensorLocation.poses[i].orientation.w;
+
+                root->senPoses.push_back(tempPose);
+
+            }
             root->id = temp->id;
         }
         temp = temp->next;
     }
+
     root->id = 0;
     root->parent = NULL;
     root->next = NULL;
@@ -163,7 +173,7 @@ Node *Astar::startSearch(Pose start)
     this->start.p.orientation.z = start.p.orientation.z;
     this->start.p.orientation.w = start.p.orientation.w;
 
-    std::cout<<"\n	--->>> Search Started <<<---";
+    std::cout<<"\n	--->>> Search Started <<<---"<<std::endl;
     findRoot();
 
     openList->add(root,heuristic->isCost());
@@ -381,13 +391,20 @@ Node *Astar::makeChildrenNodes(Node *parent)
         p->pose.p.orientation.z = temp->children[i]->location.orientation.z;
         p->pose.p.orientation.w = temp->children[i]->location.orientation.w;
 
-        p->senPose.p.position.x = temp->children[i]->sensorLocation.position.x;
-        p->senPose.p.position.y = temp->children[i]->sensorLocation.position.y;
-        p->senPose.p.position.z = temp->children[i]->sensorLocation.position.z;
-        p->senPose.p.orientation.x = temp->children[i]->sensorLocation.orientation.x;
-        p->senPose.p.orientation.y = temp->children[i]->sensorLocation.orientation.y;
-        p->senPose.p.orientation.z = temp->children[i]->sensorLocation.orientation.z;
-        p->senPose.p.orientation.w = temp->children[i]->sensorLocation.orientation.w;
+        for(int j=0; j<temp->children[i]->sensorLocation.poses.size();j++)
+        {
+            Pose tempPose;
+            tempPose.p.position.x = temp->children[i]->sensorLocation.poses[j].position.x;
+            tempPose.p.position.y = temp->children[i]->sensorLocation.poses[j].position.y;
+            tempPose.p.position.z = temp->children[i]->sensorLocation.poses[j].position.z;
+            tempPose.p.orientation.x = temp->children[i]->sensorLocation.poses[j].orientation.x;
+            tempPose.p.orientation.y = temp->children[i]->sensorLocation.poses[j].orientation.y;
+            tempPose.p.orientation.z = temp->children[i]->sensorLocation.poses[j].orientation.z;
+            tempPose.p.orientation.w = temp->children[i]->sensorLocation.poses[j].orientation.w;
+
+            p->senPoses.push_back(tempPose);
+
+        }
 
         p->id = temp->children[i]->id;
         t.children.push_back(p->pose.p);

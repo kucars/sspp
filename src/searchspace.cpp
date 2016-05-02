@@ -44,25 +44,29 @@ SearchSpace::~SearchSpace()
 SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose)
 {
     geometry_msgs::Pose correspondingSensorPose;
+    geometry_msgs::PoseArray correspondingSensorsPoses;
     correspondingSensorPose.position.x = 0; correspondingSensorPose.position.y = 0; correspondingSensorPose.position.z = 0;
     correspondingSensorPose.orientation.x = 0; correspondingSensorPose.orientation.y = 0; correspondingSensorPose.orientation.z = 0; correspondingSensorPose.orientation.w = 0;
-    return insertNode(nodePose,correspondingSensorPose,idCount++);
+    correspondingSensorsPoses.poses.push_back(correspondingSensorPose);
+    return insertNode(nodePose,correspondingSensorsPoses,idCount++);
 }
 
 SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose,int id)
 {
     geometry_msgs::Pose correspondingSensorPose;
+    geometry_msgs::PoseArray correspondingSensorsPoses;
     correspondingSensorPose.position.x = 0; correspondingSensorPose.position.y = 0; correspondingSensorPose.position.z = 0;
     correspondingSensorPose.orientation.x = 0; correspondingSensorPose.orientation.y = 0; correspondingSensorPose.orientation.z = 0; correspondingSensorPose.orientation.w = 0;
-    return insertNode(nodePose,correspondingSensorPose,id);
+    correspondingSensorsPoses.poses.push_back(correspondingSensorPose);
+    return insertNode(nodePose,correspondingSensorsPoses,id);
 }
 
-SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry_msgs::Pose correspondingSensorPose)
+SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry_msgs::PoseArray correspondingSensorsPoses)
 {
-    return insertNode(nodePose,correspondingSensorPose,idCount++);
+    return insertNode(nodePose,correspondingSensorsPoses,idCount++);
 }
 
-SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry_msgs::Pose correspondingSensorPose, int id)
+SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry_msgs::PoseArray correspondingSensorsPoses, int id)
 {
     SearchSpaceNode *temp;
     if(!nodeExists(nodePose))
@@ -73,8 +77,10 @@ SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry
             temp = new SearchSpaceNode;
             temp->location.position          = nodePose.position;
             temp->location.orientation       = nodePose.orientation;
-            temp->sensorLocation.position    = correspondingSensorPose.position;
-            temp->sensorLocation.orientation = correspondingSensorPose.orientation;
+            for(int i=0; i<correspondingSensorsPoses.poses.size(); i++)
+            {
+                temp->sensorLocation.poses.push_back(correspondingSensorsPoses.poses[i]);
+            }
             temp->parent   = NULL;
             temp->next     = NULL;
             temp->type     = RegGridNode;
@@ -86,8 +92,10 @@ SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry
             temp = new SearchSpaceNode;
             temp->location.position          = nodePose.position;
             temp->location.orientation       = nodePose.orientation;
-            temp->sensorLocation.position    = correspondingSensorPose.position;
-            temp->sensorLocation.orientation = correspondingSensorPose.orientation;
+            for(int i=0; i<correspondingSensorsPoses.poses.size(); i++)
+            {
+                temp->sensorLocation.poses.push_back(correspondingSensorsPoses.poses[i]);
+            }
             temp->parent = NULL;
             temp->next   = searchspace;
             temp->type   = RegGridNode;
@@ -97,6 +105,7 @@ SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry
     }
     return temp;
 }
+
 
 SearchSpaceNode * SearchSpace::nodeExists(geometry_msgs::Pose nodePose)
 {

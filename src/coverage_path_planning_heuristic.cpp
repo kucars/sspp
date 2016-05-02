@@ -56,7 +56,7 @@ bool CoveragePathPlanningHeuristic::terminateConditionReached(Node *node)
 {
     double deltaCoverage;
     deltaCoverage = coverageTarget - node->coverage;
-    std::cout<<"\n\n ****************** Total Area %: "<<node->coverage<<" **************************"<<std::endl;
+    std::cout<<"\n\n ****************** Total Coverage %: "<<node->coverage<<" **************************"<<std::endl;
 
     if (debug)
         std::cout<<"Delta Coverage:"<<deltaCoverage<<"\n";
@@ -147,7 +147,15 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ> visibleCloud, collectiveCloud;
-    visibleCloud = occlussionCulling->extractVisibleSurface(node->senPose.p);
+
+    for(int i=0; i<node->senPoses.size(); i++)
+    {
+        pcl::PointCloud<pcl::PointXYZ> temp;
+        temp = occlussionCulling->extractVisibleSurface(node->senPoses[i].p);
+        visibleCloud += temp;
+
+    }
+//    visibleCloud = occlussionCulling->extractVisibleSurface(node->senPose.p);
 
     if(node->parent)
     {
@@ -289,6 +297,8 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
             std::cout<<"parent f value calculation: "<<f<<"\n";
     }else
         node->f_value =0;//root node
+
+    std::cout<<"finished calculation"<<std::endl;
 }
 void CoveragePathPlanningHeuristic::displayGradualProgress(Node *node)
 {

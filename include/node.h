@@ -50,7 +50,7 @@ public :
     Node  * parent, * next, * prev;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
     Pose   pose;
-    Pose   senPose;
+    std::vector<Pose>   senPoses;
     Node();
     bool operator == (Node);
     bool operator != (Node);

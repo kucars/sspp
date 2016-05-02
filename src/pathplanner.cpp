@@ -23,11 +23,12 @@
 namespace SSPP
 {
 
-PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double conn_rad, int progressDisplayFrequency):
+PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double conn_rad, int progressDisplayFrequency,std::vector<Sensors> &rSensors):
     nh(n),
     Astar(n,rob,progressDisplayFrequency),
     regGridConRadius(conn_rad),
-    sampleOrientations(false)
+    sampleOrientations(false),
+    robotSensors(rSensors)
 {
 }
 
@@ -59,10 +60,11 @@ void PathPlanner::setConRad(double a)
     regGridConRadius = a;
 }
 
-void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations)
+void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations, float orientationRes)
 {
     this->gridResolution = gridRes;
     this->sampleOrientations = sampleOrientations;
+    this->orientationResolution = orientationRes;
     generateRegularGrid(gridStartPose,gridSize);
 }
 
@@ -74,8 +76,9 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry
 
 void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize)
 {
-    geometry_msgs::Pose pose;
-    geometry_msgs::Pose correspondingSensorPose;
+    geometry_msgs::Pose pose, sensorLoc;
+    geometry_msgs::PoseArray correspondingSensorPose;
+
     int numSamples = 0;
     for(float x = gridStartPose.position.x; x<=(gridStartPose.position.x + gridSize.x); x+=gridResolution)
         for(float y = gridStartPose.position.y; y<=(gridStartPose.position.y + gridSize.y); y+=gridResolution)
@@ -84,7 +87,8 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
                 pose.position.z=z;
                 pose.position.y=y;
                 pose.position.x=x;
-                //TODO:: add corresponding sensor transformation for CPP
+                //TODO:: add corresponding sensor transformation for CPP ( Done without filtering )
+                //TODO Filtering (it requires a model)
                 if(sampleOrientations)
                 {
                     int orientationsNum= 360.0f/orientationResolution;
@@ -99,13 +103,24 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
                         pose.orientation.z = tf.getZ();
                         pose.orientation.w = tf.getW();
                         yaw+=(orientationResolution*M_PI/180.0f);
+                        for(int j=0; j<robotSensors.size();j++)
+                        {
+                            sensorLoc = robotSensors[j].uav2camTransformation(pose);
+                            correspondingSensorPose.poses.push_back(sensorLoc);
+                        }
                         insertNode(pose,correspondingSensorPose);
+                        correspondingSensorPose.poses.erase(correspondingSensorPose.poses.begin(),correspondingSensorPose.poses.end());
                         numSamples++;
                     }
                 }
                 else
                 {
                     pose.orientation.x=0;pose.orientation.y=0;pose.orientation.z=0;pose.orientation.w=1;
+                    for(int j=0; j<robotSensors.size();j++)
+                    {
+                        sensorLoc = robotSensors[j].uav2camTransformation(pose);
+                        correspondingSensorPose.poses.push_back(sensorLoc);
+                    }
                     insertNode(pose,correspondingSensorPose);
                     numSamples++;
                 }
@@ -116,8 +131,8 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
 
 void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2)
 {
-    geometry_msgs::Pose pose;
-    geometry_msgs::Pose correspondingSensorPose;
+    geometry_msgs::Pose pose, sensorPose;
+    geometry_msgs::PoseArray correspondingSensorPose;
     double locationx,locationy,locationz,qx,qy,qz,qw;
     double senLocx,senLocy,senLocz,senqx,senqy,senqz,senqw;
 
@@ -134,6 +149,7 @@ void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2)
         fclose(file1);
         fclose(file2);
     }
+    //asuming using one sensor
     while (!feof(file1) && !feof(file2))
     {
         fscanf(file1,"%lf %lf %lf %lf %lf %lf %lf\n",&locationx,&locationy,&locationz,&qx,&qy,&qz,&qw);
@@ -147,15 +163,18 @@ void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2)
         pose.orientation.z = qz;
         pose.orientation.w = qw;
 
-        correspondingSensorPose.position.x = senLocx;
-        correspondingSensorPose.position.y = senLocy;
-        correspondingSensorPose.position.z = senLocz;
-        correspondingSensorPose.orientation.x = senqx;
-        correspondingSensorPose.orientation.y = senqy;
-        correspondingSensorPose.orientation.z = senqz;
-        correspondingSensorPose.orientation.w = senqw;
+        sensorPose.position.x = senLocx;
+        sensorPose.position.y = senLocy;
+        sensorPose.position.z = senLocz;
+        sensorPose.orientation.x = senqx;
+        sensorPose.orientation.y = senqy;
+        sensorPose.orientation.z = senqz;
+        sensorPose.orientation.w = senqw;
+
+        correspondingSensorPose.poses.push_back(sensorPose);
 
         insertNode(pose,correspondingSensorPose);
+        correspondingSensorPose.poses.erase(correspondingSensorPose.poses.begin(),correspondingSensorPose.poses.end());
     }
     fclose(file1);
     fclose(file2);
@@ -176,6 +195,28 @@ std::vector<geometry_msgs::Point> PathPlanner::getSearchSpace()
         temp = temp->next;
     }
     return pts;
+}
+
+void PathPlanner::getRobotSensorPoses(geometry_msgs::PoseArray& robotPoses, geometry_msgs::PoseArray& sensorPoses)
+{
+    SearchSpaceNode *temp = searchspace;
+    while (temp != NULL)
+    {
+        geometry_msgs::Pose pose;
+        pose.position.x= temp->location.position.x;
+        pose.position.y= temp->location.position.y;
+        pose.position.z= temp->location.position.z;
+        pose.orientation.x= temp->location.orientation.x;
+        pose.orientation.y= temp->location.orientation.y;
+        pose.orientation.z= temp->location.orientation.z;
+        pose.orientation.w= temp->location.orientation.w;
+        robotPoses.poses.push_back(pose);
+        for(int i=0; i<temp->sensorLocation.poses.size();i++)
+        {
+            sensorPoses.poses.push_back(temp->sensorLocation.poses[i]);
+        }
+        temp = temp->next;
+    }
 }
 
 void PathPlanner::printNodeList()

@@ -24,6 +24,7 @@
 #include<QPointF>
 #include<QVector>
 #include<geometry_msgs/Pose.h>
+#include<geometry_msgs/PoseArray.h>
 
 using namespace std;
 
@@ -36,7 +37,7 @@ class SearchSpaceNode
 	{
 	public :
         geometry_msgs::Pose location;//uavposition TODO: change it later to uavLocation
-        geometry_msgs::Pose sensorLocation;//sensorposition
+        geometry_msgs::PoseArray sensorLocation;//sensorposition
 		SearchSpaceNode * parent, * next;
 		int type,id;
 		QVector <SearchSpaceNode *>  children;

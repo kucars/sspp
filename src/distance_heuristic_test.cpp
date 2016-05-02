@@ -44,6 +44,8 @@ int main( int argc, char **  argv)
 {
     ros::init(argc, argv, "path_planning");
     ros::NodeHandle nh;
+    ros::Publisher robotPosePub      = nh.advertise<geometry_msgs::PoseArray>("robot_pose", 10);
+    ros::Publisher sensorPosePub     = nh.advertise<geometry_msgs::PoseArray>("sensor_pose", 10);
     rviz_visual_tools::RvizVisualToolsPtr visualTools;
     visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/sspp_visualisation"));
     visualTools->deleteAllMarkers();
@@ -61,17 +63,23 @@ int main( int argc, char **  argv)
 
     PathPlanner * pathPlanner;
     Pose start(0.0,0.0,0,DTOR(0.0));
-    Pose   end(19.0,7.0,2,DTOR(0.0));
+    Pose   end(5.0,7.0,2,DTOR(0.0));
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
     double distanceToGoal = 1.0,regGridConRad = 1.5;
 
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot("Robot",robotH,robotW,narrowestPath,robotCenter);
+    Sensors sensor1(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0,-0.055), Vec3f(0,0.093,0));
+    Sensors sensor2(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0,0.055), Vec3f(0,0.0,0));
+
+    std::vector<Sensors> sensors;
+    sensors.push_back(sensor1);
+    sensors.push_back(sensor2);
 
     // Every how many iterations to display the tree
     int progressDisplayFrequency = 1;
-    pathPlanner = new PathPlanner(nh,robot,regGridConRad,progressDisplayFrequency);
+    pathPlanner = new PathPlanner(nh,robot,regGridConRad,progressDisplayFrequency,sensors);
     // This causes the planner to pause for the desired amount of time and display the search tree, useful for debugging
     pathPlanner->setDebugDelay(0.1);
     /*
@@ -89,8 +97,10 @@ int main( int argc, char **  argv)
     pathPlanner->setHeuristicFucntion(&distanceHeuristic);
 
     // Generate Grid Samples and visualise it
-    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.0,false);
+    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.0,true,180);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
+    geometry_msgs::PoseArray robotPoseSS,sensorPoseSS;
+    pathPlanner->getRobotSensorPoses(robotPoseSS,sensorPoseSS);
     std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(searchSpaceNodes.size()).toStdString();
     visualTools->publishSpheres(searchSpaceNodes,rviz_visual_tools::PURPLE,0.1,"search_space_nodes");
 
@@ -131,14 +141,16 @@ int main( int argc, char **  argv)
             linePoint.y = path->pose.p.position.y;
             linePoint.z = path->pose.p.position.z;
             robotPose.poses.push_back(path->pose.p);
-            sensorPose.poses.push_back(path->senPose.p);
+            for(int i =0; i<path->senPoses.size();i++)
+                sensorPose.poses.push_back(path->senPoses[i].p);
             pathSegments.push_back(linePoint);
 
             linePoint.x = path->next->pose.p.position.x;
             linePoint.y = path->next->pose.p.position.y;
             linePoint.z = path->next->pose.p.position.z;
             robotPose.poses.push_back(path->next->pose.p);
-            sensorPose.poses.push_back(path->next->senPose.p);
+            for(int i =0; i<path->next->senPoses.size();i++)
+                sensorPose.poses.push_back(path->next->senPoses[i].p);
             pathSegments.push_back(linePoint);
 
             dist=dist+ Dist(path->next->pose.p,path->pose.p);
@@ -159,6 +171,13 @@ int main( int argc, char **  argv)
         visualTools->publishSpheres(searchSpaceNodes,rviz_visual_tools::PURPLE,0.1,"search_space_nodes");
         visualTools->publishPath(searchSpaceConnections, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE,"search_space");
         visualTools->publishPath(pathSegments, rviz_visual_tools::RED, rviz_visual_tools::LARGE,"generated_path");
+        robotPoseSS.header.frame_id= "map";
+        robotPoseSS.header.stamp = ros::Time::now();
+        robotPosePub.publish(robotPoseSS);
+
+        sensorPoseSS.header.frame_id= "map";
+        sensorPoseSS.header.stamp = ros::Time::now();
+        sensorPosePub.publish(sensorPoseSS);
         ros::spinOnce();
         loopRate.sleep();
     }

@@ -35,8 +35,8 @@ public:
     void freeSearchSpace();
     SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose);
     SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, int id);
-    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::Pose correspondingSensorPose);
-    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::Pose correspondingSensorPose, int id);
+    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::PoseArray correspondingSensorsPoses);
+    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::PoseArray correspondingSensorsPoses, int id);
     SearchSpaceNode * nodeExists(geometry_msgs::Pose nodePose);
     bool              removeNode(geometry_msgs::Pose nodePose);
     SearchSpace();

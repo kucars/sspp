@@ -77,6 +77,7 @@ add_library(SSPathPlanner SHARED
     src/ssppexception.cpp
     src/distance_heuristic.cpp
     src/rviz_drawing_tools.cpp
+    src/sensors.cpp
     )
 
 target_link_libraries(SSPathPlanner

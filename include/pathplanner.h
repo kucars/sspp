@@ -48,7 +48,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/array.hpp>
 #include <boost/foreach.hpp>
-
+#include <sensors.h>
 //using namespace fcl;
 namespace SSPP
 {
@@ -64,13 +64,16 @@ namespace SSPP
         void   printNodeList ();
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize);
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize, float gridRes);
-        void   generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations);
+        void   generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations, float orientationRes);
         void   connectNodes();
         std::vector<geometry_msgs::Point> getConnections();
         std::vector<geometry_msgs::Point> getSearchSpace();
+        void getRobotSensorPoses(geometry_msgs::PoseArray& robotPoses, geometry_msgs::PoseArray& sensorPoses);
+
+        std::vector<Sensors> robotSensors;
         void   findRoot();
         void   freePath();
-        PathPlanner(ros::NodeHandle & nh, Robot *, double regGridConRadius,int progressDisplayFrequency);
+        PathPlanner(ros::NodeHandle & nh, Robot *, double regGridConRadius, int progressDisplayFrequency, std::vector<Sensors> &rSensors);
         ~PathPlanner();
         void loadRegularGrid(const char *filename1, const char *filename2);
         bool sampleOrientations;
