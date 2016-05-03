@@ -69,7 +69,11 @@ bool DistanceHeuristic::isConnectionConditionSatisfied(SearchSpaceNode *temp, Se
     //TODO::do a collision check with the map
     return true;
 }
-
+bool DistanceHeuristic::isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray& correspondingSensorPoses, double minDist, double maxDist)
+{
+    //TODO::preform filtering check
+    return true;
+}
 void DistanceHeuristic::displayProgress(vector<Tree> tree)
 {
     rviz_visual_tools::RvizVisualToolsPtr visualTools;

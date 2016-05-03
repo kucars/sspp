@@ -92,6 +92,45 @@ bool CoveragePathPlanningHeuristic::isConnectionConditionSatisfied(SearchSpaceNo
     else
         return false;
 }
+bool CoveragePathPlanningHeuristic::isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray& correspondingSensorPoses, double minDist, double maxDist)
+{
+    //model-node collision based filtering
+    int intersectionsCount=0;
+    Point a(pose.position.x ,pose.position.y ,pose.position.z);
+
+    // Some Random point in arbitrary orientation
+    Point b(100.0, 10.0, 56.0);
+    Ray ray_query(a,b);
+    intersectionsCount = cgalTree->number_of_intersected_primitives(ray_query);
+//    std::cout << "intersections: "<<intersectionsCount<< " intersections(s) with ray query" << std::endl;
+
+    // the node is considered inside the model if the number of intersections is odd
+    if(intersectionsCount%2 != 1)
+    {
+        //distance based filtering
+        FT sqd = cgalTree->squared_distance(a); //consumes time but it is needed
+//        std::cout << "sqd: "<< sqd << std::endl;
+
+        if (sqd >=(minDist*minDist) && sqd <= (maxDist*maxDist) )
+        {
+            //coverage based filtering
+            pcl::PointCloud<pcl::PointXYZ> pts;
+            for(int i=correspondingSensorPoses.poses.size()-1; i>=0; i--)
+            {
+                pts = occlussionCulling->extractVisibleSurface(correspondingSensorPoses.poses[i]);
+                if(pts.size()==0)
+                {
+                    correspondingSensorPoses.poses.pop_back();
+                }
+                std::cout<<"visible pts"<<pts.size()<<std::endl;
+
+            }
+            return true;
+
+        } else return false;
+
+    } else return false;
+}
 
 void CoveragePathPlanningHeuristic::displayProgress(vector<Tree> tree)
 {

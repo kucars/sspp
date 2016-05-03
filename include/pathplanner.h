@@ -64,7 +64,7 @@ namespace SSPP
         void   printNodeList ();
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize);
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize, float gridRes);
-        void   generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations, float orientationRes);
+        void   generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations, float orientationRes, bool samplesFiltering);
         void   connectNodes();
         std::vector<geometry_msgs::Point> getConnections();
         std::vector<geometry_msgs::Point> getSearchSpace();
@@ -77,6 +77,7 @@ namespace SSPP
         ~PathPlanner();
         void loadRegularGrid(const char *filename1, const char *filename2);
         bool sampleOrientations;
+        bool samplesFiltering;
         /*!
          * \brief gridResolution
          * Grid Resolution in meters used while generating the samples

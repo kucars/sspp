@@ -47,6 +47,7 @@ public:
     void calculateHeuristic(Node *n);
     bool terminateConditionReached(Node *node);
     bool isConnectionConditionSatisfied(SearchSpaceNode*temp, SearchSpaceNode*S);
+    bool isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray &correspondingSensorPoses, double minDist, double maxDist);
     void displayProgress(vector<Tree> tree);
 private:
     bool debug;

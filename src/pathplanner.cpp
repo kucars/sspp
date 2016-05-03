@@ -28,6 +28,7 @@ PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double conn_rad, int pr
     Astar(n,rob,progressDisplayFrequency),
     regGridConRadius(conn_rad),
     sampleOrientations(false),
+    samplesFiltering(false),
     robotSensors(rSensors)
 {
 }
@@ -60,11 +61,12 @@ void PathPlanner::setConRad(double a)
     regGridConRadius = a;
 }
 
-void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations, float orientationRes)
+void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations, float orientationRes, bool samplesFiltering)
 {
     this->gridResolution = gridRes;
     this->sampleOrientations = sampleOrientations;
     this->orientationResolution = orientationRes;
+    this->samplesFiltering = samplesFiltering;
     generateRegularGrid(gridStartPose,gridSize);
 }
 
@@ -105,12 +107,20 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
                         yaw+=(orientationResolution*M_PI/180.0f);
                         for(int j=0; j<robotSensors.size();j++)
                         {
-                            sensorLoc = robotSensors[j].uav2camTransformation(pose);
+                            sensorLoc = robotSensors[j].robot2sensorTransformation(pose);
                             correspondingSensorPose.poses.push_back(sensorLoc);
                         }
-                        insertNode(pose,correspondingSensorPose);
+
+                        if(samplesFiltering)
+                        {
+                            if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 2, 4))
+                                insertNode(pose,correspondingSensorPose);
+                        }
+                        else insertNode(pose,correspondingSensorPose);
+
                         correspondingSensorPose.poses.erase(correspondingSensorPose.poses.begin(),correspondingSensorPose.poses.end());
                         numSamples++;
+                        std::cout<<"number of samples "<<numSamples<<std::endl;
                     }
                 }
                 else
@@ -118,10 +128,11 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
                     pose.orientation.x=0;pose.orientation.y=0;pose.orientation.z=0;pose.orientation.w=1;
                     for(int j=0; j<robotSensors.size();j++)
                     {
-                        sensorLoc = robotSensors[j].uav2camTransformation(pose);
+                        sensorLoc = robotSensors[j].robot2sensorTransformation(pose);
                         correspondingSensorPose.poses.push_back(sensorLoc);
                     }
                     insertNode(pose,correspondingSensorPose);
+                    correspondingSensorPose.poses.erase(correspondingSensorPose.poses.begin(),correspondingSensorPose.poses.end());
                     numSamples++;
                 }
 

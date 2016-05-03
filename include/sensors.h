@@ -63,7 +63,7 @@ public :
 //    geometry_msgs::Pose sensorLocation; //with respect to the UAV
     Vec3f sensorPose, sensorRPY;
     Sensors(double hfov, double vfov, double fl, double nearR, double farR, double width, double height, Vec3f sP, Vec3f sRPY);
-    geometry_msgs::Pose uav2camTransformation(geometry_msgs::Pose pose);
+    geometry_msgs::Pose robot2sensorTransformation(geometry_msgs::Pose pose);
     Sensors();
     ~Sensors();
 };

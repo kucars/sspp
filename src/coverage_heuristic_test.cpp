@@ -52,6 +52,8 @@ int main( int argc, char **  argv)
     ros::Publisher connectionsPub    = nh.advertise<visualization_msgs::Marker>("connections", 10);
     ros::Publisher robotPosePub      = nh.advertise<geometry_msgs::PoseArray>("robot_pose", 10);
     ros::Publisher sensorPosePub     = nh.advertise<geometry_msgs::PoseArray>("sensor_pose", 10);
+    ros::Publisher robotPoseSSPub      = nh.advertise<geometry_msgs::PoseArray>("SS_robot_pose", 10);
+    ros::Publisher sensorPoseSSPub     = nh.advertise<geometry_msgs::PoseArray>("SS_sensor_pose", 10);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr originalCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::io::loadPCDFile<pcl::PointXYZ> (ros::package::getPath("component_test")+"/src/pcd/etihad_nowheels_nointernal_newdensed.pcd", *originalCloudPtr);
@@ -67,12 +69,12 @@ int main( int argc, char **  argv)
     QTime timer;
     geometry_msgs::Pose gridStartPose;
     geometry_msgs::Vector3 gridSize;
-    gridStartPose.position.x = 0 ;
-    gridStartPose.position.y = 0 ;
+    gridStartPose.position.x = -36 ;
+    gridStartPose.position.y = -45 ;
     gridStartPose.position.z = 0 ;
-    gridSize.x = 20;
-    gridSize.y = 10;
-    gridSize.z = 2;
+    gridSize.x = 72;
+    gridSize.y = 90;
+    gridSize.z = 21;
 
     PathPlanner * pathPlanner;
     Pose start(3.0,-34.0,9,DTOR(0.0));
@@ -110,7 +112,7 @@ int main( int argc, char **  argv)
     std::string str2 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_NEW_etihadNoWheelsNOInternal.txt";
     const char * filename1 = str1.c_str();
     const char * filename2 = str2.c_str();
-    pathPlanner->loadRegularGrid(filename1,filename2);
+//    pathPlanner->loadRegularGrid(filename1,filename2);
     /*
     DistanceHeuristic distanceHeuristic(nh,false);
     distanceHeuristic.setEndPose(end.p);
@@ -118,9 +120,11 @@ int main( int argc, char **  argv)
     pathPlanner->setHeuristicFucntion(&distanceHeuristic);
     */
     // Generate Grid Samples and visualise it
-//    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.0,false);
+    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.5,true,180,true);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
     std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(searchSpaceNodes.size()).toStdString();
+    geometry_msgs::PoseArray robotPoseSS,sensorPoseSS;
+    pathPlanner->getRobotSensorPoses(robotPoseSS,sensorPoseSS);
     visualization_msgs::Marker searchSpaceMarker = drawPoints(searchSpaceNodes,2,1000000);
 //    visualTools->publishSpheres(searchSpaceNodes,rviz_visual_tools::PURPLE,0.1,"search_space_nodes");
 
@@ -243,6 +247,14 @@ int main( int argc, char **  argv)
         sensorPose.header.frame_id= "map";
         sensorPose.header.stamp = ros::Time::now();
         sensorPosePub.publish(sensorPose);
+
+        robotPoseSS.header.frame_id= "map";
+        robotPoseSS.header.stamp = ros::Time::now();
+        robotPoseSSPub.publish(robotPoseSS);
+
+        sensorPoseSS.header.frame_id= "map";
+        sensorPoseSS.header.stamp = ros::Time::now();
+        sensorPoseSSPub.publish(sensorPoseSS);
 
         ros::spinOnce();
         loopRate.sleep();
