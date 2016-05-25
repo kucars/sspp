@@ -23,14 +23,24 @@
 namespace SSPP
 {
 
-PathPlanner::PathPlanner(ros::NodeHandle &n, Robot *rob, double conn_rad, int progressDisplayFrequency,std::vector<Sensors> &rSensors):
-    nh(n),
-    Astar(n,rob,progressDisplayFrequency),
-    regGridConRadius(conn_rad),
+PathPlanner::PathPlanner(ros::NodeHandle &nh, Robot *rob, double regGridConRadius, int progressDisplayFrequency,std::vector<Sensors> &rSensors):
+    nh(nh),
+    Astar(nh,rob,progressDisplayFrequency),
+    regGridConRadius(regGridConRadius),
     sampleOrientations(false),
     samplesFiltering(false),
     robotSensors(rSensors)
 {
+}
+
+PathPlanner::PathPlanner(ros::NodeHandle &nh, Robot *rob, double regGridConRadius, int progressDisplayFrequency):
+    nh(nh),
+    Astar(nh,rob,progressDisplayFrequency),
+    regGridConRadius(regGridConRadius),
+    sampleOrientations(false),
+    samplesFiltering(false)
+{
+
 }
 
 PathPlanner::~PathPlanner()

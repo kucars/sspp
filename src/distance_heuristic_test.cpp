@@ -70,16 +70,10 @@ int main( int argc, char **  argv)
 
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot("Robot",robotH,robotW,narrowestPath,robotCenter);
-    Sensors sensor1(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0,-0.055), Vec3f(0,0.093,0));
-    Sensors sensor2(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0,0.055), Vec3f(0,0.0,0));
-
-    std::vector<Sensors> sensors;
-    sensors.push_back(sensor1);
-    sensors.push_back(sensor2);
 
     // Every how many iterations to display the tree
     int progressDisplayFrequency = 1;
-    pathPlanner = new PathPlanner(nh,robot,regGridConRad,progressDisplayFrequency,sensors);
+    pathPlanner = new PathPlanner(nh,robot,regGridConRad,progressDisplayFrequency);
     // This causes the planner to pause for the desired amount of time and display the search tree, useful for debugging
     pathPlanner->setDebugDelay(0.1);
     /*

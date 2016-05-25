@@ -69,11 +69,11 @@ namespace SSPP
         std::vector<geometry_msgs::Point> getConnections();
         std::vector<geometry_msgs::Point> getSearchSpace();
         void getRobotSensorPoses(geometry_msgs::PoseArray& robotPoses, geometry_msgs::PoseArray& sensorPoses);
-
         std::vector<Sensors> robotSensors;
         void   findRoot();
         void   freePath();
         PathPlanner(ros::NodeHandle & nh, Robot *, double regGridConRadius, int progressDisplayFrequency, std::vector<Sensors> &rSensors);
+        PathPlanner(ros::NodeHandle & nh, Robot *, double regGridConRadius, int progressDisplayFrequency);
         ~PathPlanner();
         void loadRegularGrid(const char *filename1, const char *filename2);
         bool sampleOrientations;
