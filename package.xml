@@ -2,11 +2,10 @@
 <package>
   <name>sspp</name>
   <version>0.9.0</version>
-  <description>
-	test package
-  </description>
-
-  <maintainer email="tarek@tarektaha.com">randa</maintainer>
+  <description>Search Space Path Planner</description>
+  <url type="website">https://github.com/kuri-kustar/kuri_mbzirc_challenge_3/wiki</url>
+  <maintainer email="tarek@tarektaha.com">Tarek Taha</maintainer>
+  <author email="tarek@tarektaha.com">Tarek Taha</author>
   <license>GPLv3</license>
 
   <buildtool_depend>catkin</buildtool_depend>
