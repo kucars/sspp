@@ -100,7 +100,7 @@ int main( int argc, char **  argv)
 
 
 
-    double coverageTolerance=0.5, targetCov=5;
+    double coverageTolerance=1.0, targetCov=5;
     std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels_nointernal_new.obj";
     std::string occlusionCullingModelName = "etihad_nowheels_nointernal_newdensed.pcd";
     CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, SurfaceCoverageH);
@@ -108,11 +108,14 @@ int main( int argc, char **  argv)
     coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
     pathPlanner->setHeuristicFucntion(&coveragePathPlanningHeuristic);
 
-    std::string str1 = ros::package::getPath("sspp")+"/resources/SearchSpaceUAV_1.5m_1to4_NEW_etihadNoWheelsNOInternal.txt";
-    std::string str2 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_NEW_etihadNoWheelsNOInternal.txt";
+    std::string str1 = ros::package::getPath("sspp")+"/resources/SearchSpaceUAV_1.5m_1to4_etihad_nowheels_nointernal_newdensed.txt";//robot
+    std::string str2 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_etihad_nowheels_nointernal_newdensed_0.txt";//sensor1
+    std::string str3 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_etihad_nowheels_nointernal_newdensed_1.txt";//sensor2
+
     const char * filename1 = str1.c_str();
     const char * filename2 = str2.c_str();
-//    pathPlanner->loadRegularGrid(filename1,filename2);
+    const char * filename3 = str3.c_str();
+    pathPlanner->loadRegularGrid(filename1,filename2,filename3);
     /*
     DistanceHeuristic distanceHeuristic(nh,false);
     distanceHeuristic.setEndPose(end.p);
@@ -120,7 +123,7 @@ int main( int argc, char **  argv)
     pathPlanner->setHeuristicFucntion(&distanceHeuristic);
     */
     // Generate Grid Samples and visualise it
-    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.5,true,180,true);
+//    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.5,true,180,true);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
     std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(searchSpaceNodes.size()).toStdString();
     geometry_msgs::PoseArray robotPoseSS,sensorPoseSS;
