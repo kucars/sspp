@@ -243,8 +243,16 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 f = node->parent->f_value + ((1/d)*c*a);
             }else if(heuristicType==SurfaceAreaCoverageH)
             {
+                //accuracy
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                accuracyPerViewpointAvg.push_back(a);
+                accuracySum += avgAcc;
+
+                //area
                 Triangles tempTri;
-                meshSurface->meshingPCL(visibleCloud, tempTri, false);
+//                meshSurface->meshingPCL(visibleCloud, tempTri, false);
+                meshSurface->meshingScaleSpaceCGAL(visibleCloud, tempTri, false);
                 meshSurface->setCGALMeshA(node->parent->surfaceTriangles);
                 meshSurface->setCGALMeshB(tempTri);
                 node->surfaceTriangles= node->parent->surfaceTriangles;
@@ -270,7 +278,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                     std::cout<<"Aircraft Area: "<<aircraftArea <<"extra area: "<<extraCovArea<<" extra area percent: "<<AreaCoveragePercent<<std::endl;
                 }
 
-                f = node->parent->f_value + (1/d)*AreaCoveragePercent;
+                f = node->parent->f_value + (1/d)*AreaCoveragePercent*a;
             }
         }
         else{
@@ -295,14 +303,23 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 f = node->parent->f_value + a*c*normAngle;
             }else if(heuristicType==SurfaceAreaCoverageH)
             {
+                //turning angle
                 tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
                 tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
                 double angle, normAngle;
                 angle=qtParent.angleShortestPath(qtNode);
                 normAngle=1-angle/(2*M_PI);
 
+                //accuracy
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                accuracyPerViewpointAvg.push_back(a);
+                accuracySum += avgAcc;
+
+                //surface area
                 Triangles tempTri;
-                meshSurface->meshingPCL(visibleCloud, tempTri,false);
+                meshSurface->meshingScaleSpaceCGAL(visibleCloud, tempTri,false);
+//                meshSurface->meshingPCL(visibleCloud, tempTri,false);
                 meshSurface->setCGALMeshA(node->parent->surfaceTriangles);
                 meshSurface->setCGALMeshB(tempTri);
                 node->surfaceTriangles= node->parent->surfaceTriangles;
@@ -327,7 +344,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                     std::cout<<"node viewpoint area: "<<meshSurface->calcCGALMeshSurfaceArea(tempTri) <<"intersection B:"<<interCovArea<<std::endl;
                     std::cout<<"Aircraft Area: "<<aircraftArea <<"extra area: "<<extraCovArea<<" extra area percent: "<<AreaCoveragePercent<<std::endl;
                 }
-                f = node->parent->f_value + AreaCoveragePercent*normAngle;
+                f = node->parent->f_value + AreaCoveragePercent*normAngle*a;
             }
         }
         node->f_value  = f;
@@ -337,7 +354,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
     }else
         node->f_value =0;//root node
 
-    std::cout<<"finished calculation"<<std::endl;
+//    std::cout<<"finished calculation"<<std::endl;
 }
 void CoveragePathPlanningHeuristic::displayGradualProgress(Node *node)
 {

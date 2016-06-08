@@ -100,10 +100,10 @@ int main( int argc, char **  argv)
 
 
 
-    double coverageTolerance=1.0, targetCov=5;
+    double coverageTolerance=1.0, targetCov=10;
     std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels_nointernal_new.obj";
     std::string occlusionCullingModelName = "etihad_nowheels_nointernal_newdensed.pcd";
-    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, SurfaceCoverageH);
+    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, SurfaceAreaCoverageH);
     coveragePathPlanningHeuristic.setCoverageTarget(targetCov);
     coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
     pathPlanner->setHeuristicFucntion(&coveragePathPlanningHeuristic);
