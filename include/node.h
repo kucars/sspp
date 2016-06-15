@@ -49,6 +49,7 @@ public :
     Triangles surfaceTriangles;
     Node  * parent, * next, * prev;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
+    pcl::PointCloud<pcl::PointXYZ> cloud;
     Pose   pose;
     std::vector<Pose>   senPoses;
     Node();

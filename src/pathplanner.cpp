@@ -175,7 +175,7 @@ void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2, 
         fclose(file3);
     }
     //asuming using one sensor
-    while (!feof(file1) && !feof(file2))
+    while (!feof(file1) && !feof(file2) && !feof(file3))
     {
         fscanf(file1,"%lf %lf %lf %lf %lf %lf %lf\n",&locationx,&locationy,&locationz,&qx,&qy,&qz,&qw);
         pose.position.x = locationx;

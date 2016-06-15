@@ -250,14 +250,38 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 accuracySum += avgAcc;
 
                 //area
-                Triangles tempTri;
+                Triangles tempTri, extraTri;
 //                meshSurface->meshingPCL(visibleCloud, tempTri, false);
                 meshSurface->meshingScaleSpaceCGAL(visibleCloud, tempTri, false);
                 meshSurface->setCGALMeshA(node->parent->surfaceTriangles);
                 meshSurface->setCGALMeshB(tempTri);
-                node->surfaceTriangles= node->parent->surfaceTriangles;
+//                node->surfaceTriangles= node->parent->surfaceTriangles;
 
-                double extraCovArea = meshSurface->getExtraArea(node->surfaceTriangles);//here the function should increase the number of surfaceTriangles adding (extra triangles)
+                double extraCovArea = meshSurface->getExtraArea(extraTri);//here the function should increase the number of surfaceTriangles adding (extra triangles)
+                std::cout<<"reconstructed triangles :"<<tempTri.size()<<std::endl;
+                std::cout<<"extra triangles :"<<extraTri.size()<<std::endl;
+
+                converter to_simple;
+                node->cloud.points = node->parent->cloud.points;
+                for(int i=0; i<extraTri.size(); i++)
+                {
+                    pcl::PointXYZ pt;
+                    Triangle_3 tri = extraTri[i];
+                    for(int j=0; j<3; j++)
+                    {
+                        Point_3 ptCGAL = tri.vertex(j) ;
+                        Point_3_S psimple  = to_simple(ptCGAL);
+                        pt.data[0] = psimple[0];pt.data[1] = psimple[1]; pt.data[2]= psimple[2];
+                        node->cloud.points.push_back(pt);
+
+
+                    }
+                }
+
+                meshSurface->meshingScaleSpaceCGAL(node->cloud, node->surfaceTriangles,false);
+                std::cout<<"new reconstructed triangles :"<<node->surfaceTriangles.size()<<std::endl;
+
+
                 if(debug)
                 {
                     std::cout<<"triangles :"<<tempTri.size()<<std::endl;
@@ -317,13 +341,33 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 accuracySum += avgAcc;
 
                 //surface area
-                Triangles tempTri;
+                Triangles tempTri, extraTri;
                 meshSurface->meshingScaleSpaceCGAL(visibleCloud, tempTri,false);
 //                meshSurface->meshingPCL(visibleCloud, tempTri,false);
                 meshSurface->setCGALMeshA(node->parent->surfaceTriangles);
                 meshSurface->setCGALMeshB(tempTri);
-                node->surfaceTriangles= node->parent->surfaceTriangles;
-                double extraCovArea = meshSurface->getExtraArea(node->surfaceTriangles);//here the function should increase the number of surfaceTriangles adding (extra triangles)
+//                node->surfaceTriangles= node->parent->surfaceTriangles;
+                double extraCovArea = meshSurface->getExtraArea(extraTri);//here the function should increase the number of surfaceTriangles adding (extra triangles)
+                std::cout<<"reconstructed triangles :"<<tempTri.size()<<std::endl;
+                std::cout<<"extra triangles :"<<extraTri.size()<<std::endl;
+
+                converter to_simple;
+                node->cloud.points = node->parent->cloud.points;
+                for(int i=0; i<extraTri.size(); i++)
+                {
+                    pcl::PointXYZ pt;
+                    Triangle_3 tri = extraTri[i];
+                    for(int j=0; j<3; j++)
+                    {
+                        Point_3 ptCGAL = tri.vertex(j) ;
+                        Point_3_S psimple  = to_simple(ptCGAL);
+                        pt.data[0] = psimple[0];pt.data[1] = psimple[1]; pt.data[2]= psimple[2];
+                        node->cloud.points.push_back(pt);
+
+                    }
+                }
+                meshSurface->meshingScaleSpaceCGAL(node->cloud, node->surfaceTriangles,false);
+                std::cout<<"new reconstructed triangles :"<<node->surfaceTriangles.size()<<std::endl;
 
                 if(debug)
                 {
@@ -352,9 +396,18 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
         if(debug)
             std::cout<<"parent f value calculation: "<<f<<"\n";
     }else
-        node->f_value =0;//root node
+    {
+        if(heuristicType==SurfaceAreaCoverageH)
+        {
+            meshSurface->meshingScaleSpaceCGAL(visibleCloud, node->surfaceTriangles,false);
+            node->coverage = (meshSurface->calcCGALMeshSurfaceArea(node->surfaceTriangles)/aircraftArea )* 100; //accumelated coverage % instead of the accumelated coverage in terms of the points
+            node->cloud.points = visibleCloud.points;
+        }
 
-//    std::cout<<"finished calculation"<<std::endl;
+        node->f_value =0;//root node
+    }
+
+    std::cout<<"finished calculation"<<std::endl;
 }
 void CoveragePathPlanningHeuristic::displayGradualProgress(Node *node)
 {
