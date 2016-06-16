@@ -50,6 +50,8 @@ public :
     Node  * parent, * next, * prev;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
     pcl::PointCloud<pcl::PointXYZ> cloud;
+    pcl::PointCloud<pcl::PointXYZ> voxels;
+
     Pose   pose;
     std::vector<Pose>   senPoses;
     Node();

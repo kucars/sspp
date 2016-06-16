@@ -103,7 +103,7 @@ int main( int argc, char **  argv)
     double coverageTolerance=1.0, targetCov=50;
     std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/sphere_scaled_translated.obj";
     std::string occlusionCullingModelName = "sphere_densed_new.pcd";
-    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, SurfaceAreaCoverageH);
+    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, VolumetricCoverageH);
     coveragePathPlanningHeuristic.setCoverageTarget(targetCov);
     coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
     pathPlanner->setHeuristicFucntion(&coveragePathPlanningHeuristic);
@@ -168,7 +168,7 @@ int main( int argc, char **  argv)
     std::stringstream ss,cc;
     ss << targetCov;
     cc <<regGridConRad;
-    std::string file_loc = ros::package::getPath("sspp")+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests1to4_"+occlusionCullingModelName+"AreaNew_original10.txt";
+    std::string file_loc = ros::package::getPath("sspp")+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests1to4_"+occlusionCullingModelName+"volumetric.txt";
     pathFile.open (file_loc.c_str());
     while(path !=NULL)
     {
