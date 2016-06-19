@@ -41,6 +41,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     accuracySum          = 0.0;
     extraCovSum          = 0.0;
     extraAreaSum         = 0.0;
+    volumetricVoxelRes   = 0.05;
 
     Triangles aircraftCGALT ;
     meshSurface->loadOBJFile(collisionCheckModelP.c_str(), modelPoints, aircraftCGALT);
@@ -48,7 +49,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
 
     pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
     voxelgrid.setInputCloud (occlussionCulling->cloud);
-    voxelgrid.setLeafSize (0.05f, 0.05f, 0.05f);
+    voxelgrid.setLeafSize (volumetricVoxelRes, volumetricVoxelRes, volumetricVoxelRes);
     voxelgrid.filter(modelVoxels);
 }
 
@@ -317,22 +318,34 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 accuracyPerViewpointAvg.push_back(a);
                 accuracySum += avgAcc;
 
+                if(debug)
+                    std::cout<<"cloud size before accumelation: " <<node->cloud.points.size()<<std::endl;
 
                 // accumelate the cloud
                 node->cloud = node->parent->cloud;
                 node->cloud += visibleCloud;
+
+                if(debug)
+                    std::cout<<"cloud size after accumelation: " <<node->cloud.points.size()<<std::endl;
 
                 //filter the accumelated cloud
                 pcl::PointCloud<pcl::PointXYZ>::Ptr nodeCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
                 nodeCloudPtr->points = node->cloud.points;
                 pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
                 voxelgrid.setInputCloud (nodeCloudPtr);
-                voxelgrid.setLeafSize (0.05f, 0.05f, 0.05f);
+                voxelgrid.setLeafSize (volumetricVoxelRes, volumetricVoxelRes, volumetricVoxelRes);
                 voxelgrid.filter(node->voxels);
 
                 //calculate the extra volume or voxels
                 double extraVoxelsNum = node->voxels.points.size() - node->parent->voxels.points.size();
                 double extraVoxelPercent = (extraVoxelsNum/modelVoxels.points.size())*100;
+
+                if(debug)
+                {
+                    std::cout<<"node voxels size after filtering: " <<node->voxels.points.size()<<std::endl;
+                    std::cout<<"number of extra voxels: " <<extraVoxelsNum<<std::endl;
+                    std::cout<<"extra voxels percent: " <<extraVoxelPercent<<std::endl;
+                }
 
                 node->coverage = ((double)node->voxels.points.size()/(double)modelVoxels.points.size()) * 100;
 
@@ -443,28 +456,34 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 // volumetric coverage
                 // accumelate the cloud
-                std::cout<<"cloud size before: " <<node->cloud.points.size()<<std::endl;
+                if(debug)
+                    std::cout<<"cloud size before accumelation: " <<node->cloud.points.size()<<std::endl;
 
                 node->cloud = node->parent->cloud;
                 node->cloud += visibleCloud;
 
-                std::cout<<"cloud size after: " <<node->cloud.points.size()<<std::endl;
+                if(debug)
+                    std::cout<<"cloud size after accumelation: " <<node->cloud.points.size()<<std::endl;
 
                 //filter the accumelated cloud
                 pcl::PointCloud<pcl::PointXYZ>::Ptr nodeCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
                 nodeCloudPtr->points = node->cloud.points;
                 pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
                 voxelgrid.setInputCloud (nodeCloudPtr);
-                voxelgrid.setLeafSize (0.05f, 0.05f, 0.05f);
+                voxelgrid.setLeafSize (volumetricVoxelRes, volumetricVoxelRes, volumetricVoxelRes);
                 voxelgrid.filter(node->voxels);
-                std::cout<<"node voxels size after: " <<node->voxels.points.size()<<std::endl;
+
 
                 //calculate the extra volume or voxels
                 double extraVoxelsNum = node->voxels.points.size() - node->parent->voxels.points.size();
                 double extraVoxelPercent = (extraVoxelsNum/modelVoxels.points.size())*100;
 
-                std::cout<<"number of extra voxels: " <<extraVoxelsNum<<std::endl;
-                std::cout<<"extra voxels percent: " <<extraVoxelPercent<<std::endl;
+                if(debug)
+                {
+                    std::cout<<"node voxels size after filtering: " <<node->voxels.points.size()<<std::endl;
+                    std::cout<<"number of extra voxels: " <<extraVoxelsNum<<std::endl;
+                    std::cout<<"extra voxels percent: " <<extraVoxelPercent<<std::endl;
+                }
 
                 node->coverage = ((double)node->voxels.points.size()/(double)modelVoxels.points.size()) * 100;
 
@@ -490,7 +509,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
             nodeCloudPtr->points = visibleCloud.points;
             pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
             voxelgrid.setInputCloud (nodeCloudPtr);
-            voxelgrid.setLeafSize (0.05f, 0.05f, 0.05f);
+            voxelgrid.setLeafSize (volumetricVoxelRes, volumetricVoxelRes, volumetricVoxelRes);
             voxelgrid.filter(node->voxels);
 
             node->coverage = ((double)node->voxels.points.size()/(double)modelVoxels.points.size()) * 100;
@@ -501,7 +520,8 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
         node->f_value = 0;//root node
     }
 
-    std::cout<<"finished calculation"<<std::endl;
+    if(debug)
+        std::cout<<"<<<<<<finished node heuristic calculation>>>>>>"<<std::endl;
 }
 void CoveragePathPlanningHeuristic::displayGradualProgress(Node *node)
 {

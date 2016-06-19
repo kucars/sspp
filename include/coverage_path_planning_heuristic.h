@@ -85,6 +85,7 @@ private:
     int heuristicType;
     double coverageTarget;
     double coverageTolerance;
+    double volumetricVoxelRes;
     std::vector<double> accuracyPerViewpointAvg, extraCovPerViewpointAvg, extraAreaperViewpointAvg;
     double accuracySum, extraCovSum, extraAreaSum, aircraftArea;
     ros::Publisher treePub;
