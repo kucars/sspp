@@ -77,7 +77,7 @@ int main( int argc, char **  argv)
     gridSize.z = 21;
 
     PathPlanner * pathPlanner;
-    Pose start(0.0,-7.0,15,DTOR(0.0));
+    Pose start(3.0,-34.0,9,DTOR(0.0));
     Pose   end(19.0,7.0,2,DTOR(0.0));
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
