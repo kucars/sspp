@@ -3,8 +3,8 @@
   <name>sspp</name>
   <version>0.9.0</version>
   <description>Search Space Path Planner</description>
-  <url type="website">https://github.com/kuri-kustar/kuri_mbzirc_challenge_3/wiki</url>
-  <maintainer email="tarek@tarektaha.com">Tarek Taha</maintainer>
+  <url type="website">https://github.com/kuri-kustar/sspp/wiki</url>
+  <maintainer email="randa.almadhoun@gmail.com">Randa Almadhoun</maintainer>
   <author email="tarek@tarektaha.com">Tarek Taha</author>
   <license>GPLv3</license>
 

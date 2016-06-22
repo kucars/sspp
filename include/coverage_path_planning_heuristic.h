@@ -55,7 +55,7 @@ typedef CGAL::AABB_traits<K, Primitive> AABB_triangle_traits;
 typedef CGAL::AABB_tree<AABB_triangle_traits> Tree1;
 typedef CGAL::Cartesian_converter<K,exactKernel > SimpleToExactConverter;
 
-enum{SurfaceCoverageH,SurfaceCoveragewithOrientationH,SurfaceCoveragewithAccuracyH,SurfaceAreaCoverageH};
+enum{SurfaceCoverageH,SurfaceCoveragewithOrientationH,SurfaceCoveragewithAccuracyH,SurfaceAreaCoverageH,VolumetricCoverageH};
 
 namespace SSPP
 {
@@ -85,6 +85,7 @@ private:
     int heuristicType;
     double coverageTarget;
     double coverageTolerance;
+    double volumetricVoxelRes;
     std::vector<double> accuracyPerViewpointAvg, extraCovPerViewpointAvg, extraAreaperViewpointAvg;
     double accuracySum, extraCovSum, extraAreaSum, aircraftArea;
     ros::Publisher treePub;
@@ -93,6 +94,7 @@ private:
     ros::Publisher pathPub;
     std::list<CGALTriangle> triangles;
     std::vector<fcl::Vec3f> modelPoints;
+    pcl::PointCloud<pcl::PointXYZ> modelVoxels;
     Tree1* cgalTree;
 };
 

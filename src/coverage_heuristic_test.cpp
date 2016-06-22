@@ -52,8 +52,8 @@ int main( int argc, char **  argv)
     ros::Publisher connectionsPub    = nh.advertise<visualization_msgs::Marker>("connections", 10);
     ros::Publisher robotPosePub      = nh.advertise<geometry_msgs::PoseArray>("robot_pose", 10);
     ros::Publisher sensorPosePub     = nh.advertise<geometry_msgs::PoseArray>("sensor_pose", 10);
-    ros::Publisher robotPoseSSPub      = nh.advertise<geometry_msgs::PoseArray>("SS_robot_pose", 10);
-    ros::Publisher sensorPoseSSPub     = nh.advertise<geometry_msgs::PoseArray>("SS_sensor_pose", 10);
+    ros::Publisher robotPoseSSPub    = nh.advertise<geometry_msgs::PoseArray>("SS_robot_pose", 10);
+    ros::Publisher sensorPoseSSPub   = nh.advertise<geometry_msgs::PoseArray>("SS_sensor_pose", 10);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr originalCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::io::loadPCDFile<pcl::PointXYZ> (ros::package::getPath("component_test")+"/src/pcd/etihad_nowheels_nointernal_newdensed.pcd", *originalCloudPtr);
@@ -100,19 +100,22 @@ int main( int argc, char **  argv)
 
 
 
-    double coverageTolerance=0.5, targetCov=5;
+    double coverageTolerance=1.0, targetCov=10;
     std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels_nointernal_new.obj";
     std::string occlusionCullingModelName = "etihad_nowheels_nointernal_newdensed.pcd";
-    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, SurfaceCoverageH);
+    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, VolumetricCoverageH);
     coveragePathPlanningHeuristic.setCoverageTarget(targetCov);
     coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
     pathPlanner->setHeuristicFucntion(&coveragePathPlanningHeuristic);
 
-    std::string str1 = ros::package::getPath("sspp")+"/resources/SearchSpaceUAV_1.5m_1to4_NEW_etihadNoWheelsNOInternal.txt";
-    std::string str2 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_NEW_etihadNoWheelsNOInternal.txt";
+    std::string str1 = ros::package::getPath("sspp")+"/resources/SearchSpaceUAV_1.5m_1to4_etihad_nowheels_nointernal_newdensed.txt";//robot
+    std::string str2 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_etihad_nowheels_nointernal_newdensed_0.txt";//sensor1
+    std::string str3 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_etihad_nowheels_nointernal_newdensed_1.txt";//sensor2
+
     const char * filename1 = str1.c_str();
     const char * filename2 = str2.c_str();
-//    pathPlanner->loadRegularGrid(filename1,filename2);
+    const char * filename3 = str3.c_str();
+    pathPlanner->loadRegularGrid(filename1,filename2,filename3);
     /*
     DistanceHeuristic distanceHeuristic(nh,false);
     distanceHeuristic.setEndPose(end.p);
@@ -120,7 +123,7 @@ int main( int argc, char **  argv)
     pathPlanner->setHeuristicFucntion(&distanceHeuristic);
     */
     // Generate Grid Samples and visualise it
-    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.5,true,180,true);
+//    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.5,true,180,true);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
     std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(searchSpaceNodes.size()).toStdString();
     geometry_msgs::PoseArray robotPoseSS,sensorPoseSS;
@@ -144,7 +147,7 @@ int main( int argc, char **  argv)
     //path print and visualization
     if(retval)
     {
-        pathPlanner->printNodeList();
+//        pathPlanner->printNodeList();
     }
     else
     {
@@ -165,7 +168,7 @@ int main( int argc, char **  argv)
     std::stringstream ss,cc;
     ss << targetCov;
     cc <<regGridConRad;
-    std::string file_loc = ros::package::getPath("sspp")+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests1to4_"+occlusionCullingModelName+"O.txt";
+    std::string file_loc = ros::package::getPath("sspp")+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests1to4_"+occlusionCullingModelName+"volumetricGPU.txt";
     pathFile.open (file_loc.c_str());
     while(path !=NULL)
     {

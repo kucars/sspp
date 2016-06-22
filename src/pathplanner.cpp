@@ -99,8 +99,7 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
                 pose.position.z=z;
                 pose.position.y=y;
                 pose.position.x=x;
-                //TODO:: add corresponding sensor transformation for CPP ( Done without filtering )
-                //TODO Filtering (it requires a model)
+
                 if(sampleOrientations)
                 {
                     int orientationsNum= 360.0f/orientationResolution;
@@ -150,7 +149,7 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
     std::cout<<"\n	--->>> REGULAR GRID GENERATED SUCCESSFULLY <<<--- Samples:"<<numSamples++;;
 }
 
-void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2)
+void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2, const char *filename3)
 {
     geometry_msgs::Pose pose, sensorPose;
     geometry_msgs::PoseArray correspondingSensorPose;
@@ -164,18 +163,21 @@ void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2)
     assert(filename2 != NULL);
     filename2 = strdup(filename2);
     FILE *file2 = fopen(filename2, "r");
-    if (!file1 || !file2)
+
+    assert(filename3 != NULL);
+    filename3 = strdup(filename3);
+    FILE *file3 = fopen(filename3, "r");
+    if (!file1 || !file2 || !file3)
     {
         std::cout<<"\nCan not open Search Space File";
         fclose(file1);
         fclose(file2);
+        fclose(file3);
     }
     //asuming using one sensor
-    while (!feof(file1) && !feof(file2))
+    while (!feof(file1) && !feof(file2) && !feof(file3))
     {
         fscanf(file1,"%lf %lf %lf %lf %lf %lf %lf\n",&locationx,&locationy,&locationz,&qx,&qy,&qz,&qw);
-        fscanf(file2,"%lf %lf %lf %lf %lf %lf %lf\n",&senLocx,&senLocy,&senLocz,&senqx,&senqy,&senqz,&senqw);
-
         pose.position.x = locationx;
         pose.position.y = locationy;
         pose.position.z = locationz;
@@ -184,6 +186,7 @@ void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2)
         pose.orientation.z = qz;
         pose.orientation.w = qw;
 
+        fscanf(file2,"%lf %lf %lf %lf %lf %lf %lf\n",&senLocx,&senLocy,&senLocz,&senqx,&senqy,&senqz,&senqw);
         sensorPose.position.x = senLocx;
         sensorPose.position.y = senLocy;
         sensorPose.position.z = senLocz;
@@ -191,7 +194,17 @@ void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2)
         sensorPose.orientation.y = senqy;
         sensorPose.orientation.z = senqz;
         sensorPose.orientation.w = senqw;
+        correspondingSensorPose.poses.push_back(sensorPose);
 
+
+        fscanf(file3,"%lf %lf %lf %lf %lf %lf %lf\n",&senLocx,&senLocy,&senLocz,&senqx,&senqy,&senqz,&senqw);
+        sensorPose.position.x = senLocx;
+        sensorPose.position.y = senLocy;
+        sensorPose.position.z = senLocz;
+        sensorPose.orientation.x = senqx;
+        sensorPose.orientation.y = senqy;
+        sensorPose.orientation.z = senqz;
+        sensorPose.orientation.w = senqw;
         correspondingSensorPose.poses.push_back(sensorPose);
 
         insertNode(pose,correspondingSensorPose);
@@ -199,6 +212,7 @@ void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2)
     }
     fclose(file1);
     fclose(file2);
+    fclose(file3);
     std::cout<<"\n	--->>> REGULAR GRID GENERATED SUCCESSFULLY <<<---	";
 }
 

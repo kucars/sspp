@@ -41,10 +41,16 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     accuracySum          = 0.0;
     extraCovSum          = 0.0;
     extraAreaSum         = 0.0;
+    volumetricVoxelRes   = 0.05;
 
     Triangles aircraftCGALT ;
     meshSurface->loadOBJFile(collisionCheckModelP.c_str(), modelPoints, aircraftCGALT);
     aircraftArea = meshSurface->calcCGALMeshSurfaceArea(aircraftCGALT);
+
+    pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+    voxelgrid.setInputCloud (occlussionCulling->cloud);
+    voxelgrid.setLeafSize (volumetricVoxelRes, volumetricVoxelRes, volumetricVoxelRes);
+    voxelgrid.filter(modelVoxels);
 }
 
 CoveragePathPlanningHeuristic::~CoveragePathPlanningHeuristic()
@@ -102,14 +108,14 @@ bool CoveragePathPlanningHeuristic::isFilteringConditionSatisfied(geometry_msgs:
     Point b(100.0, 10.0, 56.0);
     Ray ray_query(a,b);
     intersectionsCount = cgalTree->number_of_intersected_primitives(ray_query);
-//    std::cout << "intersections: "<<intersectionsCount<< " intersections(s) with ray query" << std::endl;
+    //    std::cout << "intersections: "<<intersectionsCount<< " intersections(s) with ray query" << std::endl;
 
     // the node is considered inside the model if the number of intersections is odd
     if(intersectionsCount%2 != 1)
     {
         //distance based filtering
         FT sqd = cgalTree->squared_distance(a); //consumes time but it is needed
-//        std::cout << "sqd: "<< sqd << std::endl;
+        //        std::cout << "sqd: "<< sqd << std::endl;
 
         if (sqd >=(minDist*minDist) && sqd <= (maxDist*maxDist) )
         {
@@ -194,62 +200,112 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
         visibleCloud += temp;
 
     }
-//    visibleCloud = occlussionCulling->extractVisibleSurface(node->senPose.p);
+    //    visibleCloud = occlussionCulling->extractVisibleSurface(node->senPose.p);
 
     if(node->parent)
     {
-
-        collectiveCloud.points = node->parent->cloud_filtered->points;
-        collectiveCloud +=visibleCloud;
-        tempCloud->points = collectiveCloud.points;
-
-        pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
-        voxelgrid.setInputCloud (tempCloud);
-
-        voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
-        voxelgrid.filter(*node->cloud_filtered);
-
-        node->coverage = occlussionCulling->calcCoveragePercent(node->cloud_filtered);
 
         node->h_value  = 0;
         node->g_value  = 0;
 
         double f=0,d,c,a;
 
-        // Using the coverage percentage
+        // distance
         d = Dist(node->pose.p,node->parent->pose.p);
-        c = node->coverage - node->parent->coverage;
-        extraCovPerViewpointAvg.push_back(c);
-        extraCovSum +=c;
+
         if(debug)
         {
-            std::cout<<"\nchild collective cloud after filtering size: "<<node->cloud_filtered->size()<<"\n";
             std::cout<<"parent distance :"<<node->parent->distance<<" current node distance: "<<node->distance<<"\n";
-            std::cout<<"parent coverage :"<<node->parent->coverage<<" current node coverage: "<<node->coverage<<"\n";
             std::cout<<"Calculated local distance d:"<<d<<" comulative distance: "<<node->distance<<"\n";
-            std::cout<<"extra coverage c : "<<c<<"\n";
         }
 
 
         if(d!=0.0){
             if(heuristicType==SurfaceCoverageH || heuristicType==SurfaceCoveragewithOrientationH)
+            {
+                //coverage
+                collectiveCloud.points = node->parent->cloud_filtered->points;
+                collectiveCloud +=visibleCloud;
+                tempCloud->points = collectiveCloud.points;
+
+                pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+                voxelgrid.setInputCloud (tempCloud);
+                voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
+                voxelgrid.filter(*node->cloud_filtered);
+
+                node->coverage = occlussionCulling->calcCoveragePercent(node->cloud_filtered);
+                c = node->coverage - node->parent->coverage;
+                extraCovPerViewpointAvg.push_back(c);
+                extraCovSum +=c;
+
                 f = node->parent->f_value + ((1/d)*c);
+            }
             else if(heuristicType==SurfaceCoveragewithAccuracyH)
             {
+                //accuracy
                 double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
                 a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
                 accuracyPerViewpointAvg.push_back(a);
                 accuracySum += avgAcc;
+
+                //coverage
+                collectiveCloud.points = node->parent->cloud_filtered->points;
+                collectiveCloud +=visibleCloud;
+                tempCloud->points = collectiveCloud.points;
+
+                pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+                voxelgrid.setInputCloud (tempCloud);
+                voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
+                voxelgrid.filter(*node->cloud_filtered);
+
+                node->coverage = occlussionCulling->calcCoveragePercent(node->cloud_filtered);
+                c = node->coverage - node->parent->coverage;
+                extraCovPerViewpointAvg.push_back(c);
+                extraCovSum +=c;
+
                 f = node->parent->f_value + ((1/d)*c*a);
-            }else if(heuristicType==SurfaceAreaCoverageH)
+            }
+            else if(heuristicType==SurfaceAreaCoverageH)
             {
-                Triangles tempTri;
-                meshSurface->meshingPCL(visibleCloud, tempTri, false);
+                //accuracy
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                accuracyPerViewpointAvg.push_back(a);
+                accuracySum += avgAcc;
+
+                //area
+                Triangles tempTri, extraTri;
+                //                meshSurface->meshingPCL(visibleCloud, tempTri, false);
+                meshSurface->meshingScaleSpaceCGAL(visibleCloud, tempTri, false);
                 meshSurface->setCGALMeshA(node->parent->surfaceTriangles);
                 meshSurface->setCGALMeshB(tempTri);
-                node->surfaceTriangles= node->parent->surfaceTriangles;
+                //                node->surfaceTriangles= node->parent->surfaceTriangles;
 
-                double extraCovArea = meshSurface->getExtraArea(node->surfaceTriangles);//here the function should increase the number of surfaceTriangles adding (extra triangles)
+                double extraCovArea = meshSurface->getExtraArea(extraTri);//here the function should increase the number of surfaceTriangles adding (extra triangles)
+                std::cout<<"reconstructed triangles :"<<tempTri.size()<<std::endl;
+                std::cout<<"extra triangles :"<<extraTri.size()<<std::endl;
+
+                converter to_simple;
+                node->cloud.points = node->parent->cloud.points;
+                for(int i=0; i<extraTri.size(); i++)
+                {
+                    pcl::PointXYZ pt;
+                    Triangle_3 tri = extraTri[i];
+                    for(int j=0; j<3; j++)
+                    {
+                        Point_3 ptCGAL = tri.vertex(j) ;
+                        Point_3_S psimple  = to_simple(ptCGAL);
+                        pt.data[0] = psimple[0];pt.data[1] = psimple[1]; pt.data[2]= psimple[2];
+                        node->cloud.points.push_back(pt);
+
+
+                    }
+                }
+
+                meshSurface->meshingScaleSpaceCGAL(node->cloud, node->surfaceTriangles,false);
+                std::cout<<"new reconstructed triangles :"<<node->surfaceTriangles.size()<<std::endl;
+
+
                 if(debug)
                 {
                     std::cout<<"triangles :"<<tempTri.size()<<std::endl;
@@ -270,43 +326,176 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                     std::cout<<"Aircraft Area: "<<aircraftArea <<"extra area: "<<extraCovArea<<" extra area percent: "<<AreaCoveragePercent<<std::endl;
                 }
 
-                f = node->parent->f_value + (1/d)*AreaCoveragePercent;
+                f = node->parent->f_value + (1/d)*AreaCoveragePercent*a;
+
+            }
+            else if(heuristicType==VolumetricCoverageH)
+            {
+                //accuracy
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                accuracyPerViewpointAvg.push_back(a);
+                accuracySum += avgAcc;
+
+                if(debug)
+                    std::cout<<"cloud size before accumelation: " <<node->cloud.points.size()<<std::endl;
+
+                // accumelate the cloud
+                node->cloud = node->parent->cloud;
+                node->cloud += visibleCloud;
+
+                if(debug)
+                    std::cout<<"cloud size after accumelation: " <<node->cloud.points.size()<<std::endl;
+
+                //filter the accumelated cloud
+                pcl::PointCloud<pcl::PointXYZ>::Ptr nodeCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
+                nodeCloudPtr->points = node->cloud.points;
+                pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+                voxelgrid.setInputCloud (nodeCloudPtr);
+                voxelgrid.setLeafSize (volumetricVoxelRes, volumetricVoxelRes, volumetricVoxelRes);
+                voxelgrid.filter(node->voxels);
+
+                //calculate the extra volume or voxels
+                double extraVoxelsNum = node->voxels.points.size() - node->parent->voxels.points.size();
+                double extraVoxelPercent = (extraVoxelsNum/modelVoxels.points.size())*100;
+
+                extraCovPerViewpointAvg.push_back(extraVoxelPercent);
+                extraCovSum +=extraVoxelPercent;
+
+                if(debug)
+                {
+                    std::cout<<"node voxels size after filtering: " <<node->voxels.points.size()<<std::endl;
+                    std::cout<<"number of extra voxels: " <<extraVoxelsNum<<std::endl;
+                    std::cout<<"extra voxels percent: " <<extraVoxelPercent<<std::endl;
+                }
+
+                node->coverage = ((double)node->voxels.points.size()/(double)modelVoxels.points.size()) * 100;
+
+                f = node->parent->f_value + (1/d)*extraVoxelPercent*a;
+
             }
         }
-        else{
+        else //if node is at the same position of the parent with different orientation
+        {
             if(heuristicType==SurfaceCoverageH)
-                f = node->parent->f_value + c;
-            else if(heuristicType==SurfaceCoveragewithOrientationH) {
-                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
-                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
-                double angle, normAngle;
-                angle=qtParent.angleShortestPath(qtNode);
-                normAngle=1-angle/(2*M_PI);
-                f = node->parent->f_value + normAngle*c;
-            } else if(heuristicType==SurfaceCoveragewithAccuracyH){
-                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
-                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
-                double angle, normAngle;
-                angle=qtParent.angleShortestPath(qtNode);
-                normAngle=1-angle/(2*M_PI);
-                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
-                accuracySum += avgAcc;
-                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
-                f = node->parent->f_value + a*c*normAngle;
-            }else if(heuristicType==SurfaceAreaCoverageH)
             {
+                //coverage
+                collectiveCloud.points = node->parent->cloud_filtered->points;
+                collectiveCloud +=visibleCloud;
+                tempCloud->points = collectiveCloud.points;
+
+                pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+                voxelgrid.setInputCloud (tempCloud);
+                voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
+                voxelgrid.filter(*node->cloud_filtered);
+
+                node->coverage = occlussionCulling->calcCoveragePercent(node->cloud_filtered);
+                c = node->coverage - node->parent->coverage;
+                extraCovPerViewpointAvg.push_back(c);
+                extraCovSum +=c;
+
+                f = node->parent->f_value + c;
+            }
+            else if(heuristicType==SurfaceCoveragewithOrientationH)
+            {
+                //turning angle
                 tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
                 tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
                 double angle, normAngle;
                 angle=qtParent.angleShortestPath(qtNode);
                 normAngle=1-angle/(2*M_PI);
 
-                Triangles tempTri;
-                meshSurface->meshingPCL(visibleCloud, tempTri,false);
+                //coverage
+                collectiveCloud.points = node->parent->cloud_filtered->points;
+                collectiveCloud +=visibleCloud;
+                tempCloud->points = collectiveCloud.points;
+
+                pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+                voxelgrid.setInputCloud (tempCloud);
+                voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
+                voxelgrid.filter(*node->cloud_filtered);
+
+                node->coverage = occlussionCulling->calcCoveragePercent(node->cloud_filtered);
+                c = node->coverage - node->parent->coverage;
+                extraCovPerViewpointAvg.push_back(c);
+                extraCovSum +=c;
+
+                f = node->parent->f_value + normAngle*c;
+            }
+            else if(heuristicType==SurfaceCoveragewithAccuracyH)
+            {
+                //turning angle
+                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
+                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
+                double angle, normAngle;
+                angle=qtParent.angleShortestPath(qtNode);
+                normAngle=1-angle/(2*M_PI);
+
+                //coverage
+                collectiveCloud.points = node->parent->cloud_filtered->points;
+                collectiveCloud +=visibleCloud;
+                tempCloud->points = collectiveCloud.points;
+
+                pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+                voxelgrid.setInputCloud (tempCloud);
+                voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
+                voxelgrid.filter(*node->cloud_filtered);
+
+                node->coverage = occlussionCulling->calcCoveragePercent(node->cloud_filtered);
+                c = node->coverage - node->parent->coverage;
+                extraCovPerViewpointAvg.push_back(c);
+                extraCovSum +=c;
+
+                //accuracy
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                accuracySum += avgAcc;
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                f = node->parent->f_value + a*c*normAngle;
+
+            }
+            else if(heuristicType==SurfaceAreaCoverageH)
+            {
+                //turning angle
+                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
+                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
+                double angle, normAngle;
+                angle=qtParent.angleShortestPath(qtNode);
+                normAngle=1-angle/(2*M_PI);
+
+                //accuracy
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                accuracyPerViewpointAvg.push_back(a);
+                accuracySum += avgAcc;
+
+                //surface area
+                Triangles tempTri, extraTri;
+                meshSurface->meshingScaleSpaceCGAL(visibleCloud, tempTri,false);
+                //                meshSurface->meshingPCL(visibleCloud, tempTri,false);
                 meshSurface->setCGALMeshA(node->parent->surfaceTriangles);
                 meshSurface->setCGALMeshB(tempTri);
-                node->surfaceTriangles= node->parent->surfaceTriangles;
-                double extraCovArea = meshSurface->getExtraArea(node->surfaceTriangles);//here the function should increase the number of surfaceTriangles adding (extra triangles)
+                //                node->surfaceTriangles= node->parent->surfaceTriangles;
+                double extraCovArea = meshSurface->getExtraArea(extraTri);//here the function should increase the number of surfaceTriangles adding (extra triangles)
+                std::cout<<"reconstructed triangles :"<<tempTri.size()<<std::endl;
+                std::cout<<"extra triangles :"<<extraTri.size()<<std::endl;
+
+                converter to_simple;
+                node->cloud.points = node->parent->cloud.points;
+                for(int i=0; i<extraTri.size(); i++)
+                {
+                    pcl::PointXYZ pt;
+                    Triangle_3 tri = extraTri[i];
+                    for(int j=0; j<3; j++)
+                    {
+                        Point_3 ptCGAL = tri.vertex(j) ;
+                        Point_3_S psimple  = to_simple(ptCGAL);
+                        pt.data[0] = psimple[0];pt.data[1] = psimple[1]; pt.data[2]= psimple[2];
+                        node->cloud.points.push_back(pt);
+
+                    }
+                }
+                meshSurface->meshingScaleSpaceCGAL(node->cloud, node->surfaceTriangles,false);
+                std::cout<<"new reconstructed triangles :"<<node->surfaceTriangles.size()<<std::endl;
 
                 if(debug)
                 {
@@ -327,29 +516,130 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                     std::cout<<"node viewpoint area: "<<meshSurface->calcCGALMeshSurfaceArea(tempTri) <<"intersection B:"<<interCovArea<<std::endl;
                     std::cout<<"Aircraft Area: "<<aircraftArea <<"extra area: "<<extraCovArea<<" extra area percent: "<<AreaCoveragePercent<<std::endl;
                 }
-                f = node->parent->f_value + AreaCoveragePercent*normAngle;
+
+                f = node->parent->f_value + AreaCoveragePercent*normAngle*a;
+
+            }
+            else if(heuristicType==VolumetricCoverageH)
+            {
+                //turning angle
+                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
+                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
+                double angle, normAngle;
+                angle=qtParent.angleShortestPath(qtNode);
+                normAngle=1-angle/(2*M_PI);
+
+                //accuracy
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                accuracyPerViewpointAvg.push_back(a);
+                accuracySum += avgAcc;
+
+                // volumetric coverage
+                // accumelate the cloud
+                if(debug)
+                    std::cout<<"cloud size before accumelation: " <<node->cloud.points.size()<<std::endl;
+
+                node->cloud = node->parent->cloud;
+                node->cloud += visibleCloud;
+
+                if(debug)
+                    std::cout<<"cloud size after accumelation: " <<node->cloud.points.size()<<std::endl;
+
+                //filter the accumelated cloud
+                pcl::PointCloud<pcl::PointXYZ>::Ptr nodeCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
+                nodeCloudPtr->points = node->cloud.points;
+                pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+                voxelgrid.setInputCloud (nodeCloudPtr);
+                voxelgrid.setLeafSize (volumetricVoxelRes, volumetricVoxelRes, volumetricVoxelRes);
+                voxelgrid.filter(node->voxels);
+
+
+                //calculate the extra volume or voxels
+                double extraVoxelsNum = node->voxels.points.size() - node->parent->voxels.points.size();
+                double extraVoxelPercent = (extraVoxelsNum/modelVoxels.points.size())*100;
+
+                extraCovPerViewpointAvg.push_back(extraVoxelPercent);
+                extraCovSum +=extraVoxelPercent;
+
+                if(debug)
+                {
+                    std::cout<<"node voxels size after filtering: " <<node->voxels.points.size()<<std::endl;
+                    std::cout<<"number of extra voxels: " <<extraVoxelsNum<<std::endl;
+                    std::cout<<"extra voxels percent: " <<extraVoxelPercent<<std::endl;
+                }
+
+                node->coverage = ((double)node->voxels.points.size()/(double)modelVoxels.points.size()) * 100;
+
+                f = node->parent->f_value + normAngle*extraVoxelPercent*a;
+
             }
         }
         node->f_value  = f;
         node->distance = node->parent->distance + d;
         if(debug)
+        {
+            std::cout<<"\nchild collective cloud after filtering size: "<<node->cloud_filtered->size()<<"\n";
+            std::cout<<"parent coverage :"<<node->parent->coverage<<" current node coverage: "<<node->coverage<<"\n";
+            std::cout<<"extra coverage c : "<<c<<"\n";
             std::cout<<"parent f value calculation: "<<f<<"\n";
-    }else
-        node->f_value =0;//root node
+        }
 
-    std::cout<<"finished calculation"<<std::endl;
+    }else //if the node is root
+    {
+        if(heuristicType==SurfaceAreaCoverageH)
+        {
+            meshSurface->meshingScaleSpaceCGAL(visibleCloud, node->surfaceTriangles,false);
+            node->coverage = (meshSurface->calcCGALMeshSurfaceArea(node->surfaceTriangles)/aircraftArea )* 100; //accumelated coverage % instead of the accumelated coverage in terms of the points
+            node->cloud.points = visibleCloud.points;
+        }else if(heuristicType==VolumetricCoverageH)
+        {
+            pcl::PointCloud<pcl::PointXYZ>::Ptr nodeCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
+            nodeCloudPtr->points = visibleCloud.points;
+            pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+            voxelgrid.setInputCloud (nodeCloudPtr);
+            voxelgrid.setLeafSize (volumetricVoxelRes, volumetricVoxelRes, volumetricVoxelRes);
+            voxelgrid.filter(node->voxels);
+
+            node->coverage = ((double)node->voxels.points.size()/(double)modelVoxels.points.size()) * 100;
+
+            extraCovPerViewpointAvg.push_back(node->coverage);
+            extraCovSum +=node->coverage;
+
+            node->cloud.points = visibleCloud.points;
+        }else
+        {
+            //coverage
+            tempCloud->points = visibleCloud.points;
+
+            pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+            voxelgrid.setInputCloud (tempCloud);
+            voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
+            voxelgrid.filter(*node->cloud_filtered);
+
+            node->coverage = occlussionCulling->calcCoveragePercent(node->cloud_filtered);
+
+            extraCovPerViewpointAvg.push_back(node->coverage);
+            extraCovSum += node->coverage;
+        }
+
+        node->f_value = 0;//root node
+    }
+
+    if(debug)
+        std::cout<<"<<<<<<finished node heuristic calculation>>>>>>"<<std::endl;
 }
 void CoveragePathPlanningHeuristic::displayGradualProgress(Node *node)
 {
-            //########display the covered points##########
-            sensor_msgs::PointCloud2 cloud1;
-            pcl::toROSMsg(*(node->cloud_filtered), cloud1);
-            cloud1.header.frame_id = "map";
-            cloud1.header.stamp = ros::Time::now();
-            coveredPointsPub.publish(cloud1);
+    //########display the covered points##########
+    sensor_msgs::PointCloud2 cloud1;
+    pcl::toROSMsg(*(node->cloud_filtered), cloud1);
+    cloud1.header.frame_id = "map";
+    cloud1.header.stamp = ros::Time::now();
+    coveredPointsPub.publish(cloud1);
 
 
-            //########display the point selected##########
+    //########display the point selected##########
     //        std::vector<geometry_msgs::Point> points;
     //        geometry_msgs::Point linept;
     //        linept.x = node->pose.p.position.x; linept.y = node->pose.p.position.y; linept.z = node->pose.p.position.z;
@@ -358,50 +648,50 @@ void CoveragePathPlanningHeuristic::displayGradualProgress(Node *node)
     //        pathPointPub.publish(pointsList);
 
 
-            int coveI = (int)node->coverage;
+    int coveI = (int)node->coverage;
 
-            //########display FOV##########
+    //########display FOV##########
     //        if (coveI != 0 && %10==0)
     //            occlusionCulling->visualizeFOV(node->senPose.p);
 
-            //########display the path every 1% coverage########
-            if (debug == true)
-                std::cout<<"\n\n\n\n**********************COVERAGE delta:" <<coveI<<"\n\n\n\n";
-            if ( coveI%1==0)
+    //########display the path every 1% coverage########
+    if (debug == true)
+        std::cout<<"\n\n\n\n**********************COVERAGE delta:" <<coveI<<"\n\n\n\n";
+    if ( coveI%1==0)
+    {
+        if (debug == true)
+            std::cout<<"INSIDE PUBLISHING"<<"\n";
+
+
+        //  publish path and pring the path each 1%
+        ofstream path_file;
+        std::string path = ros::package::getPath("sspp");
+        std::string fileloc = path+ "/resources/path_testfile.txt";
+        path_file.open(fileloc.c_str());
+        std::vector<geometry_msgs::Point> lines;
+        geometry_msgs::Point linepoint;
+        Node *test_path;
+        test_path = node;
+        double yaw;
+        while (test_path != NULL)
+        {
+            tf::Quaternion qt(test_path->pose.p.orientation.x,test_path->pose.p.orientation.y,test_path->pose.p.orientation.z,test_path->pose.p.orientation.w);
+            yaw = tf::getYaw(qt);
+            path_file << test_path->pose.p.position.x<<" "<<test_path->pose.p.position.y<<" "<<test_path->pose.p.position.z<<" "<<yaw<<"\n";
+            if (test_path->parent != NULL)
             {
-                if (debug == true)
-                    std::cout<<"INSIDE PUBLISHING"<<"\n";
-
-
-                //  publish path and pring the path each 1%
-                ofstream path_file;
-                std::string path = ros::package::getPath("sspp");
-                std::string fileloc = path+ "/resources/path_testfile.txt";
-                path_file.open(fileloc.c_str());
-                std::vector<geometry_msgs::Point> lines;
-                geometry_msgs::Point linepoint;
-                Node *test_path;
-                test_path = node;
-                double yaw;
-                while (test_path != NULL)
-                {
-                    tf::Quaternion qt(test_path->pose.p.orientation.x,test_path->pose.p.orientation.y,test_path->pose.p.orientation.z,test_path->pose.p.orientation.w);
-                    yaw = tf::getYaw(qt);
-                    path_file << test_path->pose.p.position.x<<" "<<test_path->pose.p.position.y<<" "<<test_path->pose.p.position.z<<" "<<yaw<<"\n";
-                    if (test_path->parent != NULL)
-                    {
-                        linepoint.x = test_path->pose.p.position.x; linepoint.y = test_path->pose.p.position.y; linepoint.z = test_path->pose.p.position.z;
-                        lines.push_back(linepoint);
-                        linepoint.x = test_path->parent->pose.p.position.x; linepoint.y = test_path->parent->pose.p.position.y; linepoint.z = test_path->parent->pose.p.position.z;
-                        lines.push_back(linepoint);
-                    }
-                    test_path = test_path->parent;
-                }
-
-                path_file.close();
-                visualization_msgs::Marker linesList = drawLines(lines,333333,1,1000000,0.2);
-                pathPub.publish(linesList);
+                linepoint.x = test_path->pose.p.position.x; linepoint.y = test_path->pose.p.position.y; linepoint.z = test_path->pose.p.position.z;
+                lines.push_back(linepoint);
+                linepoint.x = test_path->parent->pose.p.position.x; linepoint.y = test_path->parent->pose.p.position.y; linepoint.z = test_path->parent->pose.p.position.z;
+                lines.push_back(linepoint);
             }
+            test_path = test_path->parent;
+        }
+
+        path_file.close();
+        visualization_msgs::Marker linesList = drawLines(lines,333333,1,1000000,0.2);
+        pathPub.publish(linesList);
+    }
 }
 
 void CoveragePathPlanningHeuristic::loadOBJFile(const char* filename, std::vector<fcl::Vec3f>& points, std::list<CGALTriangle>& triangles)
