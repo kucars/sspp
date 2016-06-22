@@ -265,6 +265,16 @@ void PathPlanner::printNodeList()
     std::cout<<"\n--------------------   END OF LIST ---------------------- ";
 }
 
+void PathPlanner::disconnectNodes()
+{
+    SearchSpaceNode * ss = searchspace;
+    while (ss!=NULL)
+    {
+        ss->children.clear();
+        ss = ss->next;
+    }
+}
+
 void PathPlanner::connectNodes()
 {
     SearchSpaceNode * S;
@@ -303,7 +313,7 @@ void PathPlanner::connectNodes()
         }
         temp = temp->next;
     }
-    std::cout<<"\n	--->>> NODES CONNECTED <<<---	";
+    std::cout<<"\n	--->>> NODES CONNECTED <<<---	Total number of connections:"<<numConnections;
     this->MAXNODES = numConnections;//searchspace->id;
 }
 
