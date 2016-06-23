@@ -60,13 +60,19 @@ namespace SSPP
     public :
         unsigned int getPlanningSteps();
         void   setConRad(double);
+        void   setMultiAgentSupport(bool allowMultiAgentSupport);
         void   freeResources();
         void   printNodeList ();
+        void   printPath(Node *path);
+        void   printPath(int index);
+        void   printLastPath();
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize);
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize, float gridRes);
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations=false, float orientationRes=360, bool samplesFiltering=false);
         void   connectNodes();
         void   disconnectNodes();
+        void   blockPath(Node* path);
+        Node * startSearch(Pose startPose);
         std::vector<geometry_msgs::Point> getConnections();
         std::vector<geometry_msgs::Point> getSearchSpace();
         void getRobotSensorPoses(geometry_msgs::PoseArray& robotPoses, geometry_msgs::PoseArray& sensorPoses);
@@ -79,6 +85,7 @@ namespace SSPP
         void loadRegularGrid(const char *filename1, const char *filename2, const char *filename3);
         bool sampleOrientations;
         bool samplesFiltering;
+        bool multiAgentSupport;
         /*!
          * \brief gridResolution
          * Grid Resolution in meters used while generating the samples
@@ -89,6 +96,7 @@ namespace SSPP
          * Orientation resolution in degrees used while generating the samples
          */
         float orientationResolution;
+        std::vector<Node*> paths;
     private:
 };
 

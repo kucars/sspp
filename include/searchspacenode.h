@@ -38,7 +38,7 @@ class SearchSpaceNode
 	public :
         geometry_msgs::Pose location;//uavposition TODO: change it later to uavLocation
         geometry_msgs::PoseArray sensorLocation;//sensorposition
-		SearchSpaceNode * parent, * next;
+        SearchSpaceNode * next;
 		int type,id;
 		QVector <SearchSpaceNode *>  children;
 		 SearchSpaceNode ();

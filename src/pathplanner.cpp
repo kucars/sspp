@@ -29,6 +29,7 @@ PathPlanner::PathPlanner(ros::NodeHandle &nh, Robot *rob, double regGridConRadiu
     regGridConRadius(regGridConRadius),
     sampleOrientations(false),
     samplesFiltering(false),
+    multiAgentSupport(false),
     robotSensors(rSensors)
 {
 }
@@ -38,7 +39,8 @@ PathPlanner::PathPlanner(ros::NodeHandle &nh, Robot *rob, double regGridConRadiu
     Astar(nh,rob,progressDisplayFrequency),
     regGridConRadius(regGridConRadius),
     sampleOrientations(false),
-    samplesFiltering(false)
+    samplesFiltering(false),
+    multiAgentSupport(false)
 {
 
 }
@@ -53,22 +55,32 @@ void PathPlanner::freeResources()
 {
     freeSearchSpace();
     freePath();
-    p=root=test=NULL;
+    p=root=NULL;
 }
 
 void PathPlanner::freePath()
 {
-    while(path != NULL)
+    for (std::vector<Node*>::iterator it = paths.begin() ; it != paths.end(); ++it)
     {
-        p = path->next;
-        delete path;
-        path = p;
+        Node * path = *it;
+        while(path != NULL)
+        {
+            p = path->next;
+            delete path;
+            path = p;
+        }
     }
+    paths.clear();
 }
 
 void PathPlanner::setConRad(double a)
 {
     regGridConRadius = a;
+}
+
+void PathPlanner::setMultiAgentSupport(bool allowMultiAgentSupport)
+{
+    this->multiAgentSupport = allowMultiAgentSupport;
 }
 
 void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations, float orientationRes, bool samplesFiltering)
@@ -256,11 +268,22 @@ void PathPlanner::getRobotSensorPoses(geometry_msgs::PoseArray& robotPoses, geom
 
 void PathPlanner::printNodeList()
 {
-    int step=1;
-    geometry_msgs::Pose  pixel;
-    if(!(p = this->path))
-        return ;
+    int pathIndex = 0;
+    for (std::vector<Node*>::iterator it = paths.begin() ; it != paths.end(); ++it)
+    {
+        if(!(p = *it))
+            return ;
+        std::cout<<"\nDisplaying Path["<<++pathIndex<<"]\n";
+        printPath(p);
+    }
+}
+
+void PathPlanner::printPath(Node *path)
+{
+    Node * p = path;
+    geometry_msgs::Pose pixel;
     std::cout<<"\n--------------------   START OF LIST ----------------------";
+    int step = 1;
     while(p !=NULL)
     {
         pixel.position.x =  p->pose.p.position.x;
@@ -279,6 +302,24 @@ void PathPlanner::printNodeList()
     std::cout<<"\n--------------------   END OF LIST ---------------------- ";
 }
 
+void PathPlanner::printPath(int index)
+{
+    if(index>=0 && index<paths.size())
+        printPath(paths.at(index));
+    else
+        std::cout<<"\n Index out of bound";
+}
+
+void PathPlanner::printLastPath()
+{
+    if(paths.size()>0)
+    {
+        printPath(paths[paths.size()-1]);
+    }
+    else
+        std::cout<<"\n No Paths to print";
+}
+
 void PathPlanner::disconnectNodes()
 {
     SearchSpaceNode * ss = searchspace;
@@ -287,6 +328,40 @@ void PathPlanner::disconnectNodes()
         ss->children.clear();
         ss = ss->next;
     }
+}
+
+void PathPlanner::blockPath(Node *path)
+{
+    while(path!=NULL)
+    {
+        removeNode(path->pose.p);
+        path = path->next;
+    }
+}
+
+Node *PathPlanner::startSearch(Pose startPose)
+{
+    if(multiAgentSupport)
+    {
+        disconnectNodes();
+        for(std::vector<Node*>::iterator it = paths.begin(); it!=paths.end();it++)
+        {
+            blockPath(*it);
+        }
+        connectNodes();
+    }
+    Node *p = astarSearch(startPose);
+    if(multiAgentSupport)
+    {
+        paths.push_back(p);
+    }
+    else
+    {
+        //only one at any time
+        freePath();
+        paths.push_back(p);
+    }
+    return p;
 }
 
 void PathPlanner::connectNodes()

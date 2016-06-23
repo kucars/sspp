@@ -141,11 +141,11 @@ int main( int argc, char **  argv)
 
     // Find path and visualise it
     timer.restart();
-    Node * retval = pathPlanner->startSearch(start);
+    Node * path = pathPlanner->startSearch(start);
     std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
 
     //path print and visualization
-    if(retval)
+    if(path)
     {
 //        pathPlanner->printNodeList();
     }
@@ -155,7 +155,6 @@ int main( int argc, char **  argv)
     }
     std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
 
-    Node * path = pathPlanner->path;
     geometry_msgs::Point linePoint;
     std::vector<geometry_msgs::Point> pathSegments;
     geometry_msgs::PoseArray robotPose,sensorPose;

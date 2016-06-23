@@ -26,12 +26,12 @@ namespace SSPP
 
 SearchSpaceNode::SearchSpaceNode()
 {
-    parent = next = NULL;
+    next = NULL;
 }
 
 SearchSpaceNode::~SearchSpaceNode()
 {
-    parent = next = NULL;
+    next = NULL;
 }
 
 }

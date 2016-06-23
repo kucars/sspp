@@ -71,7 +71,7 @@ public:
     Pose start;
     int globalcount;
     Robot *robot;
-    Node *root, *dest, *current, *childList, *curChild, *q, * test,*path, *p;
+    Node *root, *dest, *current, *childList, *curChild, *q, *p;
     LList *openList,*closedList;
     vector <Tree> tree;
     void freeNode   (Node *);
@@ -79,7 +79,7 @@ public:
     void setProgressDisplayFrequency(int progressDisplayFrequency);
     void setDebugDelay(double delay);
     int progressDisplayFrequency;
-    Node*  startSearch  (Pose start);
+    Node*  astarSearch(Pose start);
     double debugDelay;
 };
 

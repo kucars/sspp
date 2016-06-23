@@ -81,7 +81,6 @@ SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry
             {
                 temp->sensorLocation.poses.push_back(correspondingSensorsPoses.poses[i]);
             }
-            temp->parent   = NULL;
             temp->next     = NULL;
             temp->type     = RegGridNode;
             temp->id 	   = id;
@@ -96,7 +95,6 @@ SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry
             {
                 temp->sensorLocation.poses.push_back(correspondingSensorsPoses.poses[i]);
             }
-            temp->parent = NULL;
             temp->next   = searchspace;
             temp->type   = RegGridNode;
             temp->id 	 = id;
@@ -123,12 +121,26 @@ SearchSpaceNode * SearchSpace::nodeExists(geometry_msgs::Pose nodePose)
 bool SearchSpace::removeNode(geometry_msgs::Pose nodePose)
 {
     SearchSpaceNode *temp = searchspace;
-    while (temp != NULL)
+
+    // Empty 
+    if(!temp)
+        return false;
+
+    // if it's the first node, simply remove it
+    if(samePosition(nodePose,temp->location))
     {
-        if(samePosition(nodePose,temp->location))
+        searchspace = temp->next;
+        delete temp;
+        return true;
+    }
+
+    while (temp->next != NULL)
+    {
+        if(samePosition(nodePose,temp->next->location))
         {
-            temp->parent->next = temp->next;
-            delete temp;
+            SearchSpaceNode *toDelete = temp->next;
+            temp->next = temp->next->next;
+            delete toDelete;
             return true;
         }
         temp = temp->next;

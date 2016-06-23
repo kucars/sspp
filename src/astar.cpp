@@ -28,8 +28,6 @@ Astar::Astar(ros::NodeHandle & n, Robot *rob, int progressDisplayFrequency):
     nh(n),
     robot(rob),
     root(NULL),
-    test(NULL),
-    path(NULL),
     p(NULL),
     openList(NULL),
     closedList(NULL),
@@ -43,8 +41,6 @@ Astar::Astar(ros::NodeHandle & n, Robot *rob, int progressDisplayFrequency):
 Astar::Astar():
     heuristic(NULL),
     root(NULL),
-    test(NULL),
-    path(NULL),
     p(NULL),
     openList(NULL),
     closedList(NULL),
@@ -141,8 +137,9 @@ void Astar::setHeuristicFucntion(Heuristic* heuristicFun)
 }
 
 
-Node *Astar::startSearch(Pose start)
+Node *Astar::astarSearch(Pose start)
 {
+    Node *path = NULL;
     int ID = 1;
     int NodesExpanded = 0;
     bool condition;
