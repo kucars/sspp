@@ -86,8 +86,10 @@ private:
     double coverageTarget;
     double coverageTolerance;
     double volumetricVoxelRes;
+    double accW, distW, covW, angleW;
     std::vector<double> accuracyPerViewpointAvg, extraCovPerViewpointAvg, extraAreaperViewpointAvg;
     double accuracySum, extraCovSum, extraAreaSum, aircraftArea;
+    int selectedPointsNum;
     ros::Publisher treePub;
     ros::Publisher coveredPointsPub;
     ros::Publisher pathPointPub;

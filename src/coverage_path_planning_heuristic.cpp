@@ -41,7 +41,12 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     accuracySum          = 0.0;
     extraCovSum          = 0.0;
     extraAreaSum         = 0.0;
-    volumetricVoxelRes   = 0.05;
+    volumetricVoxelRes   = 0.25;
+    accW                 = 0.8;
+    distW                = 0.5;
+    covW                 = 1;
+    angleW               = 0.1;
+    selectedPointsNum    = 0;
 
     Triangles aircraftCGALT ;
     meshSurface->loadOBJFile(collisionCheckModelP.c_str(), modelPoints, aircraftCGALT);
@@ -62,7 +67,13 @@ bool CoveragePathPlanningHeuristic::terminateConditionReached(Node *node)
 {
     double deltaCoverage;
     deltaCoverage = coverageTarget - node->coverage;
-    std::cout<<"\n\n ****************** Total Coverage %: "<<node->coverage<<" **************************"<<std::endl;
+    selectedPointsNum++;
+
+    std::cout<<"\n\n ****************** Total Coverage %: "<<node->coverage<<"  f = "<<node->f_value <<" **************************"<<std::endl;
+    std::cout<<"\n\nAverage Accuracy per viewpoint is "<<accuracySum/accuracyPerViewpointAvg.size()<<std::endl;
+    std::cout<<"Average extra coverage per viewpoint is "<<extraCovSum/extraCovPerViewpointAvg.size()<<std::endl;
+    std::cout<<"Average extra Area per viewpoint is "<<extraAreaSum/extraAreaperViewpointAvg.size()<<"\n\n"<<std::endl;
+    std::cout<<"number of viewpoints is "<<selectedPointsNum<<"\n\n"<<std::endl;
 
     if (debug)
         std::cout<<"Delta Coverage:"<<deltaCoverage<<"\n";
@@ -341,7 +352,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                     std::cout<<"cloud size before accumelation: " <<node->cloud.points.size()<<std::endl;
 
                 // accumelate the cloud
-                node->cloud = node->parent->cloud;
+                node->cloud = node->parent->voxels;
                 node->cloud += visibleCloud;
 
                 if(debug)
@@ -357,7 +368,8 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 //calculate the extra volume or voxels
                 double extraVoxelsNum = node->voxels.points.size() - node->parent->voxels.points.size();
-                double extraVoxelPercent = (extraVoxelsNum/modelVoxels.points.size())*100;
+                double extraVoxelsRatio = (extraVoxelsNum/(double)modelVoxels.points.size());
+                double extraVoxelPercent = (extraVoxelsRatio)*100;
 
                 extraCovPerViewpointAvg.push_back(extraVoxelPercent);
                 extraCovSum +=extraVoxelPercent;
@@ -371,8 +383,16 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 node->coverage = ((double)node->voxels.points.size()/(double)modelVoxels.points.size()) * 100;
 
-                f = node->parent->f_value + (1/d)*extraVoxelPercent*a;
+                double normDist = (2.5-d)/2.5;//2.5 = max conn radius
 
+                //heuristic 1
+//                f = node->parent->f_value + (1/d)*extraVoxelPercent*a;
+
+                //heuristic 2
+//                f = node->parent->f_value + (accW*a)+(distW*distNorm)+(covW*extraVoxelsNum);
+
+                //heuristic 3
+                f = node->parent->f_value + ( (accW*a)+(distW*normDist) )*(extraVoxelsNum);
             }
         }
         else //if node is at the same position of the parent with different orientation
@@ -450,6 +470,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
                 accuracySum += avgAcc;
                 a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+
                 f = node->parent->f_value + a*c*normAngle;
 
             }
@@ -540,7 +561,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 if(debug)
                     std::cout<<"cloud size before accumelation: " <<node->cloud.points.size()<<std::endl;
 
-                node->cloud = node->parent->cloud;
+                node->cloud = node->parent->voxels;
                 node->cloud += visibleCloud;
 
                 if(debug)
@@ -557,7 +578,8 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 //calculate the extra volume or voxels
                 double extraVoxelsNum = node->voxels.points.size() - node->parent->voxels.points.size();
-                double extraVoxelPercent = (extraVoxelsNum/modelVoxels.points.size())*100;
+                double extraVoxelsRatio = (extraVoxelsNum/(double)modelVoxels.points.size());
+                double extraVoxelPercent = (extraVoxelsRatio)*100;
 
                 extraCovPerViewpointAvg.push_back(extraVoxelPercent);
                 extraCovSum +=extraVoxelPercent;
@@ -571,7 +593,14 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 node->coverage = ((double)node->voxels.points.size()/(double)modelVoxels.points.size()) * 100;
 
-                f = node->parent->f_value + normAngle*extraVoxelPercent*a;
+                //heuristic 1
+//                f = node->parent->f_value + normAngle*extraVoxelPercent*a;
+
+                //heuristic 2
+//                f = node->parent->f_value + (accW*a)+(angleW*normAngle)+(covW*extraVoxelsNum);
+
+                //heuristic 3
+                f = node->parent->f_value + ( (accW*a)+(angleW*normAngle) )*(extraVoxelsNum);
 
             }
         }
@@ -587,6 +616,11 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
     }else //if the node is root
     {
+        double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+        double a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+        accuracyPerViewpointAvg.push_back(a);
+        accuracySum += avgAcc;
+
         if(heuristicType==SurfaceAreaCoverageH)
         {
             meshSurface->meshingScaleSpaceCGAL(visibleCloud, node->surfaceTriangles,false);

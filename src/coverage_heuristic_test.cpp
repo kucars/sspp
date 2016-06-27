@@ -56,10 +56,10 @@ int main( int argc, char **  argv)
     ros::Publisher sensorPoseSSPub   = nh.advertise<geometry_msgs::PoseArray>("SS_sensor_pose", 10);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr originalCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::io::loadPCDFile<pcl::PointXYZ> (ros::package::getPath("component_test")+"/src/pcd/etihad_nowheels_nointernal_newdensed.pcd", *originalCloudPtr);
+    pcl::io::loadPCDFile<pcl::PointXYZ> (ros::package::getPath("component_test")+"/src/pcd/etihad_nowheels_nointernal_scaled_newdensed.pcd", *originalCloudPtr);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr coveredCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
-    OcclusionCullingGPU occlusionCulling(nh,"etihad_nowheels_nointernal_newdensed.pcd");
+    OcclusionCullingGPU occlusionCulling(nh,"etihad_nowheels_nointernal_scaled_newdensed.pcd");
 
     rviz_visual_tools::RvizVisualToolsPtr visualTools;
     visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/sspp_visualisation"));
@@ -101,16 +101,16 @@ int main( int argc, char **  argv)
 
 
     double coverageTolerance=1.0, targetCov=10;
-    std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels_nointernal_new.obj";
-    std::string occlusionCullingModelName = "etihad_nowheels_nointernal_newdensed.pcd";
+    std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels_nointernal_scaled_new.obj";
+    std::string occlusionCullingModelName = "etihad_nowheels_nointernal_scaled_newdensed.pcd";
     CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, VolumetricCoverageH);
     coveragePathPlanningHeuristic.setCoverageTarget(targetCov);
     coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
     pathPlanner->setHeuristicFucntion(&coveragePathPlanningHeuristic);
 
-    std::string str1 = ros::package::getPath("sspp")+"/resources/SearchSpaceUAV_1.5m_1to4_etihad_nowheels_nointernal_newdensed.txt";//robot
-    std::string str2 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_etihad_nowheels_nointernal_newdensed_0.txt";//sensor1
-    std::string str3 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_etihad_nowheels_nointernal_newdensed_1.txt";//sensor2
+    std::string str1 = ros::package::getPath("sspp")+"/resources/SearchSpaceUAV_1.5m_1to4_etihad_nowheels_nointernal_scaled_newdensed.txt";//robot
+    std::string str2 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_etihad_nowheels_nointernal_scaled_newdensed_0.txt";//sensor1
+    std::string str3 = ros::package::getPath("sspp")+"/resources/SearchSpaceCam_1.5m_1to4_etihad_nowheels_nointernal_scaled_newdensed_1.txt";//sensor2
 
     const char * filename1 = str1.c_str();
     const char * filename2 = str2.c_str();

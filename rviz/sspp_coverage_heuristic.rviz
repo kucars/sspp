@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /gradual_coverage1
       Splitter Ratio: 0.5
     Tree Height: 842
   - Class: rviz/Selection
@@ -160,9 +161,9 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 5
+      Size (Pixels): 9
       Size (m): 0.1
-      Style: Points
+      Style: Boxes
       Topic: gradual_coverage
       Use Fixed Frame: true
       Use rainbow: true
@@ -208,17 +209,17 @@ Visualization Manager:
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 170; 0; 255
-      Enabled: true
+      Enabled: false
       Name: SS robot
       Topic: SS_robot_pose
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 0; 255; 127
-      Enabled: true
+      Enabled: false
       Name: SS sensor
       Topic: SS_sensor_pose
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -243,22 +244,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 100.994
+      Distance: 42.6382
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -3.00291
-        Y: 14.6978
-        Z: -7.96271
+        X: 1.13189
+        Y: -2.26121
+        Z: 4.16172
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.354794
+      Pitch: 0.604794
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.14073
+      Yaw: 5.58572
     Saved: ~
 Window Geometry:
   Displays:
