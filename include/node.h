@@ -45,7 +45,7 @@ class Node
 {
 public :
     int id,depth,direction;
-    double nearest_obstacle,g_value,h_value,f_value,distance,coverage;
+    double nearest_obstacle,g_value,h_value,f_value,gain_value,distance,coverage;
     Triangles surfaceTriangles;
     Node  * parent, * next, * prev;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;

@@ -29,6 +29,7 @@ Node :: Node ():
     g_value(0.0),
     h_value(0.0),
     f_value(0.0),
+    gain_value(0.0),
     distance(0.0),
     coverage(0.0)
 {

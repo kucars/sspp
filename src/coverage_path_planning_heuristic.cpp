@@ -203,6 +203,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ> visibleCloud, collectiveCloud;
+    occlussionCulling->cloud->points =occlussionCulling->cloudCopy->points;
 
     for(int i=0; i<node->senPoses.size(); i++)
     {
@@ -342,6 +343,13 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
             }
             else if(heuristicType==VolumetricCoverageH)
             {
+                //turning angle
+                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
+                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
+                double angle, normAngle;
+                angle=qtParent.angleShortestPath(qtNode);
+                normAngle=1-angle/(2*M_PI);
+
                 //accuracy
                 double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
                 a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
@@ -392,7 +400,116 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 //                f = node->parent->f_value + (accW*a)+(distW*distNorm)+(covW*extraVoxelsNum);
 
                 //heuristic 3
-                f = node->parent->f_value + ( (accW*a)+(distW*normDist) )*(extraVoxelsNum);
+                f = node->parent->f_value + ( (accW*a)+(distW*normDist)+(angleW*normAngle) )*(extraVoxelsNum);
+            }
+            else if(heuristicType==InfoGainVolumetricH)
+            {
+                // /////////////reward calculation /////////////////
+                //turning angle
+                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
+                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
+                double angle, normAngle;
+                angle=qtParent.angleShortestPath(qtNode);
+                normAngle=1-angle/(2*M_PI);
+
+                //accuracy
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                accuracyPerViewpointAvg.push_back(a);
+                accuracySum += avgAcc;
+
+                if(debug)
+                    std::cout<<"cloud size before accumelation: " <<node->cloud.points.size()<<std::endl;
+
+                // accumelate the cloud
+                node->cloud = node->parent->voxels;
+                node->cloud += visibleCloud;
+
+                if(debug)
+                    std::cout<<"cloud size after accumelation: " <<node->cloud.points.size()<<std::endl;
+
+                //filter the accumelated cloud
+                pcl::PointCloud<pcl::PointXYZ>::Ptr nodeCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
+                nodeCloudPtr->points = node->cloud.points;
+                pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+                voxelgrid.setInputCloud (nodeCloudPtr);
+                voxelgrid.setLeafSize (volumetricVoxelRes, volumetricVoxelRes, volumetricVoxelRes);
+                voxelgrid.filter(node->voxels);
+
+                //calculate the extra volume or voxels
+                double extraVoxelsNum = node->voxels.points.size() - node->parent->voxels.points.size();
+                double extraVoxelsRatio = (extraVoxelsNum/(double)modelVoxels.points.size());
+                double extraVoxelPercent = (extraVoxelsRatio)*100;
+
+                extraCovPerViewpointAvg.push_back(extraVoxelPercent);
+                extraCovSum +=extraVoxelPercent;
+
+                if(debug)
+                {
+                    std::cout<<"node voxels size after filtering: " <<node->voxels.points.size()<<std::endl;
+                    std::cout<<"number of extra voxels: " <<extraVoxelsNum<<std::endl;
+                    std::cout<<"extra voxels percent: " <<extraVoxelPercent<<std::endl;
+                }
+
+                node->coverage = ((double)node->voxels.points.size()/(double)modelVoxels.points.size()) * 100;
+
+                double normDist = (2.5-d)/2.5;//2.5 = max conn radius
+
+                // ////////information gain - entroby of the visibilty ///////////
+                collectiveCloud.points = node->parent->cloud_filtered->points;
+                collectiveCloud +=visibleCloud;
+                tempCloud->points = collectiveCloud.points;
+
+                pcl::VoxelGrid<pcl::PointXYZ> voxelgrid1;
+                voxelgrid1.setInputCloud (tempCloud);
+                voxelgrid1.setLeafSize (0.5f, 0.5f, 0.5f);
+                voxelgrid1.filter(*node->cloud_filtered);
+
+                pcl::PointCloud<pcl::PointXYZ>::Ptr visibleFromOriginalPtr(new pcl::PointCloud<pcl::PointXYZ>);
+                visibleFromOriginalPtr->points =  visibleCloud.points ;
+                pcl::VoxelGridOcclusionEstimationGPU coveredCloudFromOriginal;
+                coveredCloudFromOriginal.setInputCloud (visibleFromOriginalPtr);
+                coveredCloudFromOriginal.setLeafSize (0.5f, 0.5f, 0.5f);
+                coveredCloudFromOriginal.initializeVoxelGrid();
+                coveredCloudFromOriginal.occlusionFreeEstimationAll(visibleFromOriginalPtr,visibleCloud);
+
+
+                pcl::PointCloud<pcl::PointXYZ>::Ptr visibleFromAccumlatedPtr(new pcl::PointCloud<pcl::PointXYZ>);
+                occlussionCulling->cloud->points =node->parent->cloud_filtered->points;
+                pcl::PointCloud<pcl::PointXYZ> visibleFromAcc;
+                for(int i=0; i<node->senPoses.size(); i++)
+                {
+                    pcl::PointCloud<pcl::PointXYZ> temp;
+                    temp = occlussionCulling->extractVisibleSurface(node->senPoses[i].p);
+                    visibleFromAcc += temp;
+
+                }
+                visibleFromAccumlatedPtr->points = visibleFromAcc.points;
+                pcl::VoxelGridOcclusionEstimationGPU coveredCloudFromAccumlated;
+                coveredCloudFromAccumlated.setInputCloud (visibleFromAccumlatedPtr);
+                coveredCloudFromAccumlated.setLeafSize (0.5f, 0.5f, 0.5f);
+                coveredCloudFromAccumlated.initializeVoxelGrid();
+                coveredCloudFromAccumlated.occlusionFreeEstimationAll(visibleFromAccumlatedPtr,visibleFromAcc);
+
+
+                double extraVoxelEntroby = coveredCloudFromOriginal.entropyTot(0) -  coveredCloudFromAccumlated.entropyTot(0);
+                std::cout<<"Total entroby (visible from original) : "<< coveredCloudFromOriginal.entropyTot(0)<<std::endl;
+                std::cout<<"Total entroby (visible from accumelated cloud) : "<< coveredCloudFromAccumlated.entropyTot(0)<<std::endl;
+                std::cout<<"Extra part entroby : "<< extraVoxelEntroby<<std::endl;
+
+                //node->g_value = accumelated gain value
+                node->gain_value= node->parent->gain_value+extraVoxelEntroby;
+                std::cout<<"node->gain : "<< node->gain_value<<std::endl;
+
+                //node->g_value = accumelated reward
+                double localReward = ( (accW*a)+(distW*normDist)+(angleW*normAngle) )*(extraVoxelsNum) ;
+                std::cout<<"local reward : "<< localReward<<std::endl;
+                node->g_value = node->parent->g_value + ( (accW*a)+(distW*normDist)+(angleW*normAngle) )*(extraVoxelsNum);
+
+                //accumelated utility function
+                f = node->parent->f_value + (extraVoxelEntroby/node->gain_value + localReward/node->g_value);
+
+                std::cout<<"f value : "<< f<<std::endl;
             }
         }
         else //if node is at the same position of the parent with different orientation
@@ -603,6 +720,115 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 f = node->parent->f_value + ( (accW*a)+(angleW*normAngle) )*(extraVoxelsNum);
 
             }
+            else if(heuristicType==InfoGainVolumetricH)
+            {
+                // /////////////reward calculation /////////////////
+                //turning angle
+                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
+                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
+                double angle, normAngle;
+                angle=qtParent.angleShortestPath(qtNode);
+                normAngle=1-angle/(2*M_PI);
+
+                //accuracy
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                accuracyPerViewpointAvg.push_back(a);
+                accuracySum += avgAcc;
+
+                // volumetric coverage
+
+                // accumelate the cloud
+                if(debug)
+                    std::cout<<"cloud size before accumelation: " <<node->cloud.points.size()<<std::endl;
+
+                node->cloud = node->parent->voxels;
+                node->cloud += visibleCloud;
+
+                if(debug)
+                    std::cout<<"cloud size after accumelation: " <<node->cloud.points.size()<<std::endl;
+
+                //filter the accumelated cloud
+                pcl::PointCloud<pcl::PointXYZ>::Ptr nodeCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
+                nodeCloudPtr->points = node->cloud.points;
+                pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+                voxelgrid.setInputCloud (nodeCloudPtr);
+                voxelgrid.setLeafSize (volumetricVoxelRes, volumetricVoxelRes, volumetricVoxelRes);
+                voxelgrid.filter(node->voxels);
+
+                //calculate the extra volume or voxels
+                double extraVoxelsNum = node->voxels.points.size() - node->parent->voxels.points.size();
+                double extraVoxelsRatio = (extraVoxelsNum/(double)modelVoxels.points.size());
+                double extraVoxelPercent = (extraVoxelsRatio)*100;
+
+                extraCovPerViewpointAvg.push_back(extraVoxelPercent);
+                extraCovSum +=extraVoxelPercent;
+
+                if(debug)
+                {
+                    std::cout<<"node voxels size after filtering: " <<node->voxels.points.size()<<std::endl;
+                    std::cout<<"number of extra voxels: " <<extraVoxelsNum<<std::endl;
+                    std::cout<<"extra voxels percent: " <<extraVoxelPercent<<std::endl;
+                }
+
+                node->coverage = ((double)node->voxels.points.size()/(double)modelVoxels.points.size()) * 100;
+
+
+                // ////////information gain - entroby of the visibilty ///////////
+                collectiveCloud.points = node->parent->cloud_filtered->points;
+                collectiveCloud +=visibleCloud;
+                tempCloud->points = collectiveCloud.points;
+                voxelgrid.setInputCloud (tempCloud);
+                voxelgrid.setLeafSize (0.5f, 0.5f, 0.5f);
+                voxelgrid.filter(*node->cloud_filtered);
+
+                pcl::PointCloud<pcl::PointXYZ>::Ptr visibleFromOriginalPtr(new pcl::PointCloud<pcl::PointXYZ>);
+                visibleFromOriginalPtr->points =  visibleCloud.points ;
+                pcl::VoxelGridOcclusionEstimationGPU coveredCloudFromOriginal;
+                coveredCloudFromOriginal.setInputCloud (visibleFromOriginalPtr);
+                coveredCloudFromOriginal.setLeafSize (0.5f, 0.5f, 0.5f);
+                coveredCloudFromOriginal.initializeVoxelGrid();
+                coveredCloudFromOriginal.occlusionFreeEstimationAll(visibleFromOriginalPtr,visibleCloud);
+
+
+                pcl::PointCloud<pcl::PointXYZ>::Ptr visibleFromAccumlatedPtr(new pcl::PointCloud<pcl::PointXYZ>);
+                occlussionCulling->cloud->points =node->parent->cloud_filtered->points;
+                pcl::PointCloud<pcl::PointXYZ> visibleFromAcc;
+                for(int i=0; i<node->senPoses.size(); i++)
+                {
+                    pcl::PointCloud<pcl::PointXYZ> temp;
+                    temp = occlussionCulling->extractVisibleSurface(node->senPoses[i].p);
+                    visibleFromAcc += temp;
+
+                }
+                visibleFromAccumlatedPtr->points = visibleFromAcc.points;
+                pcl::VoxelGridOcclusionEstimationGPU coveredCloudFromAccumlated;
+                coveredCloudFromAccumlated.setInputCloud (visibleFromAccumlatedPtr);
+                coveredCloudFromAccumlated.setLeafSize (0.5f, 0.5f, 0.5f);
+                coveredCloudFromAccumlated.initializeVoxelGrid();
+                coveredCloudFromAccumlated.occlusionFreeEstimationAll(visibleFromAccumlatedPtr,visibleFromAcc);
+
+
+                double extraVoxelEntroby = coveredCloudFromOriginal.entropyTot(0) -  coveredCloudFromAccumlated.entropyTot(0);
+                std::cout<<"Total entroby (visible from original) : "<< coveredCloudFromOriginal.entropyTot(0)<<std::endl;
+                std::cout<<"Total entroby (visible from accumelated cloud) : "<< coveredCloudFromAccumlated.entropyTot(0)<<std::endl;
+                std::cout<<"Extra part entroby : "<< extraVoxelEntroby<<std::endl;
+
+                //node->gain_value = accumelated gain values
+                node->gain_value= node->parent->gain_value+extraVoxelEntroby;
+                std::cout<<"node->gain : "<< node->gain_value<<std::endl;
+
+                //node->g_value = accumelated reward
+                double localReward = ( (accW*a)+(angleW*normAngle) )*(extraVoxelsNum) ;
+                std::cout<<"local reward : "<< localReward<<std::endl;
+                node->g_value = node->parent->g_value + ( (accW*a)+(angleW*normAngle) )*(extraVoxelsNum);
+
+                //accumelated utility function
+                f = node->parent->f_value + (extraVoxelEntroby/node->gain_value + localReward/node->g_value);
+
+                std::cout<<"f value : "<< f<<std::endl;
+
+            }
         }
         node->f_value  = f;
         node->distance = node->parent->distance + d;
@@ -658,6 +884,8 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
         }
 
         node->f_value = 0;//root node
+        node->g_value = 0;//root node
+        node->gain_value =0;
     }
 
     if(debug)

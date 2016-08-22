@@ -55,7 +55,7 @@ typedef CGAL::AABB_traits<K, Primitive> AABB_triangle_traits;
 typedef CGAL::AABB_tree<AABB_triangle_traits> Tree1;
 typedef CGAL::Cartesian_converter<K,exactKernel > SimpleToExactConverter;
 
-enum{SurfaceCoverageH,SurfaceCoveragewithOrientationH,SurfaceCoveragewithAccuracyH,SurfaceAreaCoverageH,VolumetricCoverageH};
+enum{SurfaceCoverageH,SurfaceCoveragewithOrientationH,SurfaceCoveragewithAccuracyH,SurfaceAreaCoverageH,VolumetricCoverageH,InfoGainVolumetricH};
 
 namespace SSPP
 {
