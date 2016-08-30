@@ -7,6 +7,8 @@ Panels:
         - /Global Options1
         - /Status1
         - /gradual_coverage1
+        - /OccupancyGrid1
+        - /OccupancyMap1
       Splitter Ratio: 0.5
     Tree Height: 842
   - Class: rviz/Selection
@@ -27,7 +29,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: gradual_coverage
+    SyncSource: ""
 Visualization Manager:
   Class: ""
   Displays:
@@ -54,7 +56,7 @@ Visualization Manager:
       Marker Topic: /generated_path
       Name: generated_path
       Namespaces:
-        link_marker: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -195,7 +197,7 @@ Visualization Manager:
       Marker Topic: path_testing
       Name: gradual_path
       Namespaces:
-        link_marker: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -220,6 +222,24 @@ Visualization Manager:
       Name: SS sensor
       Topic: SS_sensor_pose
       Value: false
+    - Class: octomap_rviz_plugin/OccupancyGrid
+      Enabled: true
+      Max. Octree Depth: 16
+      Name: OccupancyGrid
+      Octomap Topic: octomap
+      Queue Size: 5
+      Value: true
+      Voxel Coloring: Z-Axis
+      Voxel Rendering: Occupied Voxels
+    - Alpha: 0.7
+      Class: octomap_rviz_plugin/OccupancyMap
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Max. Octree Depth: 16
+      Name: OccupancyMap
+      Octomap Binary Topic: octomap
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

@@ -29,6 +29,11 @@
 #include <pcl/common/transforms.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Triangle_3.h>
+#include <octomap_msgs/Octomap.h>
+#include <octomap/ColorOcTree.h>
+#include <octomap/octomap.h>
+#include <octomap/OcTree.h>
+#include <octomap_msgs/conversions.h>
 
 typedef CGAL::Exact_predicates_exact_constructions_kernel exactKernel;
 typedef CGAL::Triangle_3<exactKernel> Triangle_3;
@@ -45,8 +50,9 @@ class Node
 {
 public :
     int id,depth,direction;
-    double nearest_obstacle,g_value,h_value,f_value,gain_value,distance,coverage;
+    double nearest_obstacle,g_value,h_value,f_value,totalEntroby,distance,coverage,coveredVoxelsNum;
     Triangles surfaceTriangles;
+    octomap::OcTree* octree;
     Node  * parent, * next, * prev;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
     pcl::PointCloud<pcl::PointXYZ> cloud;

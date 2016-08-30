@@ -40,6 +40,12 @@
 #include "heuristic_interface.h"
 #include "rviz_drawing_tools.h"
 #include "component_test/mesh_surface.h"
+#include <octomap_msgs/Octomap.h>
+#include <octomap/ColorOcTree.h>
+#include <octomap/octomap.h>
+#include <octomap/OcTree.h>
+#include <octomap_msgs/conversions.h>
+
 using namespace std;
 
 typedef CGAL::Simple_cartesian<double> K;
@@ -88,12 +94,13 @@ private:
     double volumetricVoxelRes;
     double accW, distW, covW, angleW;
     std::vector<double> accuracyPerViewpointAvg, extraCovPerViewpointAvg, extraAreaperViewpointAvg;
-    double accuracySum, extraCovSum, extraAreaSum, aircraftArea;
+    double accuracySum, extraCovSum, extraAreaSum, aircraftArea, occupiedVoxelsNum;
     int selectedPointsNum;
     ros::Publisher treePub;
     ros::Publisher coveredPointsPub;
     ros::Publisher pathPointPub;
     ros::Publisher pathPub;
+    ros::Publisher octomapPub;
     std::list<CGALTriangle> triangles;
     std::vector<fcl::Vec3f> modelPoints;
     pcl::PointCloud<pcl::PointXYZ> modelVoxels;
