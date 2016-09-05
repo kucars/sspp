@@ -49,10 +49,12 @@ namespace SSPP
 class Node
 {
 public :
-    int id,depth,direction;
-    double nearest_obstacle,g_value,h_value,f_value,totalEntroby,distance,coverage,coveredVoxelsNum;
+    int id,depth,direction,coveredVoxelsNum;
+    double nearest_obstacle,g_value,h_value,f_value,totalEntroby,distance,coverage,coveredVolume;
     Triangles surfaceTriangles;
     octomap::OcTree* octree;
+    std::vector<octomap::Pointcloud> sensorsOctCloud;
+    octomap::Pointcloud coveredCloud;
     Node  * parent, * next, * prev;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
     pcl::PointCloud<pcl::PointXYZ> cloud;

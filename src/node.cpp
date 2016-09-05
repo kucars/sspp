@@ -32,13 +32,9 @@ Node :: Node ():
     totalEntroby(0.0),
     distance(0.0),
     coverage(0.0),
-    coveredVoxelsNum(0.0)
+    coveredVoxelsNum(0),
+    coveredVolume(0.0)
 {
-    octree = new octomap::OcTree(0.25);
-    octree->setProbHit(0.971);
-    octree->setProbMiss(0.029);
-    octree->setClampingThresMax(0.971);
-    octree->setClampingThresMin(0.029);
     parent = next = prev = NULL;
     cloud_filtered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 }

@@ -65,6 +65,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     octomap::KeySet freeKeys,occupiedKeys;
     fullModelTree.computeUpdate(octPointCloud,octomap::point3d(0,0,0),freeKeys,occupiedKeys,-1);
     occupiedVoxelsNum = occupiedKeys.size();
+    modelVolume = occupiedKeys.size()*(fullModelTree.getResolution()*fullModelTree.getResolution()*fullModelTree.getResolution());
 
     //voxelgrid
     pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
@@ -87,7 +88,7 @@ bool CoveragePathPlanningHeuristic::terminateConditionReached(Node *node)
     std::cout<<"\n\n ****************** Total Coverage %: "<<node->coverage<<"  f = "<<node->f_value <<" **************************"<<std::endl;
     std::cout<<"\n\nAverage Accuracy per viewpoint is "<<accuracySum/accuracyPerViewpointAvg.size()<<std::endl;
     std::cout<<"Average extra coverage per viewpoint is "<<extraCovSum/extraCovPerViewpointAvg.size()<<std::endl;
-    std::cout<<"Average extra Area per viewpoint is "<<extraAreaSum/extraAreaperViewpointAvg.size()<<"\n\n"<<std::endl;
+    std::cout<<"Average extra Area per viewpoint is "<<extraAreaSum/extraAreaperViewpointAvg.size()<<std::endl;
     std::cout<<"number of viewpoints is "<<selectedPointsNum<<"\n\n"<<std::endl;
 
     if (debug)
@@ -213,21 +214,22 @@ void CoveragePathPlanningHeuristic::setDebug(bool debug)
 //%TODO: this function will be cleaned later, it includes a lot of repetitions and conditions
 void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 {
+    //  std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>"<<std::endl;
 
     if(node==NULL)
         return;
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ> visibleCloud, collectiveCloud;
-    occlussionCulling->cloud->points =occlussionCulling->cloudCopy->points;
-    //    float localViewEntroby =0.0;
-    for(int i=0; i<node->senPoses.size(); i++)
-    {
-        pcl::PointCloud<pcl::PointXYZ> temp;
-        temp = occlussionCulling->extractVisibleSurface(node->senPoses[i].p);
-        visibleCloud += temp;
-        //        localViewEntroby += occlussionCulling->viewEntropy; //old way using raytracing inside voxel occlusion estimation
-    }
+    //    occlussionCulling->cloud->points =occlussionCulling->cloudCopy->points;
+    //    //    float localViewEntroby =0.0;
+    //    for(int i=0; i<node->senPoses.size(); i++)
+    //    {
+    //        pcl::PointCloud<pcl::PointXYZ> temp;
+    //        temp = occlussionCulling->extractVisibleSurface(node->senPoses[i].p);
+    //        visibleCloud += temp;
+    //        //        localViewEntroby += occlussionCulling->viewEntropy; //old way using raytracing inside voxel occlusion estimation
+    //    }
     //    visibleCloud = occlussionCulling->extractVisibleSurface(node->senPose.p);
 
     if(node->parent)
@@ -428,7 +430,14 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 // 1 - information gain calculation
                 node->totalEntroby = node->parent->totalEntroby;
                 node->coveredVoxelsNum = node->parent->coveredVoxelsNum;
-                node->octree = node->parent->octree;
+                node->coveredVolume = node->parent->coveredVolume;
+                node->octree = new octomap::OcTree(*node->parent->octree);
+                node->octree->setProbHit(0.9999999);
+                node->octree->setProbMiss(0.5);
+                node->octree->setClampingThresMax(0.9999999);
+                node->octree->setClampingThresMin(0.5);
+
+
                 for(int i=0; i<node->senPoses.size(); i++)
                 {
                     pcl::PointCloud<pcl::PointXYZ> temp;
@@ -444,45 +453,59 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                     octomap::KeySet freeKeys,occupiedKeys;
                     node->octree->computeUpdate(visibleOctPointCloud,origin,freeKeys,occupiedKeys,-1);
 
+                    //loop through occupied keys
                     for (octomap::KeySet::iterator it = occupiedKeys.begin(); it != occupiedKeys.end(); ++it) {
                         octomap::point3d center = node->octree->keyToCoord(*it);
                         fcl::Vec3f vec2(center.x(), center.y(), center.z());
                         double dist =  std::sqrt(( vec2[0] - origin.x())*(vec2[0] - origin.x()) + (vec2[1] - origin.y())*(vec2[1] - origin.y()) + (vec2[2] -origin.z())*(vec2[2] -origin.z()));
-                        double normAcc = (occlussionCulling->maxAccuracyError - 0.0000285 * dist * dist)/occlussionCulling->maxAccuracyError;
+                        double normAcc = (occlussionCulling->maxAccuracyError - (0.0000285 * dist * dist*0.5))/occlussionCulling->maxAccuracyError;
                         float lg = octomap::logodds(normAcc);
-                        octomap::OcTreeNode* result = node->octree->search (center);
-                        if(result!=NULL)
+                        octomap::OcTreeNode* result = node->octree->search (*it);
+
+                        if(result!=NULL)//already occupied
                         {
-                            //                            std::cout<<" not Null "<<std::endl;
                             double prob = result->getOccupancy();
-                            //                            std::cout<<"probability: "<<prob<<std::endl;
                             double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
                             node->totalEntroby -= entropy;
-                            node->octree->updateNode(*it, lg);
+                            node->octree->setNodeValue(*it, lg);
                             prob = octomap::probability(lg);
                             entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
                             node->totalEntroby += entropy;
                         }
-                        else
+                        else //NULL voxel
                         {
-                            //                            std::cout<<" Null Null Null"<<std::endl;
                             node->coveredVoxelsNum++;
-                            node->octree->updateNode(*it, lg);
+                            node->octree->setNodeValue(*it, lg);
                             double prob = octomap::probability(lg);
                             double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
+                            node->coveredVolume += (volumetricVoxelRes*volumetricVoxelRes*volumetricVoxelRes);
                             node->totalEntroby += entropy;
                         }
+
                     }//end of occupied Keys loop
 
-                    //node->octree->insertPointCloud(visibleOctPointCloud,origin);
-                    //node->octree->updateInnerOccupancy();
+
                 }//end of sensors loop
 
                 // 2 - coverage for termination
-                node->coverage = ((double)node->coveredVoxelsNum/occupiedVoxelsNum) * 100;
+                node->coverage = ((double)node->coveredVolume/modelVolume) * 100;
+                double extraVolume = node->coverage - node->parent->coverage;
+                c = node->coverage - node->parent->coverage;
+                extraCovPerViewpointAvg.push_back(c);
+                extraCovSum += c;
 
-                //accumelated information gain
-                f = node->totalEntroby ;
+                // 3- distance
+                double normDist = (2.5-d)/2.5;//2.5 = max conn radius
+
+                // 4- turning angle
+                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
+                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
+                double angle, normAngle;
+                angle=qtParent.angleShortestPath(qtNode);
+                normAngle=1-angle/(2*M_PI);
+
+                // 5- function
+                f = node->totalEntroby + extraVolume + normDist +normAngle;
             }
         }
         else //if node is at the same position of the parent with different orientation
@@ -703,7 +726,13 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 // 1 - information gain calculation
                 node->totalEntroby = node->parent->totalEntroby;
                 node->coveredVoxelsNum = node->parent->coveredVoxelsNum;
-                node->octree = node->parent->octree;
+                node->coveredVolume = node->parent->coveredVolume;
+                node->octree = new octomap::OcTree(*node->parent->octree);
+                node->octree->setProbHit(0.9999999);
+                node->octree->setProbMiss(0.5);
+                node->octree->setClampingThresMax(0.9999999);
+                node->octree->setClampingThresMin(0.5);
+
                 for(int i=0; i<node->senPoses.size(); i++)
                 {
                     pcl::PointCloud<pcl::PointXYZ> temp;
@@ -719,44 +748,55 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                     octomap::KeySet freeKeys,occupiedKeys;
                     node->octree->computeUpdate(visibleOctPointCloud,origin,freeKeys,occupiedKeys,-1);
 
+                    //loop through occupied keys
                     for (octomap::KeySet::iterator it = occupiedKeys.begin(); it != occupiedKeys.end(); ++it) {
                         octomap::point3d center = node->octree->keyToCoord(*it);
                         fcl::Vec3f vec2(center.x(), center.y(), center.z());
                         double dist =  std::sqrt(( vec2[0] - origin.x())*(vec2[0] - origin.x()) + (vec2[1] - origin.y())*(vec2[1] - origin.y()) + (vec2[2] -origin.z())*(vec2[2] -origin.z()));
-                        double normAcc = (occlussionCulling->maxAccuracyError - 0.0000285 * dist * dist)/occlussionCulling->maxAccuracyError;
+                        double normAcc = (occlussionCulling->maxAccuracyError - (0.0000285 * dist * dist*0.5))/occlussionCulling->maxAccuracyError;
                         float lg = octomap::logodds(normAcc);
-                        octomap::OcTreeNode* result = node->octree->search (center);
-                        if(result!=NULL)
+                        octomap::OcTreeNode* result = node->octree->search (*it);
+
+                        if(result!=NULL)//already occupied
                         {
                             double prob = result->getOccupancy();
-                            // std::cout<<"probability: "<<prob<<std::endl;
                             double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
                             node->totalEntroby -= entropy;
-                            node->octree->updateNode(*it, lg);
+                            node->octree->setNodeValue(*it, lg);
                             prob = octomap::probability(lg);
                             entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
                             node->totalEntroby += entropy;
                         }
-                        else
+                        else //NULL
                         {
-                            //std::cout<<" Null Null Null"<<std::endl;
                             node->coveredVoxelsNum++;
-                            node->octree->updateNode(*it, lg);
+                            node->octree->setNodeValue(*it, lg);
                             double prob = octomap::probability(lg);
                             double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
                             node->totalEntroby += entropy;
+                            node->coveredVolume += (volumetricVoxelRes*volumetricVoxelRes*volumetricVoxelRes);
                         }
+
                     }//end of occupied Keys loop
 
-                    //node->octree->insertPointCloud(visibleOctPointCloud,origin);
-                    //node->octree->updateInnerOccupancy();
                 }//end of sensors loop
 
                 //2 - coverage for termination
-                node->coverage = ((double)node->coveredVoxelsNum/occupiedVoxelsNum) * 100;
+                node->coverage = ((double)node->coveredVolume/modelVolume) * 100;
+                double extraVolume = node->coverage - node->parent->coverage;
+                c = node->coverage - node->parent->coverage;
+                extraCovPerViewpointAvg.push_back(c);
+                extraCovSum += c;
 
-                //accumelated information gain
-                f = node->totalEntroby ;
+                //3 - turning angle
+                tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
+                tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
+                double angle, normAngle;
+                angle=qtParent.angleShortestPath(qtNode);
+                normAngle=1-angle/(2*M_PI);
+
+                //4- function
+                f = node->totalEntroby+ extraVolume +normAngle;
             }
         }
         node->f_value  = f;
@@ -802,6 +842,12 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         else if(heuristicType==InfoGainVolumetricH)
         {
+            // 1 - information gain for root
+            node->octree = new octomap::OcTree(0.25);
+            node->octree->setProbHit(0.9999999);
+            node->octree->setProbMiss(0.5);
+            node->octree->setClampingThresMax(0.9999999);
+            node->octree->setClampingThresMin(0.5);
 
             for(int i=0; i<node->senPoses.size(); i++)
             {
@@ -812,49 +858,52 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 {
                     octomap::point3d endpoint((float) temp.points[j].x,(float) temp.points[j].y,(float) temp.points[j].z);
                     visibleOctPointCloud.push_back(endpoint);
+                    node->coveredCloud.push_back(endpoint);
                 }
 
                 octomap::point3d origin(node->senPoses[i].p.position.x,node->senPoses[i].p.position.y,node->senPoses[i].p.position.z);
                 octomap::KeySet freeKeys,occupiedKeys;
                 node->octree->computeUpdate(visibleOctPointCloud,origin,freeKeys,occupiedKeys,-1);
 
+                //loop through occupied keys
                 for (octomap::KeySet::iterator it = occupiedKeys.begin(); it != occupiedKeys.end(); ++it) {
 
                     octomap::point3d center =node->octree->keyToCoord(*it);
                     fcl::Vec3f vec2(center.x(), center.y(), center.z());
                     double dist =  std::sqrt(( vec2[0] - origin.x())*(vec2[0] - origin.x()) + (vec2[1] - origin.y())*(vec2[1] - origin.y()) + (vec2[2] -origin.z())*(vec2[2] -origin.z()));
-                    double normAcc = (occlussionCulling->maxAccuracyError - 0.0000285 * dist * dist)/occlussionCulling->maxAccuracyError;
+                    double normAcc = (occlussionCulling->maxAccuracyError - (0.0000285 * dist * dist*0.5))/occlussionCulling->maxAccuracyError;
                     float lg = octomap::logodds(normAcc);
                     octomap::OcTreeNode* result = node->octree->search(*it);
 
-                    if(result!=NULL)
+                    if(result!=NULL)//already occupied
                     {
-                        double prob = octomap::probability(lg);
+                        double prob = result->getOccupancy();
                         double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
                         node->totalEntroby -= entropy;
-                        node->octree->updateNode(*it, lg);
+                        node->octree->setNodeValue(*it, lg);
                         prob = octomap::probability(lg);
                         entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
                         node->totalEntroby += entropy;
-                    }
-                    else
-                    {
+
+                    }else{ // NULL
                         node->coveredVoxelsNum++;
-                        node->octree->updateNode(*it, lg);
+                        node->octree->setNodeValue(*it, lg);
                         double prob = octomap::probability(lg);
                         double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
                         node->totalEntroby += entropy;
+                        node->coveredVolume += (volumetricVoxelRes*volumetricVoxelRes*volumetricVoxelRes);
                     }
-                }
 
-                //                node->octree->insertPointCloud(visibleOctPointCloud,origin);
-                //                node->octree->updateInnerOccupancy();
-            }
-            //coverage
-            node->coverage = (double)node->coveredVoxelsNum/occupiedVoxelsNum * 100;
+                }//end of occupied Keys loop
 
-            extraCovPerViewpointAvg.push_back(node->coverage);
-            extraCovSum += node->coverage;
+            }//end of sensors loop
+
+            //2- coverage
+            node->coverage = (double)node->coveredVolume/modelVolume * 100;
+            double c = node->coverage;
+            extraCovPerViewpointAvg.push_back(c);
+            extraCovSum += c;
+
         }
         else {
             //coverage
@@ -905,12 +954,13 @@ void CoveragePathPlanningHeuristic::displayGradualProgress(Node *node)
     }
 
     //########display the point selected##########
-    //        std::vector<geometry_msgs::Point> points;
-    //        geometry_msgs::Point linept;
-    //        linept.x = node->pose.p.position.x; linept.y = node->pose.p.position.y; linept.z = node->pose.p.position.z;
-    //        points.push_back(linept);
-    //        visualization_msgs::Marker pointsList = drawPoints(points,10,1,10000,0.05);
-    //        pathPointPub.publish(pointsList);
+    std::vector<geometry_msgs::Point> points;
+    geometry_msgs::Point linept;
+    linept.x = node->pose.p.position.x; linept.y = node->pose.p.position.y; linept.z = node->pose.p.position.z;
+    points.push_back(linept);
+    //    visualization_msgs::Marker pointsList = drawPoints(points,10,1,10000,0.05);
+    visualization_msgs::Marker pointsList = drawPoints(points,3,10000);
+    pathPointPub.publish(pointsList);
 
 
     int coveI = (int)node->coverage;

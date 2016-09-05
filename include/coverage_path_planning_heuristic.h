@@ -45,7 +45,8 @@
 #include <octomap/octomap.h>
 #include <octomap/OcTree.h>
 #include <octomap_msgs/conversions.h>
-
+#include <pcl/octree/octree_pointcloud.h>
+#include <pcl/octree/octree.h>
 using namespace std;
 
 typedef CGAL::Simple_cartesian<double> K;
@@ -90,12 +91,13 @@ private:
     bool gradualVisualization;
     int heuristicType;
     double coverageTarget;
+    double modelVolume;
     double coverageTolerance;
     double volumetricVoxelRes;
     double accW, distW, covW, angleW;
     std::vector<double> accuracyPerViewpointAvg, extraCovPerViewpointAvg, extraAreaperViewpointAvg;
-    double accuracySum, extraCovSum, extraAreaSum, aircraftArea, occupiedVoxelsNum;
-    int selectedPointsNum;
+    double accuracySum, extraCovSum, extraAreaSum, aircraftArea;
+    int selectedPointsNum,occupiedVoxelsNum;
     ros::Publisher treePub;
     ros::Publisher coveredPointsPub;
     ros::Publisher pathPointPub;

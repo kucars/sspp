@@ -340,7 +340,7 @@ Node *Astar::astarSearch(Pose start)
 Node *Astar::makeChildrenNodes(Node *parent)
 {
     geometry_msgs::Pose P;
-    Node  *p, *q;
+    Node  *p, *q, *r;
     SearchSpaceNode *temp;
 
     P.position.x  = parent->pose.p.position.x;
@@ -403,11 +403,19 @@ Node *Astar::makeChildrenNodes(Node *parent)
 
         }
 
-        p->id = temp->children[i]->id;
-        t.children.push_back(p->pose.p);
-        p->parent = parent;
-        p->next = q;
-        q = p;
+        //To avoid choosing already selected parent as a child
+        if((r=closedList->find(p)))
+        {
+
+        }else
+        {
+            p->id = temp->children[i]->id;
+            t.children.push_back(p->pose.p);
+            p->parent = parent;
+            p->next = q;
+            q = p;
+        }
+
     }
     // Save the search tree so that it can be displayed later
     if (t.children.size() > 0)
