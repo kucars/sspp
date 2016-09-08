@@ -28,7 +28,7 @@
 #include "searchspacenode.h"
 #include "node.h"
 #include "utils.h"
-
+#include "geometry_msgs/Vector3.h"
 using namespace std;
 
 namespace SSPP
@@ -42,8 +42,13 @@ public:
     virtual void calculateHeuristic(Node *)=0;
     virtual bool terminateConditionReached(Node *)=0;
     virtual bool isConnectionConditionSatisfied(SearchSpaceNode*,SearchSpaceNode*)=0;
-    virtual bool isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray& correspondingSensorPoses, double minDist, double maxDist)=0;
+    virtual bool isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray& correspondingSensorPoses, double minDist, double maxDist, pcl::PointCloud<pcl::PointXYZ>& globalCloud, std::vector<pcl::PointCloud<pcl::PointXYZ> >& accuracyClusters, double accuracyThreshhold)=0;
     virtual void displayProgress(vector<Tree> tree)=0;
+    virtual double pointCloudDiff(pcl::PointCloud<pcl::PointXYZ>::Ptr globalCloudPtr, pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloudDiffPtr )=0;
+    virtual void clusteringPointCloud(std::vector<pcl::PointCloud<pcl::PointXYZ> >& clustersPointCloudVec, pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudDiffPtr)=0;
+    virtual void findClusterOuterPoints(geometry_msgs::PoseArray waypoints, pcl::PointCloud<pcl::PointXYZ>& cloudHull)=0;
+    virtual void findClusterBB(pcl::PointCloud<pcl::PointXYZ> clusterPoints, geometry_msgs::Vector3 &gridSize, geometry_msgs::Pose &gridStart)=0;
+
     /*!
      * \brief isCost
      * \return

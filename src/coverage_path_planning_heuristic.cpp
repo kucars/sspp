@@ -39,6 +39,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     pathPointPub         = nh.advertise<visualization_msgs::Marker>("path_point" , 10);
     pathPub              = nh.advertise<visualization_msgs::Marker>("path_testing", 10);
     octomapPub           = nh.advertise<octomap_msgs::Octomap>("octomap", 1);
+    hullPub              = nh.advertise<visualization_msgs::Marker>("hull", 10);
     accuracySum          = 0.0;
     extraCovSum          = 0.0;
     extraAreaSum         = 0.0;
@@ -48,7 +49,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     covW                 = 1;
     angleW               = 0.1;
     selectedPointsNum    = 0;
-
+    voxelResForConn      = 0.1;
     //area
     Triangles aircraftCGALT ;
     meshSurface->loadOBJFile(collisionCheckModelP.c_str(), modelPoints, aircraftCGALT);
@@ -72,6 +73,169 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     voxelgrid.setInputCloud (occlussionCulling->cloud);
     voxelgrid.setLeafSize (volumetricVoxelRes, volumetricVoxelRes, volumetricVoxelRes);
     voxelgrid.filter(modelVoxels);
+
+    //voxelgrid occlusion estimation
+    originalCloudFilteredVoxels.setInputCloud (occlussionCulling->cloud);
+    originalCloudFilteredVoxels.setLeafSize (voxelResForConn, voxelResForConn, voxelResForConn);
+    originalCloudFilteredVoxels.initializeVoxelGrid();
+    originalCloudFilteredVoxels.filter(modelVoxelsForConn);
+}
+double CoveragePathPlanningHeuristic::pointCloudDiff(pcl::PointCloud<pcl::PointXYZ>::Ptr globalCloudPtr, pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloudDiffPtr )
+{
+    pcl::PointCloud<pcl::PointXYZ> coveredVoxels;
+
+    pcl::VoxelGridOcclusionEstimationGPU coveredCloudFilteredVoxels;
+    coveredCloudFilteredVoxels.setInputCloud (globalCloudPtr);
+    coveredCloudFilteredVoxels.setLeafSize (voxelResForConn, voxelResForConn, voxelResForConn);
+    coveredCloudFilteredVoxels.initializeVoxelGrid();
+    coveredCloudFilteredVoxels.filter(coveredVoxels);
+    std::cout<<" ////// Coverage % : "<<((double)coveredVoxels.size()/(double)modelVoxelsForConn.size())*100<<" //////" <<std::endl;
+
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr diffPtr(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr diffPtrNoColor(new pcl::PointCloud<pcl::PointXYZ>);
+    //iterate through the entire coverage grid to check the number of matched voxel between the original and the covered ones
+    Eigen::Vector3i  min_b = originalCloudFilteredVoxels.getMinBoxCoordinates ();
+    Eigen::Vector3i  max_b = originalCloudFilteredVoxels.getMaxBoxCoordinates ();
+    int extraNum=0;
+    for (int kk = min_b.z (); kk <= max_b.z (); ++kk)
+    {
+        for (int jj = min_b.y (); jj <= max_b.y (); ++jj)
+        {
+            for (int ii = min_b.x (); ii <= max_b.x (); ++ii)
+            {
+
+                Eigen::Vector3i ijk (ii, jj, kk);
+                int index1 = originalCloudFilteredVoxels.getCentroidIndexAt (ijk);
+                if(index1!=-1)
+                {
+                    Eigen::Vector4f centroid = originalCloudFilteredVoxels.getCentroidCoordinate (ijk);
+                    Eigen::Vector3i ijk_in_Original= coveredCloudFilteredVoxels.getGridCoordinates(centroid[0],centroid[1],centroid[2]) ;
+
+                    int index = coveredCloudFilteredVoxels.getCentroidIndexAt (ijk_in_Original);
+
+                    if(index==-1)
+                    {
+                        pcl::PointXYZRGB point = pcl::PointXYZRGB(0,244,0);
+                        pcl::PointXYZ pt ;
+                        point.x = centroid[0];
+                        pt.x = centroid[0];
+                        point.y = centroid[1];
+                        pt.y = centroid[1];
+                        point.z = centroid[2];
+                        pt.z = centroid[2];
+                        diffPtr->points.push_back(point);
+                        diffPtrNoColor->points.push_back(pt);
+                        extraNum++;
+                    }
+                }
+
+            }
+        }
+    }
+    //    std::cout<<"number of diff cloud: "<<diffPtrNoColor->points.size()<<std::endl;
+    //    std::cout<<"number of diff cloud: "<<diffPtr->points.size()<<std::endl;
+    pointCloudDiffPtr->points = diffPtrNoColor->points;
+    ///////////check the difference percentage///////////////
+    double uncoveredPercent = ((double) diffPtr->size()/ (double) modelVoxelsForConn.size()) *100;
+    return uncoveredPercent;
+}
+
+void CoveragePathPlanningHeuristic::clusteringPointCloud(std::vector<pcl::PointCloud<pcl::PointXYZ> >& clustersPointCloudVec, pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudDiffPtr)
+{
+    //divide the un covered parts into subregions (using euclidean clustering)
+    // Creating the KdTree object for the search method of the extraction
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr Kdtree (new pcl::search::KdTree<pcl::PointXYZ>);
+    Kdtree->setInputCloud (pointCloudDiffPtr);
+
+    std::vector<pcl::PointIndices> cluster_indices;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    ec.setClusterTolerance (0.3); // 30cm
+    ec.setMinClusterSize (5);
+    ec.setMaxClusterSize (10000);
+    ec.setSearchMethod (Kdtree);
+    ec.setInputCloud (pointCloudDiffPtr);
+    ec.extract (cluster_indices);
+    std::cout<<"number of clusters: "<<cluster_indices.size()<<std::endl;
+
+    //////////converting the clusters to pointcloud/////////////////
+    int j = 0;
+    int r =0,g=0,b=0;
+//    std::vector<pcl::PointCloud<pcl::PointXYZ> > clusters_pointcloud; //vector to store clusters
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr coloredClusters (new pcl::PointCloud<pcl::PointXYZRGB>);
+    for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
+    {
+      pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
+      for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
+        cloud_cluster->points.push_back (pointCloudDiffPtr->points[*pit]); //*
+      cloud_cluster->width = cloud_cluster->points.size ();
+      cloud_cluster->height = 1;
+      cloud_cluster->is_dense = true;
+      clustersPointCloudVec.push_back(*cloud_cluster);
+      r+=10; b+=30; g+=20; //coloring
+      for(int i=0; i<cloud_cluster->points.size(); i++)
+      {
+          pcl::PointXYZRGB point = pcl::PointXYZRGB(r,g,b);
+          point.x = cloud_cluster->points[i].x;
+          point.y = cloud_cluster->points[i].y;
+          point.z = cloud_cluster->points[i].z;
+          coloredClusters->points.push_back(point);
+      }
+      std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
+      j++;
+    }
+}
+void CoveragePathPlanningHeuristic::findClusterOuterPoints(geometry_msgs::PoseArray waypoints, pcl::PointCloud<pcl::PointXYZ>& cloudHull)
+{
+    pcl::PointCloud<pcl::PointXYZ>::Ptr inputCloudPtr (new pcl::PointCloud<pcl::PointXYZ>);
+    for(int i =0; i<waypoints.poses.size(); i++)
+    {
+        pcl::PointXYZ pt;
+        pt.x = waypoints.poses[i].position.x;
+        pt.y = waypoints.poses[i].position.y;
+        pt.z = waypoints.poses[i].position.z;
+        inputCloudPtr->push_back(pt);
+    }
+    pcl::ConcaveHull<pcl::PointXYZ> chull;
+    chull.setInputCloud (inputCloudPtr);
+    chull.setAlpha (1.0);
+    chull.reconstruct (cloudHull);
+    std::vector<geometry_msgs::Point> hullPoints;
+    for (int i=0; i<cloudHull.size(); i++)
+    {
+        geometry_msgs::Point pt;
+        pt.x = cloudHull.points[i].x;
+        pt.y = cloudHull.points[i].y;
+        pt.z = cloudHull.points[i].z;
+        hullPoints.push_back(pt);
+    }
+    visualization_msgs::Marker hullMarker = drawPoints(hullPoints, 1,1000000);
+    hullPub.publish(hullMarker);
+}
+void CoveragePathPlanningHeuristic::findClusterBB(pcl::PointCloud<pcl::PointXYZ> clusterPoints, geometry_msgs::Vector3& gridSize, geometry_msgs::Pose& gridStart)
+{
+    //finding bounding box of cluster
+    pcl::PointCloud<pcl::PointXYZ>::Ptr clusterPointsPtr (new pcl::PointCloud<pcl::PointXYZ>);
+    clusterPointsPtr->points = clusterPoints.points;
+    pcl::PointCloud<pcl::PointXYZ> tempClusterPoints;
+    pcl::VoxelGridOcclusionEstimationGPU grid;
+    grid.setInputCloud (clusterPointsPtr);
+    grid.setLeafSize (voxelResForConn, voxelResForConn, voxelResForConn);
+    grid.initializeVoxelGrid();
+    grid.filter(tempClusterPoints);
+
+    //getting grid size and start
+    Eigen::Vector4f min_b = grid.getCentroidCoordinate (grid.getMinBoxCoordinates());
+    Eigen::Vector4f max_b = grid.getCentroidCoordinate (grid.getMaxBoxCoordinates ());
+
+    // 3 is used to making the BB bigger not exactly on the boundry of the cluster
+    gridSize.x = std::abs(max_b[0]-min_b[0]) + 3;
+    gridSize.y = std::abs(max_b[1]-min_b[1]) + 3;
+    gridSize.z = std::abs(max_b[2]-min_b[2]) + 3;
+
+    gridStart.position.x = min_b[0] - 3;
+    gridStart.position.y = min_b[1] - 3;
+    gridStart.position.z = min_b[2] - 3;
+
 }
 
 CoveragePathPlanningHeuristic::~CoveragePathPlanningHeuristic()
@@ -125,12 +289,11 @@ bool CoveragePathPlanningHeuristic::isConnectionConditionSatisfied(SearchSpaceNo
     else
         return false;
 }
-bool CoveragePathPlanningHeuristic::isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray& correspondingSensorPoses, double minDist, double maxDist)
+bool CoveragePathPlanningHeuristic::isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray& correspondingSensorPoses, double minDist, double maxDist, pcl::PointCloud<pcl::PointXYZ>& globalCloud, std::vector<pcl::PointCloud<pcl::PointXYZ> >& accuracyClusters, double accuracyThreshhold)
 {
     //model-node collision based filtering
     int intersectionsCount=0;
     Point a(pose.position.x ,pose.position.y ,pose.position.z);
-
     // Some Random point in arbitrary orientation
     Point b(100.0, 10.0, 56.0);
     Ray ray_query(a,b);
@@ -142,23 +305,29 @@ bool CoveragePathPlanningHeuristic::isFilteringConditionSatisfied(geometry_msgs:
     {
         //distance based filtering
         FT sqd = cgalTree->squared_distance(a); //consumes time but it is needed
-        //        std::cout << "sqd: "<< sqd << std::endl;
+//        std::cout << "sqd: "<< sqd << std::endl;
 
         if (sqd >=(minDist*minDist) && sqd <= (maxDist*maxDist) )
         {
             //coverage based filtering
             pcl::PointCloud<pcl::PointXYZ> pts;
-            for(int i=correspondingSensorPoses.poses.size()-1; i>=0; i--)
+            for(int i=0; i<correspondingSensorPoses.poses.size(); i++)
             {
-                pts = occlussionCulling->extractVisibleSurface(correspondingSensorPoses.poses[i]);
-                if(pts.size()==0)
-                {
-                    correspondingSensorPoses.poses.pop_back();
-                }
-                std::cout<<"visible pts"<<pts.size()<<std::endl;
-
+                pts += occlussionCulling->extractVisibleSurface(correspondingSensorPoses.poses[i]);
             }
-            return true;
+//            std::cout<<"visible pts"<<pts.size()<<std::endl;
+            if(pts.size()>5)
+            {
+                globalCloud += pts;
+                double accuracy = occlussionCulling->calcAvgAccuracy(pts);
+//                std::cout<<"accuracy : "<<accuracy<<std::endl;
+                if(accuracy >= accuracyThreshhold)//1.5mm , for aircraft scaled it is limited between 0.2mm to 1.9mm
+                {
+                    accuracyClusters.push_back(pts);
+                }
+                return true;
+            }
+            else return false;
 
         } else return false;
 

@@ -6,9 +6,11 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /connections1
         - /gradual_coverage1
         - /OccupancyGrid1
         - /OccupancyMap1
+        - /Marker1
       Splitter Ratio: 0.5
     Tree Height: 842
   - Class: rviz/Selection
@@ -56,7 +58,7 @@ Visualization Manager:
       Marker Topic: /generated_path
       Name: generated_path
       Namespaces:
-        link_marker: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -76,13 +78,13 @@ Visualization Manager:
       Queue Size: 2000
       Value: false
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /connections
       Name: connections
       Namespaces:
-        {}
+        link_marker: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -197,7 +199,7 @@ Visualization Manager:
       Marker Topic: path_testing
       Name: gradual_path
       Namespaces:
-        link_marker: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -211,17 +213,17 @@ Visualization Manager:
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 170; 0; 255
-      Enabled: false
+      Enabled: true
       Name: SS robot
       Topic: SS_robot_pose
-      Value: false
+      Value: true
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 0; 255; 127
-      Enabled: false
+      Enabled: true
       Name: SS sensor
       Topic: SS_sensor_pose
-      Value: false
+      Value: true
     - Class: octomap_rviz_plugin/OccupancyGrid
       Enabled: true
       Max. Octree Depth: 16
@@ -235,10 +237,18 @@ Visualization Manager:
       Class: octomap_rviz_plugin/OccupancyMap
       Color Scheme: map
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Max. Octree Depth: 16
       Name: OccupancyMap
       Octomap Binary Topic: octomap
+      Value: false
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /hull
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -264,22 +274,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 50.3823
+      Distance: 54.559
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 4.02357
-        Y: -1.68857
-        Z: 3.3151
+        X: -0.938972
+        Y: 0.714465
+        Z: 0.246043
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.244794
+      Pitch: 0.859795
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.78566
+      Yaw: 5.57064
     Saved: ~
 Window Geometry:
   Displays:

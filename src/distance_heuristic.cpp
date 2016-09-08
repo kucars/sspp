@@ -69,11 +69,32 @@ bool DistanceHeuristic::isConnectionConditionSatisfied(SearchSpaceNode *temp, Se
     //TODO::do a collision check with the map
     return true;
 }
-bool DistanceHeuristic::isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray& correspondingSensorPoses, double minDist, double maxDist)
+bool DistanceHeuristic::isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray& correspondingSensorPoses, double minDist, double maxDist, pcl::PointCloud<pcl::PointXYZ>& globalCloud, std::vector<pcl::PointCloud<pcl::PointXYZ> >& accuracyClusters, double accuracyThreshhold)
 {
     //TODO::preform filtering check
     return true;
 }
+double DistanceHeuristic::pointCloudDiff(pcl::PointCloud<pcl::PointXYZ>::Ptr globalCloudPtr, pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloudDiffPtr )
+{
+    //TODO::Finding a way to not include this function here too, it is for coverage heuristic
+    return 1;
+}
+void DistanceHeuristic::clusteringPointCloud(std::vector<pcl::PointCloud<pcl::PointXYZ> >& clustersPointCloudVec, pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudDiffPtr)
+{
+    //TODO::Finding a way to not include this function here too, it is for coverage heuristic
+    return;
+}
+void DistanceHeuristic::findClusterOuterPoints(geometry_msgs::PoseArray waypoints, pcl::PointCloud<pcl::PointXYZ>& cloudHull)
+{
+    //TODO::Finding a way to not include this function here too, it is for coverage heuristic
+    return;
+}
+void DistanceHeuristic::findClusterBB(pcl::PointCloud<pcl::PointXYZ> clusterPoints, geometry_msgs::Vector3 &gridSize, geometry_msgs::Pose &gridStart)
+{
+    //TODO::Finding a way to not include this function here too, it is for coverage heuristic
+    return;
+}
+
 void DistanceHeuristic::displayProgress(vector<Tree> tree)
 {
     rviz_visual_tools::RvizVisualToolsPtr visualTools;

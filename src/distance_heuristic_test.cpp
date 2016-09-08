@@ -91,7 +91,7 @@ int main( int argc, char **  argv)
     pathPlanner->setHeuristicFucntion(&distanceHeuristic);
 
     // Generate Grid Samples and visualise it
-    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.0,false,180,false);
+    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.0,false,180,false,true);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
     geometry_msgs::PoseArray robotPoseSS,sensorPoseSS;
     pathPlanner->getRobotSensorPoses(robotPoseSS,sensorPoseSS);

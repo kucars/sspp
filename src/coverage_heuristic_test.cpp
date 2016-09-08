@@ -69,12 +69,12 @@ int main( int argc, char **  argv)
     QTime timer;
     geometry_msgs::Pose gridStartPose;
     geometry_msgs::Vector3 gridSize;
-    gridStartPose.position.x = -36 ;
-    gridStartPose.position.y = -45 ;
+    gridStartPose.position.x = -18;
+    gridStartPose.position.y = -25 ;
     gridStartPose.position.z = 0 ;
-    gridSize.x = 72;
-    gridSize.y = 90;
-    gridSize.z = 21;
+    gridSize.x = 36;
+    gridSize.y = 50;
+    gridSize.z = 11;
 
     PathPlanner * pathPlanner;
     Pose start(3.0,-34.0,9,DTOR(0.0));
@@ -85,12 +85,12 @@ int main( int argc, char **  argv)
 
     QPointF robotCenter(-0.3f,0.0f);
     Robot *robot= new Robot("Robot",robotH,robotW,narrowestPath,robotCenter);
-    Sensors sensor1(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0,-0.055), Vec3f(0,0.093,0));
-    Sensors sensor2(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0,0.055), Vec3f(0,0.0,0));
+    Sensors sensor1(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0.022,0.065), Vec3f(0,-0.349,0));
+    Sensors sensor2(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0.022,-0.065), Vec3f(0,0.349,0));
 
     std::vector<Sensors> sensors;
     sensors.push_back(sensor1);
-//    sensors.push_back(sensor2);
+    sensors.push_back(sensor2);
 
     // Every how many iterations to display the tree
     int progressDisplayFrequency = 1;
@@ -100,7 +100,7 @@ int main( int argc, char **  argv)
 
 
 
-    double coverageTolerance=1.0, targetCov=20;
+    double coverageTolerance=1.0, targetCov=10;
     std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels_nointernal_scaled_new.obj";
     std::string occlusionCullingModelName = "etihad_nowheels_nointernal_scaled_newdensed.pcd";
     CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, InfoGainVolumetricH);
@@ -115,7 +115,7 @@ int main( int argc, char **  argv)
     const char * filename1 = str1.c_str();
     const char * filename2 = str2.c_str();
     const char * filename3 = str3.c_str();
-    pathPlanner->loadRegularGrid(filename1,filename2,filename3);
+//    pathPlanner->loadRegularGrid(filename1,filename2,filename3);
     /*
     DistanceHeuristic distanceHeuristic(nh,false);
     distanceHeuristic.setEndPose(end.p);
@@ -124,18 +124,21 @@ int main( int argc, char **  argv)
     */
     // Generate Grid Samples and visualise it
 //    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.5,true,180,true);
+
+
+    // Connect nodes and visualise it
+//    pathPlanner->connectNodes();
+    pathPlanner->dynamicNodesGenerationAndConnection(gridStartPose,gridSize,4.5,1.5);
+    std::cout<<"\nSpace Generation took:"<<timer.elapsed()/double(1000.00)<<" secs";
+    std::vector<geometry_msgs::Point> searchSpaceConnections = pathPlanner->getConnections();
+    visualization_msgs::Marker connectionsMarker = drawLines(searchSpaceConnections,10000,3,100000000,0.03);
+
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
     std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(searchSpaceNodes.size()).toStdString();
     geometry_msgs::PoseArray robotPoseSS,sensorPoseSS;
     pathPlanner->getRobotSensorPoses(robotPoseSS,sensorPoseSS);
     visualization_msgs::Marker searchSpaceMarker = drawPoints(searchSpaceNodes,2,1000000);
-//    visualTools->publishSpheres(searchSpaceNodes,rviz_visual_tools::PURPLE,0.1,"search_space_nodes");
-
-    // Connect nodes and visualise it
-    pathPlanner->connectNodes();
-    std::cout<<"\nSpace Generation took:"<<timer.elapsed()/double(1000.00)<<" secs";
-    std::vector<geometry_msgs::Point> searchSpaceConnections = pathPlanner->getConnections();
-    visualization_msgs::Marker connectionsMarker = drawLines(searchSpaceConnections,10000,3,100000000,0.03);
+    visualTools->publishSpheres(searchSpaceNodes,rviz_visual_tools::PURPLE,0.1,"search_space_nodes");
 
 //    visualTools->publishPath(searchSpaceConnections, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE,"search_space");
 
@@ -206,7 +209,7 @@ int main( int argc, char **  argv)
         path = path->next;
     }
     pathFile.close();
-//    visualTools->publishPath(pathSegments, rviz_visual_tools::RED, rviz_visual_tools::LARGE,"generated_path");
+    visualTools->publishPath(pathSegments, rviz_visual_tools::RED, rviz_visual_tools::LARGE,"generated_path");
     visualization_msgs::Marker pathMarker = drawLines(pathSegments,20000,1,10000000,0.08);
     coveredCloudPtr->points=combined.points;
 

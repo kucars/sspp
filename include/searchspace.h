@@ -33,11 +33,14 @@ class SearchSpace
 public:
     SearchSpaceNode * searchspace;
     void freeSearchSpace();
+    void freeTempSearchSpace(SearchSpaceNode * space);
     SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose);
     SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, int id);
     SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::PoseArray correspondingSensorsPoses);
     SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::PoseArray correspondingSensorsPoses, int id);
+    SearchSpaceNode * insertTempSearchSpace(geometry_msgs::PoseArray robotPoses, std::vector<geometry_msgs::PoseArray> correspondingSensorsPoses);
     SearchSpaceNode * nodeExists(geometry_msgs::Pose nodePose);
+    SearchSpaceNode * nodeExists(SearchSpaceNode * space, geometry_msgs::Pose nodePose);
     bool              removeNode(geometry_msgs::Pose nodePose);
     SearchSpace();
     virtual ~SearchSpace();
