@@ -71,10 +71,10 @@ int main( int argc, char **  argv)
     geometry_msgs::Vector3 gridSize;
     gridStartPose.position.x = -18;
     gridStartPose.position.y = -25 ;
-    gridStartPose.position.z = 0 ;
+    gridStartPose.position.z = 1 ;
     gridSize.x = 36;
     gridSize.y = 50;
-    gridSize.z = 11;
+    gridSize.z = 15;
 
     PathPlanner * pathPlanner;
     Pose start(3.0,-34.0,9,DTOR(0.0));

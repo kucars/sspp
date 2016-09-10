@@ -180,7 +180,7 @@ void CoveragePathPlanningHeuristic::clusteringPointCloud(std::vector<pcl::PointC
           point.z = cloud_cluster->points[i].z;
           coloredClusters->points.push_back(point);
       }
-      std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
+//      std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
       j++;
     }
 }
@@ -234,7 +234,7 @@ void CoveragePathPlanningHeuristic::findClusterBB(pcl::PointCloud<pcl::PointXYZ>
 
     gridStart.position.x = min_b[0] - 3;
     gridStart.position.y = min_b[1] - 3;
-    gridStart.position.z = min_b[2] - 3;
+    gridStart.position.z = min_b[2];//to avoid going under 0, UAVs can't fly under 0
 
 }
 
