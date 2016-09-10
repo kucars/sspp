@@ -142,7 +142,7 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
 
                         if(samplesFiltering)
                         {
-                            if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 1, 4, globalCloud, accuracyClusters,0.00170))
+                            if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 0.5, 4, globalCloud, accuracyClusters,0.00170))
                             {
                                 if(insertSearchSpace)
                                 {
@@ -557,6 +557,7 @@ void PathPlanner::connectToNN(pcl::PointCloud<pcl::PointXYZ> cloudHull1, pcl::Po
                                 {
                                     numConnections++;
                                     nodeTemp->children.push_back(nearestTemp);//to put the connection in the searchspace that will be used in the path planning
+                                    numConnections++;
                                     nearestTemp->children.push_back(nodeTemp);//to put the connection in the searchspace that will be used in the path planning
                                 }
 
@@ -571,6 +572,7 @@ void PathPlanner::connectToNN(pcl::PointCloud<pcl::PointXYZ> cloudHull1, pcl::Po
                             {
                                 numConnections++;
                                 nodeTemp->children.push_back(nearestTemp);//to put the connection in the searchspace that will be used in the path planning
+                                numConnections++;
                                 nearestTemp->children.push_back(nodeTemp);//to put the connection in the searchspace that will be used in the path planning
                             }
                         }
@@ -599,7 +601,7 @@ void PathPlanner::dynamicNodesGenerationAndConnection(geometry_msgs::Pose gridSt
     SearchSpaceNode * S =insertTempSearchSpace(robotFilteredPoses,sensorsFilteredPoses);
 
     //connect internally
-    double connRadius = res + 2;
+    double connRadius = std::sqrt((res*res) + (res*res)) + 0.01;
     this->connectClustersInternalNodes(S,connRadius);
     freeTempSearchSpace(S);
 
@@ -652,7 +654,7 @@ void PathPlanner::dynamicNodesGenerationAndConnection(geometry_msgs::Pose gridSt
 
         /////////////loop through the clusters and perform discretization and filtering//////////
         res -= resDecrement;
-        connRadius = res+2;
+        connRadius = std::sqrt((res*res) + (res*res)) + 0.01;
         //std::cout<<"resolution updated: "<<res;
         if(res>0)
         {

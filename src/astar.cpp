@@ -258,6 +258,7 @@ Node *Astar::astarSearch(Pose start)
                     condition = (p->f_value >=curChild->f_value);
                 if (condition)
                 {
+                    curChild->octree->clear();
                     freeNode(curChild);
                     curChild = NULL;
                 }
@@ -291,6 +292,7 @@ Node *Astar::astarSearch(Pose start)
                     {
                         if (debug)
                             std::cout<<"Free the node the closed list check, parent is bigger than the child"<<"\n";
+                        curChild->octree->clear();
                         freeNode(curChild);
                         curChild = NULL;
                     }

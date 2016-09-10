@@ -43,13 +43,13 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     accuracySum          = 0.0;
     extraCovSum          = 0.0;
     extraAreaSum         = 0.0;
-    volumetricVoxelRes   = 0.25;
+    volumetricVoxelRes   = 0.5;
     accW                 = 0.8;
     distW                = 0.5;
     covW                 = 1;
     angleW               = 0.1;
     selectedPointsNum    = 0;
-    voxelResForConn      = 0.1;
+    voxelResForConn      = 0.5;
     //area
     Triangles aircraftCGALT ;
     meshSurface->loadOBJFile(collisionCheckModelP.c_str(), modelPoints, aircraftCGALT);
@@ -149,9 +149,9 @@ void CoveragePathPlanningHeuristic::clusteringPointCloud(std::vector<pcl::PointC
 
     std::vector<pcl::PointIndices> cluster_indices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-    ec.setClusterTolerance (0.3); // 30cm
+    ec.setClusterTolerance (0.8); // 30cm
     ec.setMinClusterSize (5);
-    ec.setMaxClusterSize (10000);
+    ec.setMaxClusterSize (50000);//10000
     ec.setSearchMethod (Kdtree);
     ec.setInputCloud (pointCloudDiffPtr);
     ec.extract (cluster_indices);
@@ -228,12 +228,12 @@ void CoveragePathPlanningHeuristic::findClusterBB(pcl::PointCloud<pcl::PointXYZ>
     Eigen::Vector4f max_b = grid.getCentroidCoordinate (grid.getMaxBoxCoordinates ());
 
     // 3 is used to making the BB bigger not exactly on the boundry of the cluster
-    gridSize.x = std::abs(max_b[0]-min_b[0]) + 3;
-    gridSize.y = std::abs(max_b[1]-min_b[1]) + 3;
+    gridSize.x = std::abs(max_b[0]-min_b[0]) + 5;
+    gridSize.y = std::abs(max_b[1]-min_b[1]) + 5;
     gridSize.z = std::abs(max_b[2]-min_b[2]) + 3;
 
-    gridStart.position.x = min_b[0] - 3;
-    gridStart.position.y = min_b[1] - 3;
+    gridStart.position.x = min_b[0] - 5;
+    gridStart.position.y = min_b[1] - 5;
     gridStart.position.z = min_b[2];//to avoid going under 0, UAVs can't fly under 0
 
 }
@@ -658,7 +658,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 // 2 - coverage for termination
                 node->coverage = ((double)node->coveredVolume/modelVolume) * 100;
-                double extraVolume = node->coverage - node->parent->coverage;
+                double extraVolume = (node->coverage - node->parent->coverage)/100;//to make it normalized
                 c = node->coverage - node->parent->coverage;
                 extraCovPerViewpointAvg.push_back(c);
                 extraCovSum += c;
@@ -952,7 +952,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 //2 - coverage for termination
                 node->coverage = ((double)node->coveredVolume/modelVolume) * 100;
-                double extraVolume = node->coverage - node->parent->coverage;
+                double extraVolume = (node->coverage - node->parent->coverage)/100;
                 c = node->coverage - node->parent->coverage;
                 extraCovPerViewpointAvg.push_back(c);
                 extraCovSum += c;
@@ -1012,7 +1012,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
         else if(heuristicType==InfoGainVolumetricH)
         {
             // 1 - information gain for root
-            node->octree = new octomap::OcTree(0.25);
+            node->octree = new octomap::OcTree(volumetricVoxelRes);
             node->octree->setProbHit(0.9999999);
             node->octree->setProbMiss(0.5);
             node->octree->setClampingThresMax(0.9999999);
