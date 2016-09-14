@@ -110,6 +110,7 @@ private:
     double coverageTolerance;
     double volumetricVoxelRes;
     double voxelResForConn;
+    double maxConnRadius;
     double accW, distW, covW, angleW;
     std::vector<double> accuracyPerViewpointAvg, extraCovPerViewpointAvg, extraAreaperViewpointAvg;
     double accuracySum, extraCovSum, extraAreaSum, aircraftArea;

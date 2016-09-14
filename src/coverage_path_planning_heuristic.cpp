@@ -50,6 +50,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     angleW               = 0.1;
     selectedPointsNum    = 0;
     voxelResForConn      = 0.5;
+    maxConnRadius        = std::sqrt((4.5*4.5) + (4.5*4.5)) + 0.01;
     //area
     Triangles aircraftCGALT ;
     meshSurface->loadOBJFile(collisionCheckModelP.c_str(), modelPoints, aircraftCGALT);
@@ -664,7 +665,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 extraCovSum += c;
 
                 // 3- distance
-                double normDist = (2.5-d)/2.5;//2.5 = max conn radius
+                double normDist = (maxConnRadius-d)/maxConnRadius;// max conn radius
 
                 // 4- turning angle
                 tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
