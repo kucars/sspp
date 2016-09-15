@@ -50,7 +50,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     angleW               = 0.1;
     selectedPointsNum    = 0;
     voxelResForConn      = 0.5;
-    maxConnRadius        = std::sqrt((4.5*4.5) + (4.5*4.5)) + 0.01;
+    maxConnRadius        = std::sqrt((3.0*3.0) + (3.0*3.0)) + 0.01;
     //area
     Triangles aircraftCGALT ;
     meshSurface->loadOBJFile(collisionCheckModelP.c_str(), modelPoints, aircraftCGALT);
@@ -68,6 +68,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     fullModelTree.computeUpdate(octPointCloud,octomap::point3d(0,0,0),freeKeys,occupiedKeys,-1);
     occupiedVoxelsNum = occupiedKeys.size();
     modelVolume = occupiedKeys.size()*(fullModelTree.getResolution()*fullModelTree.getResolution()*fullModelTree.getResolution());
+    maxDepth = std::sqrt(occlussionCulling->maxAccuracyError/0.0000285);
 
     //voxelgrid
     pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
@@ -229,12 +230,12 @@ void CoveragePathPlanningHeuristic::findClusterBB(pcl::PointCloud<pcl::PointXYZ>
     Eigen::Vector4f max_b = grid.getCentroidCoordinate (grid.getMaxBoxCoordinates ());
 
     // 3 is used to making the BB bigger not exactly on the boundry of the cluster
-    gridSize.x = std::abs(max_b[0]-min_b[0]) + 5;
-    gridSize.y = std::abs(max_b[1]-min_b[1]) + 5;
-    gridSize.z = std::abs(max_b[2]-min_b[2]) + 3;
+    gridSize.x = std::abs(max_b[0]-min_b[0]) + 2.5;//5
+    gridSize.y = std::abs(max_b[1]-min_b[1]) + 2.5;//5
+    gridSize.z = std::abs(max_b[2]-min_b[2]) + 2.5;//3
 
-    gridStart.position.x = min_b[0] - 5;
-    gridStart.position.y = min_b[1] - 5;
+    gridStart.position.x = min_b[0] - 2.5;//5
+    gridStart.position.y = min_b[1] - 2.5;//5
     gridStart.position.z = min_b[2];//to avoid going under 0, UAVs can't fly under 0
 
 }
@@ -384,7 +385,7 @@ void CoveragePathPlanningHeuristic::setDebug(bool debug)
 //%TODO: this function will be cleaned later, it includes a lot of repetitions and conditions
 void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 {
-    //  std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>"<<std::endl;
+    //    std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>"<<std::endl;
 
     if(node==NULL)
         return;
@@ -627,7 +628,10 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                     for (octomap::KeySet::iterator it = occupiedKeys.begin(); it != occupiedKeys.end(); ++it) {
                         octomap::point3d center = node->octree->keyToCoord(*it);
                         fcl::Vec3f vec2(center.x(), center.y(), center.z());
+                        //TODO: change dist to depth for the voxel
                         double dist =  std::sqrt(( vec2[0] - origin.x())*(vec2[0] - origin.x()) + (vec2[1] - origin.y())*(vec2[1] - origin.y()) + (vec2[2] -origin.z())*(vec2[2] -origin.z()));
+                        if(dist>maxDepth)
+                            dist=maxDepth;
                         double normAcc = (occlussionCulling->maxAccuracyError - (0.0000285 * dist * dist*0.5))/occlussionCulling->maxAccuracyError;
                         float lg = octomap::logodds(normAcc);
                         octomap::OcTreeNode* result = node->octree->search (*it);
@@ -922,7 +926,10 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                     for (octomap::KeySet::iterator it = occupiedKeys.begin(); it != occupiedKeys.end(); ++it) {
                         octomap::point3d center = node->octree->keyToCoord(*it);
                         fcl::Vec3f vec2(center.x(), center.y(), center.z());
+                        //TODO: change dist to depth for the voxel
                         double dist =  std::sqrt(( vec2[0] - origin.x())*(vec2[0] - origin.x()) + (vec2[1] - origin.y())*(vec2[1] - origin.y()) + (vec2[2] -origin.z())*(vec2[2] -origin.z()));
+                        if(dist>maxDepth)
+                            dist=maxDepth;
                         double normAcc = (occlussionCulling->maxAccuracyError - (0.0000285 * dist * dist*0.5))/occlussionCulling->maxAccuracyError;
                         float lg = octomap::logodds(normAcc);
                         octomap::OcTreeNode* result = node->octree->search (*it);
@@ -1037,10 +1044,12 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 //loop through occupied keys
                 for (octomap::KeySet::iterator it = occupiedKeys.begin(); it != occupiedKeys.end(); ++it) {
-
                     octomap::point3d center =node->octree->keyToCoord(*it);
                     fcl::Vec3f vec2(center.x(), center.y(), center.z());
+                    //TODO: change dist to depth for the voxel
                     double dist =  std::sqrt(( vec2[0] - origin.x())*(vec2[0] - origin.x()) + (vec2[1] - origin.y())*(vec2[1] - origin.y()) + (vec2[2] -origin.z())*(vec2[2] -origin.z()));
+                    if(dist>maxDepth)
+                        dist=maxDepth;
                     double normAcc = (occlussionCulling->maxAccuracyError - (0.0000285 * dist * dist*0.5))/occlussionCulling->maxAccuracyError;
                     float lg = octomap::logodds(normAcc);
                     octomap::OcTreeNode* result = node->octree->search(*it);

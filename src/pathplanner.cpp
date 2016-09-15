@@ -142,7 +142,7 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
 
                         if(samplesFiltering)
                         {
-                            if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 1, 4, globalCloud, accuracyClusters,0.00170))
+                            if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 1, 4, globalCloud, accuracyClusters,0.00035))
                             {
                                 if(insertSearchSpace)
                                 {
