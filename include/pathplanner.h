@@ -107,7 +107,6 @@ namespace SSPP
         std::vector<pcl::PointCloud<pcl::PointXYZ> > accuracyClusters;
         geometry_msgs::PoseArray robotFilteredPoses;
         std::vector<geometry_msgs::PoseArray> sensorsFilteredPoses;
-
         std::vector<Node*> paths;
     private:
 };

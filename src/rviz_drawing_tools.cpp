@@ -47,11 +47,18 @@ visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, in
         color.b = 0.0;
         color.a = 1.0;
     }
-    else
+    else if(inColor == 3)
     {
         color.r = 0.0;
         color.g = 0.0;
         color.b = 1.0;
+        color.a = 1.0;
+    }
+    else
+    {
+        color.r = 0.9;
+        color.g = 0.9;
+        color.b = 0.0;
         color.a = 1.0;
     }
     std::vector<geometry_msgs::Point>::iterator linksIterator;

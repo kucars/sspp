@@ -80,7 +80,15 @@ public:
     void setDebugDelay(double delay);
     int progressDisplayFrequency;
     Node*  astarSearch(Pose start);
+    Node*  tempChildList;
     double debugDelay;
+
+    ros::Publisher childPosePub;
+    ros::Publisher childSensorsPub;
+    ros::Publisher branchPub;
+    ros::Publisher octomapChildPub;
+    int nodeToBeVisNum, nodesCounter;
+
 };
 
 }

@@ -97,6 +97,7 @@ public:
     void clusteringPointCloud(std::vector<pcl::PointCloud<pcl::PointXYZ> >& clustersPointCloudVec, pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudDiffPtr);
     void findClusterOuterPoints(geometry_msgs::PoseArray waypoints, pcl::PointCloud<pcl::PointXYZ>& cloudHull);
     void findClusterBB(pcl::PointCloud<pcl::PointXYZ> clusterPoints, geometry_msgs::Vector3 &gridSize, geometry_msgs::Pose &gridStart);
+    int getHeuristicType();
 private:
     void loadOBJFile(const char* filename, std::vector<fcl::Vec3f>& points, std::list<CGALTriangle>& triangles);
     OcclusionCullingGPU* occlussionCulling;
@@ -122,11 +123,14 @@ private:
     ros::Publisher pathPub;
     ros::Publisher octomapPub;
     ros::Publisher hullPub;
+    ros::Publisher selectedPosePub;
+    ros::Publisher sensorPosesPub;
     std::list<CGALTriangle> triangles;
     std::vector<fcl::Vec3f> modelPoints;
     pcl::PointCloud<pcl::PointXYZ> modelVoxels;
     pcl::PointCloud<pcl::PointXYZ> modelVoxelsForConn;
     Tree1* cgalTree;
+
 };
 
 }

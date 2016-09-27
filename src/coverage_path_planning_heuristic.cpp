@@ -40,6 +40,9 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     pathPub              = nh.advertise<visualization_msgs::Marker>("path_testing", 10);
     octomapPub           = nh.advertise<octomap_msgs::Octomap>("octomap", 1);
     hullPub              = nh.advertise<visualization_msgs::Marker>("hull", 10);
+    selectedPosePub      = nh.advertise<geometry_msgs::PoseArray>("selected_pt_poses",1);
+    sensorPosesPub       = nh.advertise<geometry_msgs::PoseArray>("selected_sensor_poses",1);
+
     accuracySum          = 0.0;
     extraCovSum          = 0.0;
     extraAreaSum         = 0.0;
@@ -50,7 +53,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     angleW               = 0.1;
     selectedPointsNum    = 0;
     voxelResForConn      = 0.5;
-    maxConnRadius        = std::sqrt((3.0*3.0) + (3.0*3.0)) + 0.01;
+    maxConnRadius        = std::sqrt((4.5*4.5) + (4.5*4.5)) + 0.01;
     //area
     Triangles aircraftCGALT ;
     meshSurface->loadOBJFile(collisionCheckModelP.c_str(), modelPoints, aircraftCGALT);
@@ -230,12 +233,12 @@ void CoveragePathPlanningHeuristic::findClusterBB(pcl::PointCloud<pcl::PointXYZ>
     Eigen::Vector4f max_b = grid.getCentroidCoordinate (grid.getMaxBoxCoordinates ());
 
     // 3 is used to making the BB bigger not exactly on the boundry of the cluster
-    gridSize.x = std::abs(max_b[0]-min_b[0]) + 2.5;//5
-    gridSize.y = std::abs(max_b[1]-min_b[1]) + 2.5;//5
-    gridSize.z = std::abs(max_b[2]-min_b[2]) + 2.5;//3
+    gridSize.x = std::abs(max_b[0]-min_b[0]) + 5;//5
+    gridSize.y = std::abs(max_b[1]-min_b[1]) + 5;//5
+    gridSize.z = std::abs(max_b[2]-min_b[2]) + 3;//3
 
-    gridStart.position.x = min_b[0] - 2.5;//5
-    gridStart.position.y = min_b[1] - 2.5;//5
+    gridStart.position.x = min_b[0] - 5;//5
+    gridStart.position.y = min_b[1] - 5;//5
     gridStart.position.z = min_b[2];//to avoid going under 0, UAVs can't fly under 0
 
 }
@@ -250,7 +253,8 @@ bool CoveragePathPlanningHeuristic::terminateConditionReached(Node *node)
     double deltaCoverage;
     deltaCoverage = coverageTarget - node->coverage;
     selectedPointsNum++;
-
+//    if(nodesCounter++==nodeToBeVisNum+1 && nodeToBeVisNum != 0)
+//        return true;
     std::cout<<"\n\n ****************** Total Coverage %: "<<node->coverage<<"  f = "<<node->f_value <<" **************************"<<std::endl;
     std::cout<<"\n\nAverage Accuracy per viewpoint is "<<accuracySum/accuracyPerViewpointAvg.size()<<std::endl;
     std::cout<<"Average extra coverage per viewpoint is "<<extraCovSum/extraCovPerViewpointAvg.size()<<std::endl;
@@ -338,28 +342,29 @@ bool CoveragePathPlanningHeuristic::isFilteringConditionSatisfied(geometry_msgs:
 
 void CoveragePathPlanningHeuristic::displayProgress(vector<Tree> tree)
 {
-    geometry_msgs::Pose child;
-    std::vector<geometry_msgs::Point> lineSegments;
-    geometry_msgs::Point linePoint;
-    for(unsigned int k=0;k<tree.size();k++)
-    {
-        for(int j=0;j<tree[k].children.size();j++)
+
+        geometry_msgs::Pose child;
+        std::vector<geometry_msgs::Point> lineSegments;
+        geometry_msgs::Point linePoint;
+        for(unsigned int k=0;k<tree.size();k++)
         {
-            child = tree[k].children[j];
+            for(int j=0;j<tree[k].children.size();j++)
+            {
+                child = tree[k].children[j];
 
-            linePoint.x = tree[k].location.position.x;
-            linePoint.y = tree[k].location.position.y;
-            linePoint.z = tree[k].location.position.z;
-            lineSegments.push_back(linePoint);
-            linePoint.x = child.position.x;
-            linePoint.y = child.position.y;
-            linePoint.z = child.position.z;
-            lineSegments.push_back(linePoint);
+                linePoint.x = tree[k].location.position.x;
+                linePoint.y = tree[k].location.position.y;
+                linePoint.z = tree[k].location.position.z;
+                lineSegments.push_back(linePoint);
+                linePoint.x = child.position.x;
+                linePoint.y = child.position.y;
+                linePoint.z = child.position.z;
+                lineSegments.push_back(linePoint);
 
+            }
         }
-    }
-    visualization_msgs::Marker linesList = drawLines(lineSegments,1,2,1000000,0.08);
-    treePub.publish(linesList);
+        visualization_msgs::Marker linesList = drawLines(lineSegments,1,6,1000000,0.08);
+        treePub.publish(linesList);
 }
 
 bool CoveragePathPlanningHeuristic::isCost()
@@ -382,6 +387,11 @@ void CoveragePathPlanningHeuristic::setDebug(bool debug)
     this->debug = debug;
 }
 
+int CoveragePathPlanningHeuristic::getHeuristicType()
+{
+   return heuristicType;
+}
+
 //%TODO: this function will be cleaned later, it includes a lot of repetitions and conditions
 void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 {
@@ -390,19 +400,22 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
     if(node==NULL)
         return;
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ> visibleCloud, collectiveCloud;
-    //    occlussionCulling->cloud->points =occlussionCulling->cloudCopy->points;
-    //    //    float localViewEntroby =0.0;
-    //    for(int i=0; i<node->senPoses.size(); i++)
-    //    {
-    //        pcl::PointCloud<pcl::PointXYZ> temp;
-    //        temp = occlussionCulling->extractVisibleSurface(node->senPoses[i].p);
-    //        visibleCloud += temp;
-    //        //        localViewEntroby += occlussionCulling->viewEntropy; //old way using raytracing inside voxel occlusion estimation
-    //    }
-    //    visibleCloud = occlussionCulling->extractVisibleSurface(node->senPose.p);
 
+        pcl::PointCloud<pcl::PointXYZ>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::PointCloud<pcl::PointXYZ> visibleCloud, collectiveCloud;
+        occlussionCulling->cloud->points =occlussionCulling->cloudCopy->points;
+        //    float localViewEntroby =0.0;
+        if(heuristicType != InfoGainVolumetricH)
+        {
+            for(int i=0; i<node->senPoses.size(); i++)
+            {
+                pcl::PointCloud<pcl::PointXYZ> temp;
+                temp = occlussionCulling->extractVisibleSurface(node->senPoses[i].p);
+                visibleCloud += temp;
+                //        localViewEntroby += occlussionCulling->viewEntropy; //old way using raytracing inside voxel occlusion estimation
+            }
+            //    visibleCloud = occlussionCulling->extractVisibleSurface(node->senPose.p);
+        }
     if(node->parent)
     {
 
@@ -680,6 +693,9 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 // 5- function
                 f = node->totalEntroby + extraVolume + normDist +normAngle;
+//                f = node->totalEntroby * ( normDist +normAngle );
+//                std::cout<<"heuristic value: "<<f<<std::endl;
+//                std::cout<<"Total Entroby: "<<node->totalEntroby<<std::endl;
             }
         }
         else //if node is at the same position of the parent with different orientation
@@ -974,6 +990,9 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 //4- function
                 f = node->totalEntroby+ extraVolume +normAngle;
+//                f = node->totalEntroby*(normAngle);
+//                std::cout<<"heuristic value: "<<f<<std::endl;
+//                std::cout<<"Total Entroby: "<<node->totalEntroby<<std::endl;
             }
         }
         node->f_value  = f;
@@ -1116,30 +1135,48 @@ void CoveragePathPlanningHeuristic::displayGradualProgress(Node *node)
     coveredPointsPub.publish(cloud1);
 
     //########display the octomap##########
-    octomap_msgs::Octomap octomap ;
-    octomap.binary = 1 ;
-    octomap.id = 1 ;
-    octomap.resolution =0.25;
-    octomap.header.frame_id = "map";
-    octomap.header.stamp = ros::Time::now();
-    bool res = octomap_msgs::fullMapToMsg(*node->octree, octomap);
-    if(res)
+    if(heuristicType == InfoGainVolumetricH)
     {
-        octomapPub.publish(octomap);
-    }
-    else
-    {
-        ROS_WARN("OCT Map serialization failed!");
+        octomap_msgs::Octomap octomap ;
+        octomap.binary = 1 ;
+        octomap.id = 1 ;
+        octomap.resolution =0.25;
+        octomap.header.frame_id = "map";
+        octomap.header.stamp = ros::Time::now();
+        bool res = octomap_msgs::fullMapToMsg(*node->octree, octomap);
+        if(res)
+        {
+            octomapPub.publish(octomap);
+        }
+        else
+        {
+            ROS_WARN("OCT Map serialization failed!");
+        }
     }
 
     //########display the point selected##########
     std::vector<geometry_msgs::Point> points;
+    geometry_msgs::PoseArray selectedPoses;
+    geometry_msgs::PoseArray selectedSensorPoses;
     geometry_msgs::Point linept;
     linept.x = node->pose.p.position.x; linept.y = node->pose.p.position.y; linept.z = node->pose.p.position.z;
     points.push_back(linept);
     //    visualization_msgs::Marker pointsList = drawPoints(points,10,1,10000,0.05);
     visualization_msgs::Marker pointsList = drawPoints(points,3,10000);
     pathPointPub.publish(pointsList);
+    selectedPoses.poses.push_back(node->pose.p);
+    for(int i =0; i<node->senPoses.size();i++)
+    selectedSensorPoses.poses.push_back(node->senPoses[i].p);
+
+    selectedSensorPoses.header.frame_id= "map";
+    selectedSensorPoses.header.stamp = ros::Time::now();
+    sensorPosesPub.publish(selectedSensorPoses);
+
+    selectedPoses.header.frame_id= "map";
+    selectedPoses.header.stamp = ros::Time::now();
+    selectedPosePub.publish(selectedPoses);
+    selectedPoses.poses.erase(selectedPoses.poses.begin(), selectedPoses.poses.end());
+    selectedSensorPoses.poses.erase(selectedSensorPoses.poses.begin(), selectedSensorPoses.poses.end());
 
 
     int coveI = (int)node->coverage;

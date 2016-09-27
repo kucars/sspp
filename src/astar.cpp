@@ -36,6 +36,13 @@ Astar::Astar(ros::NodeHandle & n, Robot *rob, int progressDisplayFrequency):
     progressDisplayFrequency(progressDisplayFrequency),
     debugDelay(0)
 {    
+    childPosePub         = nh.advertise<geometry_msgs::PoseArray>("child_pose",10);
+    childSensorsPub      = nh.advertise<geometry_msgs::PoseArray>("child_sensors",10);
+    branchPub            = nh.advertise<visualization_msgs::Marker>("branch",10);
+    octomapChildPub           = nh.advertise<octomap_msgs::Octomap>("octomap_child", 10);
+
+    nodeToBeVisNum       = 0;//if 0 then it will continue planning till the target otherwise it will stop planning on the specified viewpoint number and will visualize the steps of choosing next viewpoint
+    nodesCounter         = 0;
 }
 
 Astar::Astar():
@@ -194,7 +201,7 @@ Node *Astar::astarSearch(Pose start)
         NodesExpanded++;
 
         // We reached the target pose, so build the path and return it.
-        if (heuristic->terminateConditionReached(current) && current!= root)
+        if ((heuristic->terminateConditionReached(current) && current!= root) || (nodesCounter==nodeToBeVisNum && nodeToBeVisNum!=0))
         {
             //the last node in the path
             current->next = NULL;
@@ -228,6 +235,9 @@ Node *Astar::astarSearch(Pose start)
             std::cout<<"\n	--->>> Search Ended On this Branch / We Reached a DEAD END <<<---";
         }
         // insert the children into the OPEN list according to their f values
+        nodesCounter++;
+        geometry_msgs::PoseArray childPose, childSensors;
+        std::vector<geometry_msgs::Point> lineSegments;
         while (childList != NULL)
         {
             curChild  = childList;
@@ -240,6 +250,56 @@ Node *Astar::astarSearch(Pose start)
             curChild->prev = NULL;
             // calculate f_value
             heuristic->calculateHeuristic(curChild);
+
+
+            //display the child and the octree
+            if(nodesCounter == nodeToBeVisNum && nodeToBeVisNum != 0)
+            {
+                geometry_msgs::Pose child;
+                geometry_msgs::Point linePoint;
+
+                std::cout<<"I entered tree childrens of the desired node "<<std::endl;
+
+                child = curChild->pose.p;
+                childPose.poses.push_back(child);
+
+                for(int i=0; i<curChild->senPoses.size();i++)
+                {
+                    childSensors.poses.push_back(curChild->senPoses[i].p);
+                }
+
+                linePoint.x = current->pose.p.position.x;
+                linePoint.y = current->pose.p.position.y;
+                linePoint.z = current->pose.p.position.z;
+                lineSegments.push_back(linePoint);
+                linePoint.x = child.position.x;
+                linePoint.y = child.position.y;
+                linePoint.z = child.position.z;
+                lineSegments.push_back(linePoint);
+
+                //visualization
+
+                octomap_msgs::Octomap octomap ;
+                octomap.binary = 1 ;
+                octomap.id = 1 ;
+                octomap.resolution =0.25;
+                octomap.header.frame_id = "map";
+                octomap.header.stamp = ros::Time::now();
+                bool res = octomap_msgs::fullMapToMsg(*curChild->octree, octomap);
+                if(res)
+                {
+                    octomapChildPub.publish(octomap);
+                }
+                else
+                {
+                    ROS_WARN("OCT Map serialization failed!");
+                }
+
+                ros::Duration(2).sleep();
+            }
+
+
+
             globalcount++;
             Node * p;
             if(debug)
@@ -320,6 +380,15 @@ Node *Astar::astarSearch(Pose start)
                 openList->add(curChild,heuristic->isCost());
             }
         }
+        childPose.header.frame_id= "map";
+        childPose.header.stamp = ros::Time::now();
+        childPosePub.publish(childPose);
+        childSensors.header.frame_id= "map";
+        childSensors.header.stamp = ros::Time::now();
+        childSensorsPub.publish(childSensors);
+        visualization_msgs::Marker linesList1 = drawLines(lineSegments,1,6,100000,0.1);
+        branchPub.publish(linesList1);
+
         // put the current node onto the closed list, ==>> already visited List
         closedList->add(current,heuristic->isCost());
         // Test to see if we have expanded too many nodes without a solution

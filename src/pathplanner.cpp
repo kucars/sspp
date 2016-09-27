@@ -33,6 +33,7 @@ PathPlanner::PathPlanner(ros::NodeHandle &nh, Robot *rob, double regGridConRadiu
     insertSearchSpace(true),
     robotSensors(rSensors)
 {
+
     this->MAXNODES = 0;
 }
 
@@ -142,7 +143,7 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
 
                         if(samplesFiltering)
                         {
-                            if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 1, 4, globalCloud, accuracyClusters,0.00035))
+                            if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 1, 4, globalCloud, accuracyClusters,0.00170))
                             {
                                 if(insertSearchSpace)
                                 {
@@ -595,6 +596,7 @@ void PathPlanner::dynamicNodesGenerationAndConnection(geometry_msgs::Pose gridSt
 {
 
     //TODO::Change this LOGIC !!!!
+    octomap::OcTree oct(0.1);
     //discretize & filtering
     double res = startRes;
     this->generateRegularGrid(gridStartPose, gridSize,startRes,true,45,true,true);
