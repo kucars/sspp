@@ -102,7 +102,7 @@ int main( int argc, char **  argv)
 
 
 
-    double coverageTolerance=1.0, targetCov=50;
+    double coverageTolerance=1.0, targetCov=15;
     std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels_nointernal_scaled_new.obj";
     std::string occlusionCullingModelName = "etihad_nowheels_nointernal_scaled_newdensed.pcd";
     CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, InfoGainVolumetricH);
@@ -142,6 +142,7 @@ int main( int argc, char **  argv)
     visualization_msgs::Marker searchSpaceMarker = drawPoints(searchSpaceNodes,2,1000000);
     visualTools->publishSpheres(searchSpaceNodes,rviz_visual_tools::PURPLE,0.1,"search_space_nodes");
 
+
     // Find path and visualise it
     timer.restart();
     Node * path = pathPlanner->startSearch(start);
@@ -170,14 +171,18 @@ int main( int argc, char **  argv)
     std::stringstream ss,cc;
     ss << targetCov;
     cc <<regGridConRad;
-    std::string file_loc = ros::package::getPath("sspp")+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests1to4_"+occlusionCullingModelName+"scaled_newInfo_GPU.txt";
+    std::string file_loc = ros::package::getPath("sspp")+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests1to4_"+occlusionCullingModelName+"scaledGPU_NewIG_Dynamic.txt";
     pathFile.open (file_loc.c_str());
     octomap::OcTree* oct;
+    std::vector<double> accuracyPerViewpointAvg;
+    double accuracySum = 0;
     while(path !=NULL)
     {
         tf::Quaternion qt(path->pose.p.orientation.x,path->pose.p.orientation.y,path->pose.p.orientation.z,path->pose.p.orientation.w);
         yaw = tf::getYaw(qt);
         pathFile << path->pose.p.position.x<<" "<<path->pose.p.position.y<<" "<<path->pose.p.position.z<<" "<<yaw<<"\n";
+        pcl::PointCloud<pcl::PointXYZ> temp;
+
         if (path->next !=NULL)
         {
             linePoint.x = path->pose.p.position.x;
@@ -202,7 +207,12 @@ int main( int argc, char **  argv)
                 sensorPose.poses.push_back(path->next->senPoses[i].p);
                 temp_cloud=occlusionCulling.extractVisibleSurface(path->next->senPoses[i].p);
                 combined += temp_cloud;
+                temp += temp_cloud;
             }
+            double avgAcc = occlusionCulling.calcAvgAccuracy(temp);
+            double a = (occlusionCulling.maxAccuracyError - occlusionCulling.calcAvgAccuracy(temp))/occlusionCulling.maxAccuracyError;
+            accuracyPerViewpointAvg.push_back(a);
+            accuracySum += avgAcc;
             pathSegments.push_back(linePoint);
 
             dist=dist+ Dist(path->next->pose.p,path->pose.p);
@@ -220,6 +230,7 @@ int main( int argc, char **  argv)
     ros::Rate loopRate(10);
     std::cout<<"\nDistance calculated from the path: "<<dist<<"m\n";
     std::cout<<"Covered Cloud % : "<<occlusionCulling.calcCoveragePercent(coveredCloudPtr)<<"%\n";
+    std::cout<<"Average Accuracy per viewpoint is "<<accuracySum/accuracyPerViewpointAvg.size()<<std::endl;
 
     sensor_msgs::PointCloud2 cloud1,cloud2;
     while (ros::ok())

@@ -116,6 +116,7 @@ private:
     double accW, distW, covW, angleW;
     std::vector<double> accuracyPerViewpointAvg, extraCovPerViewpointAvg, extraAreaperViewpointAvg;
     double accuracySum, extraCovSum, extraAreaSum, aircraftArea;
+    double modelTotalEntroby;
     int selectedPointsNum,occupiedVoxelsNum;
     ros::Publisher treePub;
     ros::Publisher coveredPointsPub;

@@ -85,6 +85,8 @@ public:
 
     ros::Publisher childPosePub;
     ros::Publisher childSensorsPub;
+    ros::Publisher parentPosePub;
+    ros::Publisher parenSensorsPub;
     ros::Publisher branchPub;
     ros::Publisher octomapChildPub;
     int nodeToBeVisNum, nodesCounter;

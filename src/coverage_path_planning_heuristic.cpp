@@ -72,6 +72,7 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     occupiedVoxelsNum = occupiedKeys.size();
     modelVolume = occupiedKeys.size()*(fullModelTree.getResolution()*fullModelTree.getResolution()*fullModelTree.getResolution());
     maxDepth = std::sqrt(occlussionCulling->maxAccuracyError/0.0000285);
+    modelTotalEntroby = occupiedKeys.size()*(-1*(0.5)*(log(0.5)/log(2)));//unknown is 0.5
 
     //voxelgrid
     pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
@@ -253,13 +254,13 @@ bool CoveragePathPlanningHeuristic::terminateConditionReached(Node *node)
     double deltaCoverage;
     deltaCoverage = coverageTarget - node->coverage;
     selectedPointsNum++;
-//    if(nodesCounter++==nodeToBeVisNum+1 && nodeToBeVisNum != 0)
-//        return true;
+
     std::cout<<"\n\n ****************** Total Coverage %: "<<node->coverage<<"  f = "<<node->f_value <<" **************************"<<std::endl;
     std::cout<<"\n\nAverage Accuracy per viewpoint is "<<accuracySum/accuracyPerViewpointAvg.size()<<std::endl;
     std::cout<<"Average extra coverage per viewpoint is "<<extraCovSum/extraCovPerViewpointAvg.size()<<std::endl;
     std::cout<<"Average extra Area per viewpoint is "<<extraAreaSum/extraAreaperViewpointAvg.size()<<std::endl;
-    std::cout<<"number of viewpoints is "<<selectedPointsNum<<"\n\n"<<std::endl;
+    std::cout<<"number of viewpoints is "<<selectedPointsNum<<std::endl;
+    std::cout<<"total Entropy is "<<node->totalEntroby<<"\n\n"<<std::endl;
 
     if (debug)
         std::cout<<"Delta Coverage:"<<deltaCoverage<<"\n";
@@ -369,7 +370,9 @@ void CoveragePathPlanningHeuristic::displayProgress(vector<Tree> tree)
 
 bool CoveragePathPlanningHeuristic::isCost()
 {
-    return false;
+    if(heuristicType==InfoGainVolumetricH)
+        return true;
+    else return false;
 }
 
 void CoveragePathPlanningHeuristic::setCoverageTarget(double coverageTarget)
@@ -422,10 +425,12 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
         node->h_value  = 0;
         node->g_value  = 0;
 
-        double f=0,d,c,a;
+        double f=0,d,c,a,dPar;
 
         // distance
         d = Dist(node->pose.p,node->parent->pose.p);
+        dPar = maxConnRadius - d;
+        node->distance = node->parent->distance + d;
 
         if(debug)
         {
@@ -620,6 +625,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 node->octree->setProbMiss(0.5);
                 node->octree->setClampingThresMax(0.9999999);
                 node->octree->setClampingThresMin(0.5);
+                pcl::PointCloud<pcl::PointXYZ> visibleCloud;
 
 
                 for(int i=0; i<node->senPoses.size(); i++)
@@ -627,6 +633,7 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                     pcl::PointCloud<pcl::PointXYZ> temp;
                     octomap::Pointcloud visibleOctPointCloud;
                     temp = occlussionCulling->extractVisibleSurface(node->senPoses[i].p);
+                    visibleCloud+=temp;
                     for(int j = 0;j<temp.points.size();j++)
                     {
                         octomap::point3d endpoint((float) temp.points[j].x,(float) temp.points[j].y,(float) temp.points[j].z);
@@ -652,19 +659,29 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                         if(result!=NULL)//already occupied
                         {
                             double prob = result->getOccupancy();
-                            double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
+//                            double entropy = ( -1*prob*std::log(prob) ) ;//- ( (1-prob)*std::log(1-prob) );
+                            double entropy = ( -1*prob*(log(prob)/log(2)) ) ;
                             node->totalEntroby -= entropy;
-                            node->octree->setNodeValue(*it, lg);
-                            prob = octomap::probability(lg);
-                            entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
+                            double postProb = (normAcc*prob) / ( (normAcc*prob)+( (1-normAcc)*(1-prob) ) );
+                            double logO = octomap::logodds(postProb);
+                            node->octree->setNodeValue(*it, logO);
+//                            prob = octomap::probability(lg);
+//                            entropy = ( -1*prob*std::log(prob) ) ;//- ( (1-prob)*std::log(1-prob) );
+                            entropy = ( -1*postProb*(log(postProb)/log(2)) ) ;
                             node->totalEntroby += entropy;
                         }
                         else //NULL voxel
                         {
                             node->coveredVoxelsNum++;
-                            node->octree->setNodeValue(*it, lg);
-                            double prob = octomap::probability(lg);
-                            double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
+                            double entropy = ( -1*(0.5)*(log(0.5)/log(2)) ) ; //subtract the unknown prob 0.5 entroby
+                            node->totalEntroby -= entropy;
+                            double postProb = (normAcc*0.5) / ( (normAcc*0.5)+( (1-normAcc)*(1-0.5) ) );
+                            double logO = octomap::logodds(postProb);
+                            node->octree->setNodeValue(*it, logO);
+//                            double prob = octomap::probability(lg);
+//                            entropy = ( -1*prob*std::log(prob) ) ;//- ( (1-prob)*std::log(1-prob) );
+                            entropy = ( -1*postProb*(log(postProb)/log(2)) ) ;
+
                             node->coveredVolume += (volumetricVoxelRes*volumetricVoxelRes*volumetricVoxelRes);
                             node->totalEntroby += entropy;
                         }
@@ -682,19 +699,27 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 extraCovSum += c;
 
                 // 3- distance
-                double normDist = (maxConnRadius-d)/maxConnRadius;// max conn radius
+//                double normDist = (maxConnRadius-d)/maxConnRadius;// max conn radius
+                double normDist = d/maxConnRadius;// max conn radius
 
                 // 4- turning angle
                 tf::Quaternion qtParent(node->parent->pose.p.orientation.x,node->parent->pose.p.orientation.y,node->parent->pose.p.orientation.z,node->parent->pose.p.orientation.w);
                 tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
                 double angle, normAngle;
                 angle=qtParent.angleShortestPath(qtNode);
-                normAngle=1-angle/(2*M_PI);
+//                normAngle=1-angle/(2*M_PI);
+                normAngle = angle/(2*M_PI);
+
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                accuracyPerViewpointAvg.push_back(a);
+                accuracySum += avgAcc;
 
                 // 5- function
-                f = node->totalEntroby + extraVolume + normDist +normAngle;
-//                f = node->totalEntroby * ( normDist +normAngle );
-//                std::cout<<"heuristic value: "<<f<<std::endl;
+                double localE = node->totalEntroby- node->parent->totalEntroby;
+//                f = node->totalEntroby + extraVolume + normDist +normAngle;
+                f = node->parent->f_value+localE*std::exp(d*-0.2);//*(normAngle);
+//                std::cout<<"heuristic value: "<<f<<"local Entropy: "<<localE<<" distance: "<<d<<std::endl;
 //                std::cout<<"Total Entroby: "<<node->totalEntroby<<std::endl;
             }
         }
@@ -922,12 +947,14 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 node->octree->setProbMiss(0.5);
                 node->octree->setClampingThresMax(0.9999999);
                 node->octree->setClampingThresMin(0.5);
+                pcl::PointCloud<pcl::PointXYZ> visibleCloud;
 
                 for(int i=0; i<node->senPoses.size(); i++)
                 {
                     pcl::PointCloud<pcl::PointXYZ> temp;
                     octomap::Pointcloud visibleOctPointCloud;
                     temp = occlussionCulling->extractVisibleSurface(node->senPoses[i].p);
+                    visibleCloud+=temp;
                     for(int j = 0;j<temp.points.size();j++)
                     {
                         octomap::point3d endpoint((float) temp.points[j].x,(float) temp.points[j].y,(float) temp.points[j].z);
@@ -953,21 +980,31 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                         if(result!=NULL)//already occupied
                         {
                             double prob = result->getOccupancy();
-                            double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
+//                            double entropy = ( -1*prob*std::log(prob) ) ;//- ( (1-prob)*std::log(1-prob) );
+                            double entropy = ( -1*prob*(log(prob)/log(2)) ) ;
                             node->totalEntroby -= entropy;
-                            node->octree->setNodeValue(*it, lg);
-                            prob = octomap::probability(lg);
-                            entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
+                            double postProb = (normAcc*prob) / ( (normAcc*prob)+( (1-normAcc)*(1-prob) ) );
+                            double logO = octomap::logodds(postProb);
+                            node->octree->setNodeValue(*it, logO);
+//                            prob = octomap::probability(lg);
+//                            entropy = ( -1*prob*std::log(prob) ) ;//- ( (1-prob)*std::log(1-prob) );
+                            entropy = ( -1*postProb*(log(postProb)/log(2)) ) ;
                             node->totalEntroby += entropy;
                         }
                         else //NULL
                         {
                             node->coveredVoxelsNum++;
-                            node->octree->setNodeValue(*it, lg);
-                            double prob = octomap::probability(lg);
-                            double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
-                            node->totalEntroby += entropy;
+                            double entropy = ( -1*(0.5)*(log(0.5)/log(2)) ) ; //subtract the unknown prob 0.5 entroby
+                            node->totalEntroby -= entropy;
+                            double postProb = (normAcc*0.5) / ( (normAcc*0.5)+( (1-normAcc)*(1-0.5) ) );
+                            double logO = octomap::logodds(postProb);
+                            node->octree->setNodeValue(*it, logO);
+//                            double prob = octomap::probability(lg);
+//                            entropy = ( -1*prob*std::log(prob) ) ;//- ( (1-prob)*std::log(1-prob) );
+                            entropy = ( -1*postProb*(log(postProb)/log(2)) ) ;
+
                             node->coveredVolume += (volumetricVoxelRes*volumetricVoxelRes*volumetricVoxelRes);
+                            node->totalEntroby += entropy;
                         }
 
                     }//end of occupied Keys loop
@@ -986,17 +1023,23 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 tf::Quaternion qtNode(node->pose.p.orientation.x,node->pose.p.orientation.y,node->pose.p.orientation.z,node->pose.p.orientation.w);
                 double angle, normAngle;
                 angle=qtParent.angleShortestPath(qtNode);
-                normAngle=1-angle/(2*M_PI);
+//                normAngle=1-angle/(2*M_PI);
+                normAngle = angle/(2*M_PI);
+
+                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+                accuracyPerViewpointAvg.push_back(a);
+                accuracySum += avgAcc;
 
                 //4- function
-                f = node->totalEntroby+ extraVolume +normAngle;
-//                f = node->totalEntroby*(normAngle);
-//                std::cout<<"heuristic value: "<<f<<std::endl;
+                double localE = node->totalEntroby-node->parent->totalEntroby;
+//                f = node->totalEntroby+ extraVolume +normAngle;
+                f = node->parent->f_value+localE*std::exp(d*-0.2);//*(normAngle);
+//                std::cout<<"heuristic value: "<<f<<"local Entropy: "<<localE<<" distance: "<<d<<std::endl;
 //                std::cout<<"Total Entroby: "<<node->totalEntroby<<std::endl;
             }
         }
         node->f_value  = f;
-        node->distance = node->parent->distance + d;
         if(debug)
         {
             std::cout<<"\nchild collective cloud after filtering size: "<<node->cloud_filtered->size()<<"\n";
@@ -1007,10 +1050,10 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
     }else //if the node is root
     {
-        double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
-        double a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
-        accuracyPerViewpointAvg.push_back(a);
-        accuracySum += avgAcc;
+//        double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+//        double a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+//        accuracyPerViewpointAvg.push_back(a);
+//        accuracySum += avgAcc;
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         if(heuristicType==SurfaceAreaCoverageH)
         {
@@ -1044,12 +1087,15 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
             node->octree->setProbMiss(0.5);
             node->octree->setClampingThresMax(0.9999999);
             node->octree->setClampingThresMin(0.5);
+            node->totalEntroby = modelTotalEntroby;
+            pcl::PointCloud<pcl::PointXYZ> visibleCloud;
 
             for(int i=0; i<node->senPoses.size(); i++)
             {
                 pcl::PointCloud<pcl::PointXYZ> temp;
                 octomap::Pointcloud visibleOctPointCloud;
                 temp = occlussionCulling->extractVisibleSurface(node->senPoses[i].p);
+                visibleCloud+=temp;
                 for(int j = 0;j<temp.points.size();j++)
                 {
                     octomap::point3d endpoint((float) temp.points[j].x,(float) temp.points[j].y,(float) temp.points[j].z);
@@ -1076,31 +1122,48 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                     if(result!=NULL)//already occupied
                     {
                         double prob = result->getOccupancy();
-                        double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
+//                            double entropy = ( -1*prob*std::log(prob) ) ;//- ( (1-prob)*std::log(1-prob) );
+                        double entropy = ( -1*prob*(log(prob)/log(2)) ) ;
                         node->totalEntroby -= entropy;
-                        node->octree->setNodeValue(*it, lg);
-                        prob = octomap::probability(lg);
-                        entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
+                        double postProb = (normAcc*prob) / ( (normAcc*prob)+( (1-normAcc)*(1-prob) ) );
+                        double logO = octomap::logodds(postProb);
+                        node->octree->setNodeValue(*it, logO);
+//                            prob = octomap::probability(lg);
+//                            entropy = ( -1*prob*std::log(prob) ) ;//- ( (1-prob)*std::log(1-prob) );
+                        entropy = ( -1*postProb*(log(postProb)/log(2)) ) ;
                         node->totalEntroby += entropy;
 
                     }else{ // NULL
                         node->coveredVoxelsNum++;
-                        node->octree->setNodeValue(*it, lg);
-                        double prob = octomap::probability(lg);
-                        double entropy = ( -1*prob*std::log(prob) ) - ( (1-prob)*std::log(1-prob) );
-                        node->totalEntroby += entropy;
+                        double entropy = ( -1*(0.5)*(log(0.5)/log(2)) ) ; //subtract the unknown prob 0.5 entroby
+                        node->totalEntroby -= entropy;
+                        double postProb = (normAcc*0.5) / ( (normAcc*0.5)+( (1-normAcc)*(1-0.5) ) );
+                        double logO = octomap::logodds(postProb);
+                        node->octree->setNodeValue(*it, logO);
+//                            double prob = octomap::probability(lg);
+//                            entropy = ( -1*prob*std::log(prob) ) ;//- ( (1-prob)*std::log(1-prob) );
+                        entropy = ( -1*postProb*(log(postProb)/log(2)) ) ;
+
                         node->coveredVolume += (volumetricVoxelRes*volumetricVoxelRes*volumetricVoxelRes);
+                        node->totalEntroby += entropy;
                     }
 
                 }//end of occupied Keys loop
 
             }//end of sensors loop
 
+            double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
+            double a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
+            accuracyPerViewpointAvg.push_back(a);
+            accuracySum += avgAcc;
+
             //2- coverage
             node->coverage = (double)node->coveredVolume/modelVolume * 100;
             double c = node->coverage;
             extraCovPerViewpointAvg.push_back(c);
             extraCovSum += c;
+            std::cout<<"Model Entropy :"<<modelTotalEntroby<<std::endl;
+            node->f_value = node->totalEntroby;
 
         }
         else {
@@ -1118,8 +1181,11 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
             extraCovSum += node->coverage;
         }
 
-        node->f_value = 0;//root node
-        node->g_value = 0;//root node
+        if(heuristicType != InfoGainVolumetricH)
+        {
+            node->f_value = 0;//root node
+            node->g_value = 0;//root node
+        }
     }
 
     if(debug)

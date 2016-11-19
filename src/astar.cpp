@@ -38,8 +38,10 @@ Astar::Astar(ros::NodeHandle & n, Robot *rob, int progressDisplayFrequency):
 {    
     childPosePub         = nh.advertise<geometry_msgs::PoseArray>("child_pose",10);
     childSensorsPub      = nh.advertise<geometry_msgs::PoseArray>("child_sensors",10);
+    parentPosePub        = nh.advertise<geometry_msgs::PoseArray>("parent_pose",10);
+    parenSensorsPub      = nh.advertise<geometry_msgs::PoseArray>("parent_sensors",10);
     branchPub            = nh.advertise<visualization_msgs::Marker>("branch",10);
-    octomapChildPub           = nh.advertise<octomap_msgs::Octomap>("octomap_child", 10);
+    octomapChildPub      = nh.advertise<octomap_msgs::Octomap>("octomap_child", 10);
 
     nodeToBeVisNum       = 0;//if 0 then it will continue planning till the target otherwise it will stop planning on the specified viewpoint number and will visualize the steps of choosing next viewpoint
     nodesCounter         = 0;
@@ -236,7 +238,7 @@ Node *Astar::astarSearch(Pose start)
         }
         // insert the children into the OPEN list according to their f values
         nodesCounter++;
-        geometry_msgs::PoseArray childPose, childSensors;
+        geometry_msgs::PoseArray childPose,parentPose, childSensors, parentSensors;
         std::vector<geometry_msgs::Point> lineSegments;
         while (childList != NULL)
         {
@@ -255,17 +257,21 @@ Node *Astar::astarSearch(Pose start)
             //display the child and the octree
             if(nodesCounter == nodeToBeVisNum && nodeToBeVisNum != 0)
             {
+                geometry_msgs::Pose parent;
+
                 geometry_msgs::Pose child;
                 geometry_msgs::Point linePoint;
 
                 std::cout<<"I entered tree childrens of the desired node "<<std::endl;
 
                 child = curChild->pose.p;
+                parent = current->pose.p;
                 childPose.poses.push_back(child);
-
+                parentPose.poses.push_back(parent);
                 for(int i=0; i<curChild->senPoses.size();i++)
                 {
                     childSensors.poses.push_back(curChild->senPoses[i].p);
+                    parentSensors.poses.push_back(current->senPoses[i].p);
                 }
 
                 linePoint.x = current->pose.p.position.x;
@@ -278,6 +284,21 @@ Node *Astar::astarSearch(Pose start)
                 lineSegments.push_back(linePoint);
 
                 //visualization
+                childPose.header.frame_id= "map";
+                childPose.header.stamp = ros::Time::now();
+                childPosePub.publish(childPose);
+                childSensors.header.frame_id= "map";
+                childSensors.header.stamp = ros::Time::now();
+                childSensorsPub.publish(childSensors);
+                parentPose.header.frame_id= "map";
+                parentPose.header.stamp = ros::Time::now();
+                parentPosePub.publish(parentPose);
+                parentSensors.header.frame_id= "map";
+                parentSensors.header.stamp = ros::Time::now();
+                parenSensorsPub.publish(parentSensors);
+                visualization_msgs::Marker linesList1 = drawLines(lineSegments,1,6,100000,0.1);
+                branchPub.publish(linesList1);
+
 
                 octomap_msgs::Octomap octomap ;
                 octomap.binary = 1 ;
@@ -294,7 +315,9 @@ Node *Astar::astarSearch(Pose start)
                 {
                     ROS_WARN("OCT Map serialization failed!");
                 }
-
+                childSensors.poses.erase(childSensors.poses.begin(),childSensors.poses.end() );
+                childPose.poses.erase(childPose.poses.begin(),childPose.poses.end() );
+                lineSegments.erase(lineSegments.begin(), lineSegments.end());
                 ros::Duration(2).sleep();
             }
 
@@ -380,14 +403,7 @@ Node *Astar::astarSearch(Pose start)
                 openList->add(curChild,heuristic->isCost());
             }
         }
-        childPose.header.frame_id= "map";
-        childPose.header.stamp = ros::Time::now();
-        childPosePub.publish(childPose);
-        childSensors.header.frame_id= "map";
-        childSensors.header.stamp = ros::Time::now();
-        childSensorsPub.publish(childSensors);
-        visualization_msgs::Marker linesList1 = drawLines(lineSegments,1,6,100000,0.1);
-        branchPub.publish(linesList1);
+
 
         // put the current node onto the closed list, ==>> already visited List
         closedList->add(current,heuristic->isCost());
