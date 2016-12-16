@@ -21,8 +21,7 @@
  ***************************************************************************/
 #ifndef SEARCHSPACENODE_H_
 #define SEARCHSPACENODE_H_
-#include<QPointF>
-#include<QVector>
+
 #include<geometry_msgs/Pose.h>
 #include<geometry_msgs/PoseArray.h>
 
@@ -40,7 +39,7 @@ class SearchSpaceNode
         geometry_msgs::PoseArray sensorLocation;//sensorposition
         SearchSpaceNode * next;
 		int type,id;
-		QVector <SearchSpaceNode *>  children;
+        std::vector <SearchSpaceNode *>  children;
 		 SearchSpaceNode ();
 		~SearchSpaceNode ();
 	};

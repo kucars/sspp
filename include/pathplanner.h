@@ -23,7 +23,6 @@
 #define PATHPLANNER_H_
 
 #include <astar.h>
-#include <QTime>
 #include <stdio.h>
 #include <stdlib.h>
 #include <Eigen/Eigen>

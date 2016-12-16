@@ -131,7 +131,7 @@ void Astar::findRoot() throw (SSPPException)
     heuristic->calculateHeuristic(root);
     root->depth = 0;
     //Translate(root->pose,start.phi);
-    std::cout<<"\n"<<QString("	---->>>Root is Set to be X=%1 Y=%2 Z=%3").arg(root->pose.p.position.x).arg(root->pose.p.position.y).arg(root->pose.p.position.z).toStdString();
+    std::cout<<"\n"<<"	---->>>Root is Set to be X="<<root->pose.p.position.x<<" Y="<<root->pose.p.position.y<<" Z="<<root->pose.p.position.z;
 }
 
 
@@ -208,7 +208,7 @@ Node *Astar::astarSearch(Pose start)
             //the last node in the path
             current->next = NULL;
             std::cout<<"*************commulative distance : "<<current->distance<<"************ \n";
-            std::cout<<"\n"<<QString("	--->>> Goal state reached with :%1 nodes created and :%2 nodes expanded <<<---").arg(ID).arg(NodesExpanded).toStdString();
+            std::cout<<"\n"<<"	--->>> Goal state reached with :"<<ID<< "nodes created and :"<<NodesExpanded<<" nodes expanded <<<---";
             fflush(stdout);
             p = current;
             path = NULL;
@@ -341,7 +341,8 @@ Node *Astar::astarSearch(Pose start)
                     condition = (p->f_value >=curChild->f_value);
                 if (condition)
                 {
-                    curChild->octree->clear();
+                    //TODO: remove it later, it is used for memory usage reduction ... information gain heuristic (uses octree) and the distance heuritic uses cost function (doesn't use octree)
+                    //curChild->octree->clear();
                     freeNode(curChild);
                     curChild = NULL;
                 }
@@ -375,7 +376,8 @@ Node *Astar::astarSearch(Pose start)
                     {
                         if (debug)
                             std::cout<<"Free the node the closed list check, parent is bigger than the child"<<"\n";
-                        curChild->octree->clear();
+                        //TODO: remove it later, it is used for memory usage reduction ... information gain heuristic (uses octree) and the distance heuritic uses cost function (doesn't use octree)
+                        //curChild->octree->clear();
                         freeNode(curChild);
                         curChild = NULL;
                     }

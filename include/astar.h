@@ -22,12 +22,6 @@
 #ifndef ASTAR_H_
 #define ASTAR_H_
 
-#include <QPointF>
-#include <QHash>
-#include <QBitArray>
-#include <QVector>
-#include <QImage>
-#include <QString>
 #include <math.h>
 #include "llist.h"
 #include "node.h"

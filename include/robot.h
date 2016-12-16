@@ -21,9 +21,8 @@
  ***************************************************************************/
 #ifndef ROBOT_H_
 #define ROBOT_H_
-#include <QPointF>
-#include <QString>
-#include <QVector>
+
+#include <geometry_msgs/Point.h>
 #include <iostream>
 #include <math.h>
 #include "utils.h"
@@ -40,16 +39,16 @@ public :
     //! Holds the Latest Robot Position
     Pose robotLocation;
     // Center of Rotation
-    QPointF robotCenter;
+    geometry_msgs::Point robotCenter;
     // For Rendering the Robot Rectangle
-    QVector<QPointF> local_edge_points, check_points;
+    std::vector<geometry_msgs::Point> local_edge_points, check_points;
     void setCheckPoints(double o_r);
     void setPose(Pose location);
     void setSpeed(double speed);
     void setTurnRate(double turnRate);
     void findR();
     int  readConfigs(ros::NodeHandle nh, string nameSpace);
-    Robot(std::string name, double length, double width, double narrowDist, QPointF center, double safetyTolerance=0.05);
+    Robot(std::string name, double length, double width, double narrowDist, geometry_msgs::Point center, double safetyTolerance=0.05);
     Robot();
     ~Robot();
 };

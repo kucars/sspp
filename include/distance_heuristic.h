@@ -21,8 +21,6 @@
 #ifndef DIST_HEURISTICT_H_
 #define DIST_HEURISTICT_H_
 
-#include <QString>
-#include <QHash>
 #include "ssppexception.h"
 #include "node.h"
 #include "heuristic_interface.h"

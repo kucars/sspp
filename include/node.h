@@ -21,7 +21,6 @@
 #ifndef NODE_H_
 #define NODE_H_
 
-#include<QPointF>
 #include "robot.h"
 #include "utils.h"
 #include <pcl/point_types.h>

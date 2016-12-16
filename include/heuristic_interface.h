@@ -22,8 +22,6 @@
 #ifndef HEURISTICT_H_
 #define HEURISTICT_H_
 
-#include <QString>
-#include <QHash>
 #include "ssppexception.h"
 #include "searchspacenode.h"
 #include "node.h"

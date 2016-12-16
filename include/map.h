@@ -22,7 +22,6 @@
 #ifndef MAP_H_
 #define MAP_H_
 #include "utils.h"
-#include <QByteArray>
 #include <ostream>
 #include <cstdio>
 
@@ -33,8 +32,8 @@ class Map
 public:
     Map();
     ~Map();
-    Map(int width, int height,double mapRes,QPointF center,Pose p);
-    Map(int width, int height, double resolution,  QByteArray rawData);
+    Map(int width, int height,double mapRes,geometry_msgs::Point center,Pose p);
+    Map(int width, int height, double resolution,  std::vector<unsigned char> rawData);
     Map(float mapRes,Pose p);
     Map(Pose p);
     Map * clone();
@@ -48,11 +47,11 @@ public:
     float mapRes;
     Pose global_pose;
     // for OG-Maps
-    QByteArray rawData;
+    std::vector<unsigned char> rawData;
     // for Planners
     bool    ** grid, **temp;
-    QVector <QPointF> pointCloud;
+//    std::vector <geometry_msgs::Point> pointCloud; //not used
     // Axis Center of the Map
-    QPointF center;
+    geometry_msgs::Point center;
 };
 #endif /*MAP_H_*/

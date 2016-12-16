@@ -68,7 +68,7 @@ int main( int argc, char **  argv)
     visualTools->deleteAllMarkers();
     visualTools->setLifetime(0.2);
 
-    QTime timer;
+    ros::Time timer_start = ros::Time::now();
     geometry_msgs::Pose gridStartPose;
     geometry_msgs::Vector3 gridSize;
     gridStartPose.position.x = -18;//-18
@@ -85,7 +85,9 @@ int main( int argc, char **  argv)
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
     double distanceToGoal = 1.0,regGridConRad = 2.5;
 
-    QPointF robotCenter(-0.3f,0.0f);
+    geometry_msgs::Point robotCenter;
+    robotCenter.x = -0.3f;
+    robotCenter.y = 0.0f;
     Robot *robot= new Robot("Robot",robotH,robotW,narrowestPath,robotCenter);
     Sensors sensor1(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0.022,0.065), Vec3f(0,-0.349,0));
     Sensors sensor2(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0.022,-0.065), Vec3f(0,0.349,0));
@@ -102,7 +104,7 @@ int main( int argc, char **  argv)
 
 
 
-    double coverageTolerance=1.0, targetCov=15;
+    double coverageTolerance=1.0, targetCov=20;
     std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels_nointernal_scaled_new.obj";
     std::string occlusionCullingModelName = "etihad_nowheels_nointernal_scaled_newdensed.pcd";
     CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, InfoGainVolumetricH);
@@ -131,12 +133,12 @@ int main( int argc, char **  argv)
     // Connect nodes and visualise it
 //    pathPlanner->connectNodes();
     pathPlanner->dynamicNodesGenerationAndConnection(gridStartPose,gridSize,4.5,1.5);
-    std::cout<<"\nSpace Generation took:"<<timer.elapsed()/double(1000.00)<<" secs";
+    std::cout<<"\nSpace Generation took:"<<double(ros::Time::now().toSec() - timer_start.toSec())<<" secs";
     std::vector<geometry_msgs::Point> searchSpaceConnections = pathPlanner->getConnections();
     visualization_msgs::Marker connectionsMarker = drawLines(searchSpaceConnections,10000,3,100000000,0.03);
 
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
-    std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(searchSpaceNodes.size()).toStdString();
+    std::cout<<"\n\n---->>> Total Nodes in search Space ="<<searchSpaceNodes.size();
     geometry_msgs::PoseArray robotPoseSS,sensorPoseSS;
     pathPlanner->getRobotSensorPoses(robotPoseSS,sensorPoseSS);
     visualization_msgs::Marker searchSpaceMarker = drawPoints(searchSpaceNodes,2,1000000);
@@ -144,9 +146,10 @@ int main( int argc, char **  argv)
 
 
     // Find path and visualise it
-    timer.restart();
+    ros::Time timer_restart = ros::Time::now();
     Node * path = pathPlanner->startSearch(start);
-    std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
+    ros::Time timer_end = ros::Time::now();
+    std::cout<<"\nPath Finding took:"<<double(timer_end.toSec() - timer_restart.toSec())<<" secs";
 
     //path print and visualization
     if(path)
@@ -157,7 +160,7 @@ int main( int argc, char **  argv)
     {
         std::cout<<"\nNo Path Found";
     }
-    std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
+    std::cout<<"\nPath Finding took:"<<double(timer_end.toSec() - timer_restart.toSec())<<" secs";
 
     geometry_msgs::Point linePoint;
     std::vector<geometry_msgs::Point> pathSegments;

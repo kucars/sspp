@@ -57,13 +57,12 @@ include_directories(include
 ##################
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-find_package(Qt4 REQUIRED)
 
 # Set include directories
 include_directories(include ${QT_INCLUDES})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
-add_definitions(-DQT_NO_KEYWORDS)
+#add_definitions(-DQT_NO_KEYWORDS)
 
 
 
@@ -83,8 +82,6 @@ add_library(SSPathPlanner SHARED
     )
 
 target_link_libraries(SSPathPlanner
-    Qt4::QtGui
-    Qt4::QtCore
     ${OCTOMAP_LIBRARIES}
     )
 add_executable(distance_heuristic_test src/distance_heuristic_test.cpp)
@@ -93,8 +90,6 @@ target_link_libraries(distance_heuristic_test SSPathPlanner
     -lgmp -lmpfr
     ${CGAL_LIBRARY}
     ${CGAL_Core_LIBRARY}
-    Qt4::QtGui
-    Qt4::QtCore
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
     ${rviz_visual_tools_LIBRARIES}
@@ -102,7 +97,7 @@ target_link_libraries(distance_heuristic_test SSPathPlanner
 
 if (component_test_FOUND)
         add_library(CoverageHeuristic SHARED src/coverage_path_planning_heuristic.cpp)
-        target_link_libraries(CoverageHeuristic Qt4::QtGui Qt4::QtCore ${component_test_LIBRARIES} occlusion_culling_gpu mesh_surface ${OCTOMAP_LIBRARIES})
+        target_link_libraries(CoverageHeuristic ${component_test_LIBRARIES} occlusion_culling_gpu mesh_surface ${OCTOMAP_LIBRARIES})
         target_include_directories(CoverageHeuristic PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
         add_executable(coverage_heuristic_test src/coverage_heuristic_test.cpp)
         target_include_directories(coverage_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
@@ -110,8 +105,6 @@ if (component_test_FOUND)
             -lgmp -lmpfr
             ${CGAL_LIBRARY}
             ${CGAL_Core_LIBRARY}
-            Qt4::QtGui
-            Qt4::QtCore
             ${catkin_LIBRARIES}
             ${PCL_LIBRARIES}
             ${OCTOMAP_LIBRARIES}

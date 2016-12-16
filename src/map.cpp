@@ -21,12 +21,12 @@
  ***************************************************************************/
 #include "map.h"
 
-Map::Map(int width, int height, double mapRes, QPointF center, Pose p)
+Map::Map(int width, int height, double mapRes, geometry_msgs::Point center, Pose p)
 {
     this->global_pose = p;
     this->width   = width;
     this->height  = height;
-    this->rawData = NULL;
+    this->rawData = std::vector<unsigned char>(0);
     this->center = center;
     this->mapRes = mapRes;
     this->grid = new bool * [width];
@@ -77,14 +77,14 @@ void Map::scale(int newWidth,int newHeight)
     grid = temp;
     this->width  = newWidth;
     this->height = newHeight;
-    center.setX(newWidth/2.0f);
-    center.setY(newHeight/2.0f);
+    center.x = newWidth/2.0f;
+    center.y = newHeight/2.0f;
 }
 
 Map::Map(Pose p)
 {
     this->global_pose = p;
-    this->rawData = NULL;
+    this->rawData = std::vector<unsigned char>(0);
     this->grid = NULL;
 }
 
@@ -92,11 +92,11 @@ Map::Map(float mapRes,Pose p)
 {
     this->global_pose = p;
     this->mapRes = mapRes;
-    this->rawData = NULL;
+    this->rawData = std::vector<unsigned char>(0);
     this->grid = NULL;
 }
 
-Map::Map(int width, int height, double resolution,  QByteArray rawData)
+Map::Map(int width, int height, double resolution,  std::vector<unsigned char> rawData)
 {
     this->width     = width;
     this->height    = height;
@@ -105,7 +105,7 @@ Map::Map(int width, int height, double resolution,  QByteArray rawData)
     this->grid      = NULL;
 }
 
-Map::Map(): width(0), height(0), mapRes(0), rawData(NULL),grid(NULL)
+Map::Map(): width(0), height(0), mapRes(0), rawData(std::vector<unsigned char>(0)),grid(NULL)
 {
 
 }
@@ -135,15 +135,15 @@ Map * Map::clone()
 // transfers from pixel coordinate to the main coordinate system
 void Map::convertPix(geometry_msgs::Pose *p)
 {
-    p->position.x =  p->position.x*mapRes - mapRes*center.x();
-    p->position.y = -p->position.y*mapRes + mapRes*center.y();
+    p->position.x =  p->position.x*mapRes - mapRes*center.x;
+    p->position.y = -p->position.y*mapRes + mapRes*center.y;
 }
 
 // transfers from main coordinate to the pixel coordinate system
 void Map::convert2Pix(geometry_msgs::Pose *p)
 {
-    p->position.x = ( p->position.x + mapRes*center.x())/mapRes;
-    p->position.y = (-p->position.y + mapRes*center.y())/mapRes;
+    p->position.x = ( p->position.x + mapRes*center.x)/mapRes;
+    p->position.y = (-p->position.y + mapRes*center.y)/mapRes;
 }
 
 // Save as PGM format
