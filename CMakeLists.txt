@@ -18,8 +18,17 @@ find_package(catkin REQUIRED COMPONENTS
   rviz_visual_tools
   )
 
+set( ROS_DISTRO $ENV{ROS_DISTRO} )
+if( ${ROS_DISTRO} STREQUAL "indigo" )
+    find_package(fcl REQUIRED)
+elseif(${ROS_DISTRO} STREQUAL "kinetic")
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBFCL REQUIRED fcl)
+else()
+    message("Unsupported ROS Distro")
+endif()
+
 find_package( CGAL QUIET COMPONENTS  )
-find_package(fcl REQUIRED)
 find_package(PCL REQUIRED)
 find_package(CUDA QUIET)
 find_package(component_test QUIET)
