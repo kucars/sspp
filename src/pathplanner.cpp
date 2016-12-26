@@ -19,7 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "pathplanner.h"
+#include "sspp/pathplanner.h"
 namespace SSPP
 {
 

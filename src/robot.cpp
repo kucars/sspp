@@ -19,7 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "robot.h"
+#include "sspp/robot.h"
 
 //! Consturctor for the Robot Class
 /*! This constructor take the following Parameters:

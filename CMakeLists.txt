@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(sspp)
 SET ( CMAKE_CXX_FLAGS "-frounding-math" )
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 #set(CMAKE_BUILD_TYPE "Debug")
 
 find_package(catkin REQUIRED COMPONENTS
@@ -18,8 +18,17 @@ find_package(catkin REQUIRED COMPONENTS
   rviz_visual_tools
   )
 
+set( ROS_DISTRO $ENV{ROS_DISTRO} )
+if( ${ROS_DISTRO} STREQUAL "indigo" )
+    find_package(fcl REQUIRED)
+elseif(${ROS_DISTRO} STREQUAL "kinetic")
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBFCL REQUIRED fcl)
+else()
+    message("Unsupported ROS Distro")
+endif()
+
 find_package( CGAL QUIET COMPONENTS  )
-find_package(fcl REQUIRED)
 find_package(PCL REQUIRED)
 find_package(CUDA QUIET)
 find_package(octomap REQUIRED)
@@ -39,7 +48,8 @@ include(FindPkgConfig)
 
 #catkin_package(CATKIN_DEPENDS component_test)
 catkin_package(
-   INCLUDE_DIRS include
+   INCLUDE_DIRS
+   include
    LIBRARIES
    CATKIN_DEPENDS roscpp pcl_ros
 )

@@ -19,7 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "sensors.h"
+#include "sspp/sensors.h"
 
 Sensors::Sensors(double hfov, double vfov, double fl, double nearR, double farR, double width, double height, Vec3f sP, Vec3f sRPY):
 hFOV(hfov),

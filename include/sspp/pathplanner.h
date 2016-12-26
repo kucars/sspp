@@ -22,7 +22,7 @@
 #ifndef PATHPLANNER_H_
 #define PATHPLANNER_H_
 
-#include <astar.h>
+#include <sspp/astar.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <Eigen/Eigen>
@@ -47,7 +47,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/array.hpp>
 #include <boost/foreach.hpp>
-#include <sensors.h>
+#include <sspp/sensors.h>
 #include <pcl/point_cloud.h>
 #include <pcl/kdtree/kdtree_flann.h>
 

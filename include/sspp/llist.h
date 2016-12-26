@@ -22,7 +22,7 @@
 #ifndef LLIST_H_
 #define LLIST_H_
 #include <iostream>
-#include <node.h>
+#include <sspp/node.h>
 #include "heuristic_interface.h"
 using namespace std;
 

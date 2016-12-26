@@ -19,8 +19,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "heuristic_interface.h"
-#include "distance_heuristic.h"
+#include "sspp/heuristic_interface.h"
+#include "sspp/distance_heuristic.h"
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>

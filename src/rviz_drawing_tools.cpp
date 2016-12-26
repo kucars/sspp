@@ -19,7 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "rviz_drawing_tools.h"
+#include "sspp/rviz_drawing_tools.h"
 
 visualization_msgs::Marker drawLines(std::vector<geometry_msgs::Point> links, int id, int inColor, int duration, double scale)
 {
