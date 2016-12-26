@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(sspp)
 SET ( CMAKE_CXX_FLAGS "-frounding-math" )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 #set(CMAKE_BUILD_TYPE "Debug")
 
 find_package(catkin REQUIRED COMPONENTS
@@ -62,14 +62,11 @@ include_directories(include
 
 #pkg_check_modules(PLAYER REQUIRED playercore playerc++ playerc)
 
-##################
-#    QT STUFF    #
-##################
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # Set include directories
-include_directories(include ${QT_INCLUDES})
+# include_directories(include ${QT_INCLUDES})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 #add_definitions(-DQT_NO_KEYWORDS)

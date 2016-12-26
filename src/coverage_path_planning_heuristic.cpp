@@ -19,7 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "coverage_path_planning_heuristic.h"
+#include "sspp/coverage_path_planning_heuristic.h"
 
 namespace SSPP
 {

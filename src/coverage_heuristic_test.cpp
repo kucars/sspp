@@ -20,7 +20,7 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
 
-#include "pathplanner.h"
+#include "sspp/pathplanner.h"
 #include "ros/ros.h"
 #include <ros/package.h>
 #include <tf/tf.h>
@@ -33,9 +33,9 @@
 
 #include <component_test/occlusion_culling_gpu.h>
 #include <component_test/occlusion_culling.h>
-#include "coverage_path_planning_heuristic.h"
-#include "distance_heuristic.h"
-#include "rviz_drawing_tools.h"
+#include "sspp/coverage_path_planning_heuristic.h"
+#include "sspp/distance_heuristic.h"
+#include "sspp/rviz_drawing_tools.h"
 #include "rviz_visual_tools/rviz_visual_tools.h"
 //#include <component_test/mesh_surface.h>
 using namespace SSPP;
