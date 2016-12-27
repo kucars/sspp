@@ -18,43 +18,55 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#ifndef DIST_HEURISTICT_H_
-#define DIST_HEURISTICT_H_
+#ifndef NODE_H_
+#define NODE_H_
 
-#include <QString>
-#include <QHash>
-#include "ssppexception.h"
-#include "node.h"
-#include "heuristic_interface.h"
-#include "rviz_drawing_tools.h"
+#include "robot.h"
+#include "utils.h"
+#include <pcl/point_types.h>
+#include <pcl/common/eigen.h>
+#include <pcl/common/transforms.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <CGAL/Triangle_3.h>
+#include <octomap_msgs/Octomap.h>
+#include <octomap/ColorOcTree.h>
+#include <octomap/octomap.h>
+#include <octomap/OcTree.h>
+#include <octomap_msgs/conversions.h>
 
-using namespace std;
+typedef CGAL::Exact_predicates_exact_constructions_kernel exactKernel;
+typedef CGAL::Triangle_3<exactKernel> Triangle_3;
+typedef std::vector<Triangle_3> Triangles;
 
 namespace SSPP
 {
-
-class DistanceHeuristic:public Heuristic
+/* This Class Represents the Node Structure in the search Tree,
+ * each node encapsulates information about it's parent, next
+ * and previous node in the list, it's location, travelling and
+ * herustic costs.
+ */
+class Node
 {
-public:
-    DistanceHeuristic(ros::NodeHandle &n, bool d=false);
-    ~DistanceHeuristic(){}
-    double gCost(Node *node);
-    double hCost(Node *node);
-    bool isCost();
-    void setDebug(bool debug);
-    void setEndPose(geometry_msgs::Pose pose);
-    void setTolerance2Goal(double tolerance2Distance);
-    void calculateHeuristic(Node *n);
-    bool terminateConditionReached(Node *node);
-    bool isConnectionConditionSatisfied(SearchSpaceNode*temp, SearchSpaceNode*S);
-    bool isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray &correspondingSensorPoses, double minDist, double maxDist);
-    void displayProgress(vector<Tree> tree);
-private:
-    bool debug;
-    geometry_msgs::Pose endPose;
-    double tolerance2Goal;
-    ros::Publisher treePub;
+public :
+    int id,depth,direction,coveredVoxelsNum;
+    double nearest_obstacle,g_value,h_value,f_value,totalEntroby,distance,coverage,coveredVolume;
+    Triangles surfaceTriangles;
+    octomap::OcTree* octree;
+    std::vector<octomap::Pointcloud> sensorsOctCloud;
+    octomap::Pointcloud coveredCloud;
+    Node  * parent, * next, * prev;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
+    pcl::PointCloud<pcl::PointXYZ> cloud;
+    pcl::PointCloud<pcl::PointXYZ> voxels;
+
+    Pose   pose;
+    std::vector<Pose>   senPoses;
+    Node();
+    bool operator == (Node);
+    bool operator != (Node);
+    ~Node();
 };
 
 }
-#endif /*DIST_HEURISTICT_H_*/
+
+#endif /*NODE_H_*/

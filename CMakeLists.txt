@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(sspp)
 SET ( CMAKE_CXX_FLAGS "-frounding-math" )
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-#set(CMAKE_BUILD_TYPE "Debug")
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -18,12 +16,14 @@ find_package(catkin REQUIRED COMPONENTS
   rviz_visual_tools
   )
 
+# Few differences when dealing with ros-indigo and ros-kinetic
 set( ROS_DISTRO $ENV{ROS_DISTRO} )
 if( ${ROS_DISTRO} STREQUAL "indigo" )
     find_package(fcl REQUIRED)
 elseif(${ROS_DISTRO} STREQUAL "kinetic")
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBFCL REQUIRED fcl)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 else()
     message("Unsupported ROS Distro")
 endif()
@@ -31,6 +31,7 @@ endif()
 find_package( CGAL QUIET COMPONENTS  )
 find_package(PCL REQUIRED)
 find_package(CUDA QUIET)
+find_package(octomap REQUIRED)
 find_package(component_test QUIET)
 
 if ( NOT CUDA_FOUND )
@@ -47,7 +48,8 @@ include(FindPkgConfig)
 
 #catkin_package(CATKIN_DEPENDS component_test)
 catkin_package(
-   INCLUDE_DIRS include
+   INCLUDE_DIRS
+   include
    LIBRARIES
    CATKIN_DEPENDS roscpp pcl_ros
 )
@@ -55,24 +57,15 @@ catkin_package(
 include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${rviz_visual_tools_INCLUDE_DIRS}
+  ${OCTOMAP_INCLUDE_DIRS}
 )
 
-#pkg_check_modules(PLAYER REQUIRED playercore playerc++ playerc)
-
-##################
-#    QT STUFF    #
-##################
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-find_package(Qt4 REQUIRED)
 
 # Set include directories
-include_directories(include ${QT_INCLUDES})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
-add_definitions(-DQT_NO_KEYWORDS)
-
-
 
 add_library(SSPathPlanner SHARED
     src/astar.cpp
@@ -90,17 +83,15 @@ add_library(SSPathPlanner SHARED
     )
 
 target_link_libraries(SSPathPlanner
-    Qt4::QtGui
-    Qt4::QtCore
+    ${OCTOMAP_LIBRARIES}
     )
+
 add_executable(distance_heuristic_test src/distance_heuristic_test.cpp)
 target_include_directories(distance_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS})
 target_link_libraries(distance_heuristic_test SSPathPlanner
     -lgmp -lmpfr
     ${CGAL_LIBRARY}
     ${CGAL_Core_LIBRARY}
-    Qt4::QtGui
-    Qt4::QtCore
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
     ${rviz_visual_tools_LIBRARIES}
@@ -108,7 +99,7 @@ target_link_libraries(distance_heuristic_test SSPathPlanner
 
 if (component_test_FOUND)
         add_library(CoverageHeuristic SHARED src/coverage_path_planning_heuristic.cpp)
-        target_link_libraries(CoverageHeuristic Qt4::QtGui Qt4::QtCore ${component_test_LIBRARIES} occlusion_culling_gpu mesh_surface)
+        target_link_libraries(CoverageHeuristic ${component_test_LIBRARIES} occlusion_culling_gpu mesh_surface ${OCTOMAP_LIBRARIES})
         target_include_directories(CoverageHeuristic PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
         add_executable(coverage_heuristic_test src/coverage_heuristic_test.cpp)
         target_include_directories(coverage_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
@@ -116,10 +107,9 @@ if (component_test_FOUND)
             -lgmp -lmpfr
             ${CGAL_LIBRARY}
             ${CGAL_Core_LIBRARY}
-            Qt4::QtGui
-            Qt4::QtCore
             ${catkin_LIBRARIES}
             ${PCL_LIBRARIES}
+            ${OCTOMAP_LIBRARIES}
             ${component_test_LIBRARIES}
             occlusion_culling_gpu
             ${rviz_visual_tools_LIBRARIES}

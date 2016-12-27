@@ -1,6 +1,7 @@
 /***************************************************************************
- *   Copyright (C) 2006 - 2007 by                                          *
- *      Tarek Taha, CAS-UTS  <tataha@tarektaha.com>                        *
+ *   Copyright (C) 2006 - 2016 by                                          *
+ *      Tarek Taha, KURI  <tataha@tarektaha.com>                           *
+ *      Randa Almadhoun   <randa.almadhoun@kustar.ac.ae>                   *
  *                                                                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,48 +19,34 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#ifndef NODE_H_
-#define NODE_H_
+#ifndef SEARCHSPACE_H_
+#define SEARCHSPACE_H_
 
-#include<QPointF>
-#include "robot.h"
+#include "searchspacenode.h"
 #include "utils.h"
-#include <pcl/point_types.h>
-#include <pcl/common/eigen.h>
-#include <pcl/common/transforms.h>
-#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
-#include <CGAL/Triangle_3.h>
-
-typedef CGAL::Exact_predicates_exact_constructions_kernel exactKernel;
-typedef CGAL::Triangle_3<exactKernel> Triangle_3;
-typedef std::vector<Triangle_3> Triangles;
 
 namespace SSPP
 {
-/* This Class Represents the Node Structure in the search Tree,
- * each node encapsulates information about it's parent, next
- * and previous node in the list, it's location, travelling and
- * herustic costs.
- */
-class Node
-{
-public :
-    int id,depth,direction;
-    double nearest_obstacle,g_value,h_value,f_value,distance,coverage;
-    Triangles surfaceTriangles;
-    Node  * parent, * next, * prev;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered;
-    pcl::PointCloud<pcl::PointXYZ> cloud;
-    pcl::PointCloud<pcl::PointXYZ> voxels;
 
-    Pose   pose;
-    std::vector<Pose>   senPoses;
-    Node();
-    bool operator == (Node);
-    bool operator != (Node);
-    ~Node();
+class SearchSpace
+{
+public:
+    SearchSpaceNode * searchspace;
+    void freeSearchSpace();
+    void freeTempSearchSpace(SearchSpaceNode * space);
+    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose);
+    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, int id);
+    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::PoseArray correspondingSensorsPoses);
+    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::PoseArray correspondingSensorsPoses, int id);
+    SearchSpaceNode * insertTempSearchSpace(geometry_msgs::PoseArray robotPoses, std::vector<geometry_msgs::PoseArray> correspondingSensorsPoses);
+    SearchSpaceNode * nodeExists(geometry_msgs::Pose nodePose);
+    SearchSpaceNode * nodeExists(SearchSpaceNode * space, geometry_msgs::Pose nodePose);
+    bool              removeNode(geometry_msgs::Pose nodePose);
+    SearchSpace();
+    virtual ~SearchSpace();
+    int idCount;
 };
 
 }
 
-#endif /*NODE_H_*/
+#endif /*SEARCHSPACE_H_*/

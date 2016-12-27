@@ -19,31 +19,39 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#ifndef SEARCHSPACENODE_H_
-#define SEARCHSPACENODE_H_
-#include<QPointF>
-#include<QVector>
-#include<geometry_msgs/Pose.h>
-#include<geometry_msgs/PoseArray.h>
+#ifndef MAP_H_
+#define MAP_H_
+#include "utils.h"
+#include <ostream>
+#include <cstdio>
 
-using namespace std;
+class QObject;
 
-enum {BridgeNode,RegGridNode};
-
-namespace SSPP
+class Map
 {
-
-class SearchSpaceNode
-	{
-	public :
-        geometry_msgs::Pose location;//uavposition TODO: change it later to uavLocation
-        geometry_msgs::PoseArray sensorLocation;//sensorposition
-        SearchSpaceNode * next;
-		int type,id;
-		QVector <SearchSpaceNode *>  children;
-		 SearchSpaceNode ();
-		~SearchSpaceNode ();
-	};
-}
-
-#endif /*SEARCHSPACENODE_H_*/
+public:
+    Map();
+    ~Map();
+    Map(int width, int height,double mapRes,geometry_msgs::Point center,Pose p);
+    Map(int width, int height, double resolution,  std::vector<unsigned char> rawData);
+    Map(float mapRes,Pose p);
+    Map(Pose p);
+    Map * clone();
+    void savePgm();
+    void scale(int newWidth,int newHeight);
+    // transfers from pixel coordinate to the main coordinate system
+    void convertPix(geometry_msgs::Pose *p);
+    // transfers from main coordinate to the pixel coordinate system
+    void convert2Pix(geometry_msgs::Pose *p);
+    int width, height;
+    float mapRes;
+    Pose global_pose;
+    // for OG-Maps
+    std::vector<unsigned char> rawData;
+    // for Planners
+    bool    ** grid, **temp;
+//    std::vector <geometry_msgs::Point> pointCloud; //not used
+    // Axis Center of the Map
+    geometry_msgs::Point center;
+};
+#endif /*MAP_H_*/

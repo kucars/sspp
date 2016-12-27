@@ -17,8 +17,6 @@
 #include <cassert>
 #include <iomanip>
 #include <math.h>
-#include <QPointF>
-#include <QVector>
 #include <geometry_msgs/Pose.h>
 
 //a few useful constants
@@ -350,9 +348,9 @@ inline void DeleteSTLMap(map& m)
 // Normalize angle to domain -pi, pi
 #define NORMALIZE(z) atan2(sin(z), cos(z))
 
-inline double Dist(QPointF a, QPointF b)
+inline double Dist(geometry_msgs::Point a, geometry_msgs::Point b)
 {
-	return sqrt(pow(a.x() - b.x(),2) + pow(a.y() - b.y(),2));
+    return sqrt(pow(a.x - b.x,2) + pow(a.y - b.y,2));
 }
 
 inline double Dist(geometry_msgs::Pose a, geometry_msgs::Pose b)
@@ -363,21 +361,25 @@ inline double Dist(geometry_msgs::Pose a, geometry_msgs::Pose b)
 class Line
 {
 	public:
-		QPointF start,end;
+        geometry_msgs::Point start,end;
         Line(){}
-        Line(QPointF a,QPointF b): start(a),end(b) {}
-		void SetStart(QPointF a) 
+        Line(geometry_msgs::Point a,geometry_msgs::Point b): start(a),end(b) {}
+        void SetStart(geometry_msgs::Point a)
 		{
 			start = a;
 		}
-		void SetEnd(QPointF a) 
+        void SetEnd(geometry_msgs::Point a)
 		{
 			end = a;
 		}
 		double LineMag()
 		{
-			QPointF V = end - start;
-			return sqrt(V.x()*V.x() + V.y()*V.y());
+            geometry_msgs::Point V;
+            V.x = end.x - start.x;
+            V.y = end.y - start.y;
+            V.z = end.z - start.z;
+
+            return sqrt(V.x*V.x + V.y*V.y);
 		}
 };
 
@@ -437,35 +439,41 @@ inline double anglediff(double alfa, double beta)
 	return Abs(diff);
 }
 
-inline double ATAN2(QPointF a,QPointF b)
+inline double ATAN2(geometry_msgs::Point a,geometry_msgs::Point b)
 {
-	return atan2(a.y() - b.y(), a.x() - b.x());
+    return atan2(a.y - b.y, a.x - b.x);
 }
 
-inline QPointF Rotate(QPointF p,double angle)
+inline geometry_msgs::Point Rotate(geometry_msgs::Point p,double angle)
 {
 	// Rotate 
-	QPointF temp; temp.setX(p.x()); temp.setY(p.y());
-	p.setX(temp.x()*cos(angle) - temp.y()*sin(angle));
-	p.setY(temp.x()*sin(angle) + temp.y()*cos(angle));
+    geometry_msgs::Point temp;
+    temp.x = p.x;
+    temp.y = p.y;
+    p.x = temp.x*cos(angle) - temp.y*sin(angle);
+    p.y = temp.x*sin(angle) + temp.y*cos(angle);
 	return p;
 }
 
-inline QPointF Trans2Global(QPointF p,Pose pose)
+inline geometry_msgs::Point Trans2Global(geometry_msgs::Point p,Pose pose)
 {
 	// Rotate + Translate
-	QPointF temp; temp.setX(p.x()); temp.setY(p.y());
-    p.setX(temp.x()*cos(pose.phi) - temp.y()*sin(pose.phi) + pose.p.position.x);
-    p.setY(temp.x()*sin(pose.phi) + temp.y()*cos(pose.phi) + pose.p.position.y);
+    geometry_msgs::Point temp;
+    temp.x = p.x;
+    temp.y = p.y;
+    p.x = temp.x*cos(pose.phi) - temp.y*sin(pose.phi) + pose.p.position.x;
+    p.y = temp.x*sin(pose.phi) + temp.y*cos(pose.phi) + pose.p.position.y;
 	return p;
 }
 
 inline Pose Trans2Global(Pose p,Pose pose)
 {
 	// Rotate + Translate
-    QPointF temp; temp.setX(p.p.position.x); temp.setY(p.p.position.y);
-    p.p.position.x = temp.x()*cos(pose.phi) - temp.y()*sin(pose.phi) + pose.p.position.x;
-    p.p.position.y = temp.x()*sin(pose.phi) + temp.y()*cos(pose.phi) + pose.p.position.y;
+    geometry_msgs::Point temp;
+    temp.x = p.p.position.x;
+    temp.y = p.p.position.y;
+    p.p.position.x = temp.x*cos(pose.phi) - temp.y*sin(pose.phi) + pose.p.position.x;
+    p.p.position.y = temp.x*sin(pose.phi) + temp.y*cos(pose.phi) + pose.p.position.y;
 	p.phi = NORMALIZE(p.phi + pose.phi);
 	return p;
 }
@@ -477,9 +485,9 @@ inline void MatrixMultipy(double a[2][2], double b[2], double c[2])
  	return;
 }
 
-inline double DotMultiply(QPointF p1,QPointF p2,QPointF p0)
+inline double DotMultiply(geometry_msgs::Point p1,geometry_msgs::Point p2,geometry_msgs::Point p0)
 {
-	return ((p1.x()-p0.x())*(p2.x()-p0.x())+(p1.y()-p0.y())*(p2.y()-p0.y()));
+    return ((p1.x-p0.x)*(p2.x-p0.x)+(p1.y-p0.y)*(p2.y-p0.y));
 }
 /*****************************************************************/
 typedef struct _tree

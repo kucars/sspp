@@ -19,7 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "searchspace.h"
+#include "sspp/searchspace.h"
 
 namespace SSPP
 {
@@ -104,6 +104,62 @@ SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry
     return temp;
 }
 
+SearchSpaceNode * SearchSpace::insertTempSearchSpace( geometry_msgs::PoseArray robotPoses, std::vector<geometry_msgs::PoseArray> correspondingSensorsPoses)
+{
+    SearchSpaceNode *temp;
+    SearchSpaceNode * space =NULL;
+    for(int i =0; i<robotPoses.poses.size(); i++)
+    {
+        if(!nodeExists(space,robotPoses.poses[i]))
+        {
+            // Constructing the ROOT NODE
+            if (space == NULL )
+            {
+                temp = new SearchSpaceNode;
+                temp->location.position          = robotPoses.poses[i].position;
+                temp->location.orientation       = robotPoses.poses[i].orientation;
+                for(int j=0; j<correspondingSensorsPoses.size(); j++)
+                {
+                    temp->sensorLocation.poses.push_back(correspondingSensorsPoses[j].poses[i]);
+                }
+                temp->next     = NULL;
+                temp->type     = RegGridNode;
+                //  temp->id 	   = id; //already inserted in the main searchspace
+                space    = temp;
+            }
+            else
+            {
+                temp = new SearchSpaceNode;
+                temp->location.position          = robotPoses.poses[i].position;
+                temp->location.orientation       = robotPoses.poses[i].orientation;
+                for(int j=0; j<correspondingSensorsPoses.size(); j++)
+                {
+                    temp->sensorLocation.poses.push_back(correspondingSensorsPoses[j].poses[i]);
+                }
+                temp->next   = space;
+                temp->type   = RegGridNode;
+                //  temp->id 	 = id; //already inserted in the main searchspace
+                space  = temp;
+            }
+        }
+    }
+    return temp;
+}
+SearchSpaceNode * SearchSpace::nodeExists(SearchSpaceNode * space, geometry_msgs::Pose nodePose)
+{
+    SearchSpaceNode *temp = space;
+
+    while (temp != NULL)
+    {
+
+        if(samePosition(nodePose,temp->location))
+            return temp;
+
+        temp = temp->next;
+    }
+    // node with the given location does not exist
+    return NULL;
+}
 
 SearchSpaceNode * SearchSpace::nodeExists(geometry_msgs::Pose nodePose)
 {
@@ -159,5 +215,16 @@ void SearchSpace:: freeSearchSpace()
         delete temp;
     };
 }
+void SearchSpace::freeTempSearchSpace(SearchSpaceNode * space)
+{
+    SearchSpaceNode *temp;
+    while (space != NULL)
+    {
+        temp = space;
+        space = space->next;
+        delete temp;
+    };
+}
+
 
 }

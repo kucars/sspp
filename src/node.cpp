@@ -19,7 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "node.h"
+#include "sspp/node.h"
 
 namespace SSPP
 {
@@ -29,8 +29,11 @@ Node :: Node ():
     g_value(0.0),
     h_value(0.0),
     f_value(0.0),
+    totalEntroby(0.0),
     distance(0.0),
-    coverage(0.0)
+    coverage(0.0),
+    coveredVoxelsNum(0),
+    coveredVolume(0.0)
 {
     parent = next = prev = NULL;
     cloud_filtered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);

@@ -19,31 +19,33 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#ifndef SEARCHSPACE_H_
-#define SEARCHSPACE_H_
-
-#include "searchspacenode.h"
-#include "utils.h"
+#ifndef LLIST_H_
+#define LLIST_H_
+#include <iostream>
+#include <sspp/node.h>
+#include "heuristic_interface.h"
+using namespace std;
 
 namespace SSPP
 {
 
-class SearchSpace
+class LList
 {
-public:
-    SearchSpaceNode * searchspace;
-    void freeSearchSpace();
-    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose);
-    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, int id);
-    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::PoseArray correspondingSensorsPoses);
-    SearchSpaceNode * insertNode(geometry_msgs::Pose nodePose, geometry_msgs::PoseArray correspondingSensorsPoses, int id);
-    SearchSpaceNode * nodeExists(geometry_msgs::Pose nodePose);
-    bool              removeNode(geometry_msgs::Pose nodePose);
-    SearchSpace();
-    virtual ~SearchSpace();
-    int idCount;
+public :
+    Node * 	Start;
+public :
+    LList();
+    ~LList();
+    void  add(Node *, bool ascending);
+    bool  remove(Node *);
+    void  print();
+    void  free();
+    Node *find(Node *);
+    void  next();
+    void  prev();
+    Node *getHead();
 };
 
 }
 
-#endif /*SEARCHSPACE_H_*/
+#endif /*LLIST_H_*/

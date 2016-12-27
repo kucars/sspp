@@ -22,12 +22,6 @@
 #ifndef ASTAR_H_
 #define ASTAR_H_
 
-#include <QPointF>
-#include <QHash>
-#include <QBitArray>
-#include <QVector>
-#include <QImage>
-#include <QString>
 #include <math.h>
 #include "llist.h"
 #include "node.h"
@@ -80,7 +74,17 @@ public:
     void setDebugDelay(double delay);
     int progressDisplayFrequency;
     Node*  astarSearch(Pose start);
+    Node*  tempChildList;
     double debugDelay;
+
+    ros::Publisher childPosePub;
+    ros::Publisher childSensorsPub;
+    ros::Publisher parentPosePub;
+    ros::Publisher parenSensorsPub;
+    ros::Publisher branchPub;
+    ros::Publisher octomapChildPub;
+    int nodeToBeVisNum, nodesCounter;
+
 };
 
 }

@@ -19,7 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "astar.h"
+#include "sspp/astar.h"
 
 namespace SSPP
 {
@@ -36,6 +36,15 @@ Astar::Astar(ros::NodeHandle & n, Robot *rob, int progressDisplayFrequency):
     progressDisplayFrequency(progressDisplayFrequency),
     debugDelay(0)
 {    
+    childPosePub         = nh.advertise<geometry_msgs::PoseArray>("child_pose",10);
+    childSensorsPub      = nh.advertise<geometry_msgs::PoseArray>("child_sensors",10);
+    parentPosePub        = nh.advertise<geometry_msgs::PoseArray>("parent_pose",10);
+    parenSensorsPub      = nh.advertise<geometry_msgs::PoseArray>("parent_sensors",10);
+    branchPub            = nh.advertise<visualization_msgs::Marker>("branch",10);
+    octomapChildPub      = nh.advertise<octomap_msgs::Octomap>("octomap_child", 10);
+
+    nodeToBeVisNum       = 0;//if 0 then it will continue planning till the target otherwise it will stop planning on the specified viewpoint number and will visualize the steps of choosing next viewpoint
+    nodesCounter         = 0;
 }
 
 Astar::Astar():
@@ -122,7 +131,7 @@ void Astar::findRoot() throw (SSPPException)
     heuristic->calculateHeuristic(root);
     root->depth = 0;
     //Translate(root->pose,start.phi);
-    std::cout<<"\n"<<QString("	---->>>Root is Set to be X=%1 Y=%2 Z=%3").arg(root->pose.p.position.x).arg(root->pose.p.position.y).arg(root->pose.p.position.z).toStdString();
+    std::cout<<"\n"<<"	---->>>Root is Set to be X="<<root->pose.p.position.x<<" Y="<<root->pose.p.position.y<<" Z="<<root->pose.p.position.z;
 }
 
 
@@ -194,12 +203,12 @@ Node *Astar::astarSearch(Pose start)
         NodesExpanded++;
 
         // We reached the target pose, so build the path and return it.
-        if (heuristic->terminateConditionReached(current) && current!= root)
+        if ((heuristic->terminateConditionReached(current) && current!= root) || (nodesCounter==nodeToBeVisNum && nodeToBeVisNum!=0))
         {
             //the last node in the path
             current->next = NULL;
             std::cout<<"*************commulative distance : "<<current->distance<<"************ \n";
-            std::cout<<"\n"<<QString("	--->>> Goal state reached with :%1 nodes created and :%2 nodes expanded <<<---").arg(ID).arg(NodesExpanded).toStdString();
+            std::cout<<"\n"<<"	--->>> Goal state reached with :"<<ID<< "nodes created and :"<<NodesExpanded<<" nodes expanded <<<---";
             fflush(stdout);
             p = current;
             path = NULL;
@@ -228,6 +237,9 @@ Node *Astar::astarSearch(Pose start)
             std::cout<<"\n	--->>> Search Ended On this Branch / We Reached a DEAD END <<<---";
         }
         // insert the children into the OPEN list according to their f values
+        nodesCounter++;
+        geometry_msgs::PoseArray childPose,parentPose, childSensors, parentSensors;
+        std::vector<geometry_msgs::Point> lineSegments;
         while (childList != NULL)
         {
             curChild  = childList;
@@ -240,6 +252,77 @@ Node *Astar::astarSearch(Pose start)
             curChild->prev = NULL;
             // calculate f_value
             heuristic->calculateHeuristic(curChild);
+
+
+            //display the child and the octree
+            if(nodesCounter == nodeToBeVisNum && nodeToBeVisNum != 0)
+            {
+                geometry_msgs::Pose parent;
+
+                geometry_msgs::Pose child;
+                geometry_msgs::Point linePoint;
+
+                std::cout<<"I entered tree childrens of the desired node "<<std::endl;
+
+                child = curChild->pose.p;
+                parent = current->pose.p;
+                childPose.poses.push_back(child);
+                parentPose.poses.push_back(parent);
+                for(int i=0; i<curChild->senPoses.size();i++)
+                {
+                    childSensors.poses.push_back(curChild->senPoses[i].p);
+                    parentSensors.poses.push_back(current->senPoses[i].p);
+                }
+
+                linePoint.x = current->pose.p.position.x;
+                linePoint.y = current->pose.p.position.y;
+                linePoint.z = current->pose.p.position.z;
+                lineSegments.push_back(linePoint);
+                linePoint.x = child.position.x;
+                linePoint.y = child.position.y;
+                linePoint.z = child.position.z;
+                lineSegments.push_back(linePoint);
+
+                //visualization
+                childPose.header.frame_id= "map";
+                childPose.header.stamp = ros::Time::now();
+                childPosePub.publish(childPose);
+                childSensors.header.frame_id= "map";
+                childSensors.header.stamp = ros::Time::now();
+                childSensorsPub.publish(childSensors);
+                parentPose.header.frame_id= "map";
+                parentPose.header.stamp = ros::Time::now();
+                parentPosePub.publish(parentPose);
+                parentSensors.header.frame_id= "map";
+                parentSensors.header.stamp = ros::Time::now();
+                parenSensorsPub.publish(parentSensors);
+                visualization_msgs::Marker linesList1 = drawLines(lineSegments,1,6,100000,0.1);
+                branchPub.publish(linesList1);
+
+
+                octomap_msgs::Octomap octomap ;
+                octomap.binary = 1 ;
+                octomap.id = 1 ;
+                octomap.resolution =0.25;
+                octomap.header.frame_id = "map";
+                octomap.header.stamp = ros::Time::now();
+                bool res = octomap_msgs::fullMapToMsg(*curChild->octree, octomap);
+                if(res)
+                {
+                    octomapChildPub.publish(octomap);
+                }
+                else
+                {
+                    ROS_WARN("OCT Map serialization failed!");
+                }
+                childSensors.poses.erase(childSensors.poses.begin(),childSensors.poses.end() );
+                childPose.poses.erase(childPose.poses.begin(),childPose.poses.end() );
+                lineSegments.erase(lineSegments.begin(), lineSegments.end());
+                ros::Duration(2).sleep();
+            }
+
+
+
             globalcount++;
             Node * p;
             if(debug)
@@ -258,6 +341,8 @@ Node *Astar::astarSearch(Pose start)
                     condition = (p->f_value >=curChild->f_value);
                 if (condition)
                 {
+                    //TODO: remove it later, it is used for memory usage reduction ... information gain heuristic (uses octree) and the distance heuritic uses cost function (doesn't use octree)
+                    //curChild->octree->clear();
                     freeNode(curChild);
                     curChild = NULL;
                 }
@@ -291,6 +376,8 @@ Node *Astar::astarSearch(Pose start)
                     {
                         if (debug)
                             std::cout<<"Free the node the closed list check, parent is bigger than the child"<<"\n";
+                        //TODO: remove it later, it is used for memory usage reduction ... information gain heuristic (uses octree) and the distance heuritic uses cost function (doesn't use octree)
+                        //curChild->octree->clear();
                         freeNode(curChild);
                         curChild = NULL;
                     }
@@ -318,6 +405,8 @@ Node *Astar::astarSearch(Pose start)
                 openList->add(curChild,heuristic->isCost());
             }
         }
+
+
         // put the current node onto the closed list, ==>> already visited List
         closedList->add(current,heuristic->isCost());
         // Test to see if we have expanded too many nodes without a solution
@@ -340,7 +429,7 @@ Node *Astar::astarSearch(Pose start)
 Node *Astar::makeChildrenNodes(Node *parent)
 {
     geometry_msgs::Pose P;
-    Node  *p, *q;
+    Node  *p, *q, *r;
     SearchSpaceNode *temp;
 
     P.position.x  = parent->pose.p.position.x;
@@ -403,11 +492,19 @@ Node *Astar::makeChildrenNodes(Node *parent)
 
         }
 
-        p->id = temp->children[i]->id;
-        t.children.push_back(p->pose.p);
-        p->parent = parent;
-        p->next = q;
-        q = p;
+        //To avoid choosing already selected parent as a child
+        if((r=closedList->find(p)))
+        {
+
+        }else
+        {
+            p->id = temp->children[i]->id;
+            t.children.push_back(p->pose.p);
+            p->parent = parent;
+            p->next = q;
+            q = p;
+        }
+
     }
     // Save the search tree so that it can be displayed later
     if (t.children.size() > 0)

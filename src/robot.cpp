@@ -19,7 +19,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
-#include "robot.h"
+#include "sspp/robot.h"
 
 //! Consturctor for the Robot Class
 /*! This constructor take the following Parameters:
@@ -31,7 +31,7 @@
  * @param center is a #Point variable representing the position of the center of rotation of the Robot with respect
  * to the center of Area. This is also used for collision detection.
  */
-Robot::Robot(std::string name,double length,double width,double narrowDist,QPointF center, double safetyTolerance):
+Robot::Robot(std::string name,double length,double width,double narrowDist,geometry_msgs::Point center, double safetyTolerance):
 robotLength(length),
 robotWidth(width),
 narrowestPathDist(narrowDist),
@@ -71,8 +71,8 @@ int Robot::readConfigs(ros::NodeHandle nh,std::string nameSpace)
     nh.param<double>("/robotCenterX",robotCenterX, 0);
     nh.param<double>("/robotCenterY",robotCenterY, 0);
     nh.param<double>("/safetyTolerance",safetyTolerance, 0.05);
-    robotCenter.setX(robotCenterX);
-    robotCenter.setY(robotCenterY);
+    robotCenter.x = robotCenterX;
+    robotCenter.y = robotCenterY;
 
     return 1;
 }
@@ -103,15 +103,16 @@ void Robot::setCheckPoints(double obst_r)
     check_points.clear();
 
     // The edges of the robot in -ve quadrant
-    QPointF temp,edges[4];
-    edges[0].setX(-l/2);		edges[0].setY(w/2);
-    edges[1].setX(l/2);			edges[1].setY(w/2);
-    edges[2].setX(l/2);			edges[2].setY(-w/2);
-    edges[3].setX(-l/2);		edges[3].setY(-w/2);
-    Pose pose(-robotCenter.x(),-robotCenter.y(),0,0);
+//    local_edge_points temp,edges[4];RRRR
+    geometry_msgs::Point temp,edges[4];
+    edges[0].x = -l/2;		edges[0].y = w/2;
+    edges[1].x =  l/2;		edges[1].y = w/2;
+    edges[2].x =  l/2;		edges[2].y = -w/2;
+    edges[3].x = -l/2;		edges[3].y = -w/2;
+    Pose pose(-robotCenter.x,-robotCenter.y,0,0);
     // I am determining here the location of the edges in the robot coordinate system
-    startx = -l/2 - robotCenter.x();
-    starty = -w/2 - robotCenter.y();
+    startx = -l/2 - robotCenter.x;
+    starty = -w/2 - robotCenter.y;
     // These Points are used for drawing the Robot rectangle
     for(int s=0;s<4;s++)
     {
@@ -130,8 +131,8 @@ void Robot::setCheckPoints(double obst_r)
         for (int s=0;s < points_per_width;s++)
         {
             // Angle zero is when robot heading points to the right (right had rule)
-            temp.setX(i);
-            temp.setY(j);
+            temp.x = i;
+            temp.y = j;
             check_points.push_back(temp);
             point_index++;
             /* Determining the next center it should be 2*r away from the previous
@@ -154,7 +155,7 @@ void Robot::setCheckPoints(double obst_r)
     }
     for (int k=0;k<check_points.size();k++)
     {
-        check_points[k].setY(0);
+        check_points[k].y=0;
         fflush(stdout);
     }
     findR();
@@ -165,7 +166,10 @@ void Robot::findR()
     double dist,max_dist=-10;
     for (int i = 0; i < 4; i++)
     {
-        dist = Dist(QPointF(0,0),local_edge_points[i]);
+        geometry_msgs::Pose pt1,pt2;
+        pt1.position.x = 0; pt1.position.y = 0; pt1.position.z = 0;
+        pt2.position = local_edge_points[i];
+        dist = Dist(pt1,pt2);
         if (dist > max_dist)
             max_dist = dist;
     }

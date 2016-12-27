@@ -20,7 +20,7 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
 
-#include "pathplanner.h"
+#include "sspp/pathplanner.h"
 #include "ros/ros.h"
 #include <ros/package.h>
 #include <tf/tf.h>
@@ -33,9 +33,9 @@
 
 #include <component_test/occlusion_culling_gpu.h>
 #include <component_test/occlusion_culling.h>
-#include "coverage_path_planning_heuristic.h"
-#include "distance_heuristic.h"
-#include "rviz_drawing_tools.h"
+#include "sspp/coverage_path_planning_heuristic.h"
+#include "sspp/distance_heuristic.h"
+#include "sspp/rviz_drawing_tools.h"
 #include "rviz_visual_tools/rviz_visual_tools.h"
 //#include <component_test/mesh_surface.h>
 using namespace SSPP;
@@ -54,6 +54,8 @@ int main( int argc, char **  argv)
     ros::Publisher sensorPosePub     = nh.advertise<geometry_msgs::PoseArray>("sensor_pose", 10);
     ros::Publisher robotPoseSSPub    = nh.advertise<geometry_msgs::PoseArray>("SS_robot_pose", 10);
     ros::Publisher sensorPoseSSPub   = nh.advertise<geometry_msgs::PoseArray>("SS_sensor_pose", 10);
+    ros::Publisher octomapPub        = nh.advertise<octomap_msgs::Octomap>("octomap", 1);
+
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr originalCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::io::loadPCDFile<pcl::PointXYZ> (ros::package::getPath("component_test")+"/src/pcd/etihad_nowheels_nointernal_scaled_newdensed.pcd", *originalCloudPtr);
@@ -66,31 +68,33 @@ int main( int argc, char **  argv)
     visualTools->deleteAllMarkers();
     visualTools->setLifetime(0.2);
 
-    QTime timer;
+    ros::Time timer_start = ros::Time::now();
     geometry_msgs::Pose gridStartPose;
     geometry_msgs::Vector3 gridSize;
-    gridStartPose.position.x = -36 ;
-    gridStartPose.position.y = -45 ;
-    gridStartPose.position.z = 0 ;
-    gridSize.x = 72;
-    gridSize.y = 90;
-    gridSize.z = 21;
+    gridStartPose.position.x = -18;//-18
+    gridStartPose.position.y = -25 ;//-25
+    gridStartPose.position.z = 1 ;//1
+    gridSize.x = 36;//36
+    gridSize.y = 50;//50
+    gridSize.z = 15;//15
 
     PathPlanner * pathPlanner;
-    Pose start(3.0,-34.0,9,DTOR(0.0));
+    Pose start(3.0,-34.5,9,DTOR(0.0));
     Pose   end(19.0,7.0,2,DTOR(0.0));
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
     double distanceToGoal = 1.0,regGridConRad = 2.5;
 
-    QPointF robotCenter(-0.3f,0.0f);
+    geometry_msgs::Point robotCenter;
+    robotCenter.x = -0.3f;
+    robotCenter.y = 0.0f;
     Robot *robot= new Robot("Robot",robotH,robotW,narrowestPath,robotCenter);
-    Sensors sensor1(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0,-0.055), Vec3f(0,0.093,0));
-    Sensors sensor2(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0,0.055), Vec3f(0,0.0,0));
+    Sensors sensor1(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0.022,0.065), Vec3f(0,-0.349,0));
+    Sensors sensor2(58,45,0.255,0.7,6.0,640,480,Vec3f(0,0.022,-0.065), Vec3f(0,0.349,0));
 
     std::vector<Sensors> sensors;
     sensors.push_back(sensor1);
-//    sensors.push_back(sensor2);
+    sensors.push_back(sensor2);
 
     // Every how many iterations to display the tree
     int progressDisplayFrequency = 1;
@@ -100,10 +104,10 @@ int main( int argc, char **  argv)
 
 
 
-    double coverageTolerance=1.0, targetCov=10;
+    double coverageTolerance=1.0, targetCov=20;
     std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels_nointernal_scaled_new.obj";
     std::string occlusionCullingModelName = "etihad_nowheels_nointernal_scaled_newdensed.pcd";
-    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, VolumetricCoverageH);
+    CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, InfoGainVolumetricH);
     coveragePathPlanningHeuristic.setCoverageTarget(targetCov);
     coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
     pathPlanner->setHeuristicFucntion(&coveragePathPlanningHeuristic);
@@ -115,7 +119,7 @@ int main( int argc, char **  argv)
     const char * filename1 = str1.c_str();
     const char * filename2 = str2.c_str();
     const char * filename3 = str3.c_str();
-    pathPlanner->loadRegularGrid(filename1,filename2,filename3);
+//    pathPlanner->loadRegularGrid(filename1,filename2,filename3);
     /*
     DistanceHeuristic distanceHeuristic(nh,false);
     distanceHeuristic.setEndPose(end.p);
@@ -124,25 +128,28 @@ int main( int argc, char **  argv)
     */
     // Generate Grid Samples and visualise it
 //    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.5,true,180,true);
-    std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
-    std::cout<<"\n"<<QString("\n---->>> Total Nodes in search Space =%1").arg(searchSpaceNodes.size()).toStdString();
-    geometry_msgs::PoseArray robotPoseSS,sensorPoseSS;
-    pathPlanner->getRobotSensorPoses(robotPoseSS,sensorPoseSS);
-    visualization_msgs::Marker searchSpaceMarker = drawPoints(searchSpaceNodes,2,1000000);
-//    visualTools->publishSpheres(searchSpaceNodes,rviz_visual_tools::PURPLE,0.1,"search_space_nodes");
+
 
     // Connect nodes and visualise it
-    pathPlanner->connectNodes();
-    std::cout<<"\nSpace Generation took:"<<timer.elapsed()/double(1000.00)<<" secs";
+//    pathPlanner->connectNodes();
+    pathPlanner->dynamicNodesGenerationAndConnection(gridStartPose,gridSize,4.5,1.5);
+    std::cout<<"\nSpace Generation took:"<<double(ros::Time::now().toSec() - timer_start.toSec())<<" secs";
     std::vector<geometry_msgs::Point> searchSpaceConnections = pathPlanner->getConnections();
     visualization_msgs::Marker connectionsMarker = drawLines(searchSpaceConnections,10000,3,100000000,0.03);
 
-//    visualTools->publishPath(searchSpaceConnections, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE,"search_space");
+    std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
+    std::cout<<"\n\n---->>> Total Nodes in search Space ="<<searchSpaceNodes.size();
+    geometry_msgs::PoseArray robotPoseSS,sensorPoseSS;
+    pathPlanner->getRobotSensorPoses(robotPoseSS,sensorPoseSS);
+    visualization_msgs::Marker searchSpaceMarker = drawPoints(searchSpaceNodes,2,1000000);
+    visualTools->publishSpheres(searchSpaceNodes,rviz_visual_tools::PURPLE,0.1,"search_space_nodes");
+
 
     // Find path and visualise it
-    timer.restart();
+    ros::Time timer_restart = ros::Time::now();
     Node * path = pathPlanner->startSearch(start);
-    std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
+    ros::Time timer_end = ros::Time::now();
+    std::cout<<"\nPath Finding took:"<<double(timer_end.toSec() - timer_restart.toSec())<<" secs";
 
     //path print and visualization
     if(path)
@@ -153,7 +160,7 @@ int main( int argc, char **  argv)
     {
         std::cout<<"\nNo Path Found";
     }
-    std::cout<<"\nPath Finding took:"<<(timer.elapsed()/double(1000.00))<<" secs";
+    std::cout<<"\nPath Finding took:"<<double(timer_end.toSec() - timer_restart.toSec())<<" secs";
 
     geometry_msgs::Point linePoint;
     std::vector<geometry_msgs::Point> pathSegments;
@@ -167,13 +174,18 @@ int main( int argc, char **  argv)
     std::stringstream ss,cc;
     ss << targetCov;
     cc <<regGridConRad;
-    std::string file_loc = ros::package::getPath("sspp")+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests1to4_"+occlusionCullingModelName+"volumetricGPU.txt";
+    std::string file_loc = ros::package::getPath("sspp")+"/resources/"+cc.str()+"_"+ss.str()+"%path_newtests1to4_"+occlusionCullingModelName+"scaledGPU_NewIG_Dynamic.txt";
     pathFile.open (file_loc.c_str());
+    octomap::OcTree* oct;
+    std::vector<double> accuracyPerViewpointAvg;
+    double accuracySum = 0;
     while(path !=NULL)
     {
         tf::Quaternion qt(path->pose.p.orientation.x,path->pose.p.orientation.y,path->pose.p.orientation.z,path->pose.p.orientation.w);
         yaw = tf::getYaw(qt);
         pathFile << path->pose.p.position.x<<" "<<path->pose.p.position.y<<" "<<path->pose.p.position.z<<" "<<yaw<<"\n";
+        pcl::PointCloud<pcl::PointXYZ> temp;
+
         if (path->next !=NULL)
         {
             linePoint.x = path->pose.p.position.x;
@@ -198,21 +210,30 @@ int main( int argc, char **  argv)
                 sensorPose.poses.push_back(path->next->senPoses[i].p);
                 temp_cloud=occlusionCulling.extractVisibleSurface(path->next->senPoses[i].p);
                 combined += temp_cloud;
+                temp += temp_cloud;
             }
+            double avgAcc = occlusionCulling.calcAvgAccuracy(temp);
+            double a = (occlusionCulling.maxAccuracyError - occlusionCulling.calcAvgAccuracy(temp))/occlusionCulling.maxAccuracyError;
+            accuracyPerViewpointAvg.push_back(a);
+            accuracySum += avgAcc;
             pathSegments.push_back(linePoint);
 
             dist=dist+ Dist(path->next->pose.p,path->pose.p);
+        }else{
+            if(coveragePathPlanningHeuristic.getHeuristicType() == InfoGainVolumetricH)
+                oct = new octomap::OcTree(*path->octree);
         }
         path = path->next;
     }
     pathFile.close();
-//    visualTools->publishPath(pathSegments, rviz_visual_tools::RED, rviz_visual_tools::LARGE,"generated_path");
-    visualization_msgs::Marker pathMarker = drawLines(pathSegments,20000,1,10000000,0.08);
+    visualTools->publishPath(pathSegments, rviz_visual_tools::RED, rviz_visual_tools::LARGE,"generated_path");
+    visualization_msgs::Marker pathMarker = drawLines(pathSegments,20000,1,10000000,0.1);
     coveredCloudPtr->points=combined.points;
 
     ros::Rate loopRate(10);
     std::cout<<"\nDistance calculated from the path: "<<dist<<"m\n";
     std::cout<<"Covered Cloud % : "<<occlusionCulling.calcCoveragePercent(coveredCloudPtr)<<"%\n";
+    std::cout<<"Average Accuracy per viewpoint is "<<accuracySum/accuracyPerViewpointAvg.size()<<std::endl;
 
     sensor_msgs::PointCloud2 cloud1,cloud2;
     while (ros::ok())
@@ -227,6 +248,24 @@ int main( int argc, char **  argv)
         visualTools->publishPath(searchSpaceConnections, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE,"search_space");
         visualTools->publishPath(pathSegments, rviz_visual_tools::RED, rviz_visual_tools::LARGE,"generated_path");
         */
+        if( coveragePathPlanningHeuristic.getHeuristicType() == InfoGainVolumetricH)
+        {
+            octomap_msgs::Octomap octomap ;
+            octomap.binary = 1 ;
+            octomap.id = 1 ;
+            octomap.resolution =0.25;
+            octomap.header.frame_id = "map";
+            octomap.header.stamp = ros::Time::now();
+            bool res = octomap_msgs::fullMapToMsg(*oct, octomap);
+            if(res)
+            {
+                octomapPub.publish(octomap);
+            }
+            else
+            {
+                ROS_WARN("OCT Map serialization failed!");
+            }
+        }
 
         pcl::toROSMsg(*originalCloudPtr, cloud1); //cloud of original (white) using original cloud
         cloud1.header.stamp = ros::Time::now();

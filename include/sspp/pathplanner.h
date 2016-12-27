@@ -22,8 +22,7 @@
 #ifndef PATHPLANNER_H_
 #define PATHPLANNER_H_
 
-#include <astar.h>
-#include <QTime>
+#include <sspp/astar.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <Eigen/Eigen>
@@ -48,7 +47,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/array.hpp>
 #include <boost/foreach.hpp>
-#include <sensors.h>
+#include <sspp/sensors.h>
+#include <pcl/point_cloud.h>
+#include <pcl/kdtree/kdtree_flann.h>
+
 //using namespace fcl;
 namespace SSPP
 {
@@ -68,8 +70,11 @@ namespace SSPP
         void   printLastPath();
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize);
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize, float gridRes);
-        void   generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations=false, float orientationRes=360, bool samplesFiltering=false);
+        void   generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations=false, float orientationRes=360, bool samplesFiltering=false, bool insertSearchSpace=true);
         void   connectNodes();
+        void   connectClustersInternalNodes(SearchSpaceNode * space, double connRadius);
+        void   dynamicNodesGenerationAndConnection(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize, double startRes, double resDecrement); //for dynamic sampling
+        void   connectToNN(pcl::PointCloud<pcl::PointXYZ> cloudHull1, pcl::PointCloud<pcl::PointXYZ> cloudHull2);
         void   disconnectNodes();
         void   blockPath(Node* path);
         Node * startSearch(Pose startPose);
@@ -86,6 +91,7 @@ namespace SSPP
         bool sampleOrientations;
         bool samplesFiltering;
         bool multiAgentSupport;
+        bool insertSearchSpace;
         /*!
          * \brief gridResolution
          * Grid Resolution in meters used while generating the samples
@@ -96,6 +102,10 @@ namespace SSPP
          * Orientation resolution in degrees used while generating the samples
          */
         float orientationResolution;
+        pcl::PointCloud<pcl::PointXYZ> globalCloud;
+        std::vector<pcl::PointCloud<pcl::PointXYZ> > accuracyClusters;
+        geometry_msgs::PoseArray robotFilteredPoses;
+        std::vector<geometry_msgs::PoseArray> sensorsFilteredPoses;
         std::vector<Node*> paths;
     private:
 };
