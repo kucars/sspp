@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(sspp)
 SET ( CMAKE_CXX_FLAGS "-frounding-math" )
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-#set(CMAKE_BUILD_TYPE "Debug")
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -18,12 +16,14 @@ find_package(catkin REQUIRED COMPONENTS
   rviz_visual_tools
   )
 
+# Few differences when dealing with ros-indigo and ros-kinetic
 set( ROS_DISTRO $ENV{ROS_DISTRO} )
 if( ${ROS_DISTRO} STREQUAL "indigo" )
     find_package(fcl REQUIRED)
 elseif(${ROS_DISTRO} STREQUAL "kinetic")
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBFCL REQUIRED fcl)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 else()
     message("Unsupported ROS Distro")
 endif()
@@ -60,18 +60,12 @@ include_directories(include
   ${OCTOMAP_INCLUDE_DIRS}
 )
 
-#pkg_check_modules(PLAYER REQUIRED playercore playerc++ playerc)
-
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # Set include directories
-# include_directories(include ${QT_INCLUDES})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
-#add_definitions(-DQT_NO_KEYWORDS)
-
-
 
 add_library(SSPathPlanner SHARED
     src/astar.cpp
@@ -91,6 +85,7 @@ add_library(SSPathPlanner SHARED
 target_link_libraries(SSPathPlanner
     ${OCTOMAP_LIBRARIES}
     )
+
 add_executable(distance_heuristic_test src/distance_heuristic_test.cpp)
 target_include_directories(distance_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS})
 target_link_libraries(distance_heuristic_test SSPathPlanner
