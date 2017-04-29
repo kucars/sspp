@@ -33,6 +33,9 @@ DistanceHeuristic::DistanceHeuristic(ros::NodeHandle & nh, bool d)
 {
     debug   = d;
     treePub = nh.advertise<visualization_msgs::Marker>("search_tree", 10);
+    pathPointPub = nh.advertise<visualization_msgs::Marker>("path_point" , 10);
+    pathPub = nh.advertise<visualization_msgs::Marker>("path_testing", 10);
+
 }
 
 double DistanceHeuristic::gCost(Node *node)
@@ -58,6 +61,24 @@ bool DistanceHeuristic::terminateConditionReached(Node *node)
 {
     double deltaDist;
     deltaDist = Dist(node->pose.p,endPose);
+    geometry_msgs::Point linept;
+    linept.x = node->pose.p.position.x; linept.y = node->pose.p.position.y; linept.z = node->pose.p.position.z;
+    points.push_back(linept);
+    visualization_msgs::Marker pointsList = drawPoints(points,3,10000);
+    pathPointPub.publish(pointsList);
+
+    if(node->parent)
+    {
+        linepoint.x = node->pose.p.position.x; linepoint.y =  node->pose.p.position.y; linepoint.z = node->pose.p.position.z;
+        lines.push_back(linepoint);
+        linepoint.x = node->parent->pose.p.position.x; linepoint.y = node->parent->pose.p.position.y; linepoint.z = node->parent->pose.p.position.z;
+        lines.push_back(linepoint);
+        visualization_msgs::Marker linesList = drawLines(lines,333333,1,1000000,0.2);
+        pathPub.publish(linesList);
+    }
+//    std::cout<<"\n\n ****************** Delta distance %: "<<deltaDist <<" **************************"<<std::endl;
+//    std::cout<<"\n\n ****************** node pose : ( "<<node->pose.p.position.x <<", "<<node->pose.p.position.y<<", "<<node->pose.p.position.z<<" )**************************"<<std::endl;
+
     if ( deltaDist <= tolerance2Goal)
         return true;
     else

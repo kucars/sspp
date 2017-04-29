@@ -45,7 +45,7 @@ int main( int argc, char **  argv)
     ros::init(argc, argv, "path_planning");
     ros::NodeHandle nh;
     ros::Publisher robotPosePub      = nh.advertise<geometry_msgs::PoseArray>("robot_pose", 10);
-    ros::Publisher sensorPosePub     = nh.advertise<geometry_msgs::PoseArray>("sensor_pose", 10);
+    std::vector<ros::Publisher> sensorsPoseSSPub;
     rviz_visual_tools::RvizVisualToolsPtr visualTools;
     visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/sspp_visualisation"));
     visualTools->deleteAllMarkers();
@@ -95,8 +95,9 @@ int main( int argc, char **  argv)
     // Generate Grid Samples and visualise it
     pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.0,false,180,false,true);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
-    geometry_msgs::PoseArray robotPoseSS,sensorPoseSS;
-    pathPlanner->getRobotSensorPoses(robotPoseSS,sensorPoseSS);
+    std::vector<geometry_msgs::PoseArray> sensorsPoseSS;
+    geometry_msgs::PoseArray robotPoseSS;
+    pathPlanner->getRobotSensorPoses(robotPoseSS,sensorsPoseSS);
     std::cout<<"\n\n---->>> Total Nodes in search Space ="<<searchSpaceNodes.size();
     visualTools->publishSpheres(searchSpaceNodes,rviz_visual_tools::PURPLE,0.1,"search_space_nodes");
 
@@ -155,6 +156,13 @@ int main( int argc, char **  argv)
     }
     visualTools->publishPath(pathSegments, rviz_visual_tools::RED, rviz_visual_tools::LARGE,"generated_path");
 
+
+    for(int i = 0; i<sensorsPoseSS.size(); i++)
+    {
+        ros::Publisher  sensorPoseSSPub   = nh.advertise<geometry_msgs::PoseArray>("sensor_pose_"+boost::lexical_cast<std::string>(i), 10);
+        sensorsPoseSSPub.push_back(sensorPoseSSPub);
+    }
+
     ros::Rate loopRate(10);
     std::cout<<"\nDistance calculated from the path: "<<dist<<"m\n";
     while (ros::ok())
@@ -171,9 +179,12 @@ int main( int argc, char **  argv)
         robotPoseSS.header.stamp = ros::Time::now();
         robotPosePub.publish(robotPoseSS);
 
-        sensorPoseSS.header.frame_id= "map";
-        sensorPoseSS.header.stamp = ros::Time::now();
-        sensorPosePub.publish(sensorPoseSS);
+        for(int i = 0 ; i<sensorsPoseSS.size(); i++)
+        {
+            sensorsPoseSS[i].header.frame_id= "map";
+            sensorsPoseSS[i].header.stamp = ros::Time::now();
+            sensorsPoseSSPub[i].publish(sensorsPoseSS[i]);
+        }
         ros::spinOnce();
         loopRate.sleep();
     }

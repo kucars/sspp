@@ -6,8 +6,14 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /Grid1
+        - /covered point cloud1
+        - /original point cloud1
+        - /gradual_coverage1
         - /UAV location1
         - /sensor location1
+        - /SS sensor 01
+        - /SS sensor 11
       Splitter Ratio: 0.5
     Tree Height: 719
   - Class: rviz/Selection
@@ -36,7 +42,7 @@ Visualization Manager:
       Cell Size: 1
       Class: rviz/Grid
       Color: 160; 160; 164
-      Enabled: true
+      Enabled: false
       Line Style:
         Line Width: 0.03
         Value: Lines
@@ -47,9 +53,9 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 10
+      Plane Cell Count: 160
       Reference Frame: <Fixed Frame>
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /generated_path
@@ -59,13 +65,13 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /search_tree
       Name: search_tree
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /search_space
@@ -105,8 +111,8 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 5
-      Size (m): 0.15
-      Style: Spheres
+      Size (m): 0.5
+      Style: Boxes
       Topic: occlusion_free_cloud
       Unreliable: false
       Use Fixed Frame: true
@@ -134,9 +140,9 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 5
-      Size (m): 0.1
-      Style: Flat Squares
+      Size (Pixels): 4
+      Size (m): 0.6
+      Style: Points
       Topic: original_point_cloud
       Unreliable: false
       Use Fixed Frame: true
@@ -151,10 +157,10 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
-      Color: 255; 0; 127
+      Color: 71; 194; 255
       Color Transformer: FlatColor
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 0; 127
       Max Intensity: 4096
@@ -165,13 +171,13 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 9
-      Size (m): 0.1
+      Size (m): 1
       Style: Boxes
       Topic: gradual_coverage
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Arrow Length: 0.8
       Class: rviz/PoseArray
       Color: 232; 138; 255
@@ -215,19 +221,27 @@ Visualization Manager:
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 170; 0; 255
-      Enabled: false
+      Enabled: true
       Name: SS robot
       Topic: SS_robot_pose
       Unreliable: false
-      Value: false
+      Value: true
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 0; 255; 127
-      Enabled: false
-      Name: SS sensor
-      Topic: SS_sensor_pose
+      Enabled: true
+      Name: SS sensor 0
+      Topic: /SS_sensor_pose_0
       Unreliable: false
-      Value: false
+      Value: true
+    - Arrow Length: 0.3
+      Class: rviz/PoseArray
+      Color: 238; 255; 47
+      Enabled: true
+      Name: SS sensor 1
+      Topic: /SS_sensor_pose_1
+      Unreliable: false
+      Value: true
     - Class: octomap_rviz_plugin/OccupancyGrid
       Enabled: true
       Max. Octree Depth: 16
@@ -344,22 +358,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 31.9277
+      Distance: 36.3919
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.852802
-        Y: -3.01993
-        Z: 3.02137
+        X: 5.61968
+        Y: 2.08759
+        Z: 18.8436
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.659794
+      Pitch: 0.304799
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.67059
+      Yaw: 5.36737
     Saved: ~
 Window Geometry:
   Displays:

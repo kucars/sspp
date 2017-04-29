@@ -87,6 +87,7 @@ public:
     void setCoverageTarget(double coverageTarget);
     void setCoverageTolerance(double coverageTolerance);
     void setDebug(bool debug);
+    void setMaxMinSensorAccuracy(std::vector<geometry_msgs::PoseArray> sensorsViewsSS);
     void calculateHeuristic(Node *n);
     bool terminateConditionReached(Node *node);
     bool isConnectionConditionSatisfied(SearchSpaceNode *temp, SearchSpaceNode *S);

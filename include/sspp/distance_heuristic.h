@@ -57,6 +57,12 @@ private:
     geometry_msgs::Pose endPose;
     double tolerance2Goal;
     ros::Publisher treePub;
+    ros::Publisher pathPointPub;
+    ros::Publisher pathPub;
+    std::vector<geometry_msgs::Point> points;
+    std::vector<geometry_msgs::Point> lines;
+    geometry_msgs::Point linepoint;
+
 };
 
 }

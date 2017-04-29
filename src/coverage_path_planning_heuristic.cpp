@@ -71,7 +71,6 @@ CoveragePathPlanningHeuristic::CoveragePathPlanningHeuristic(ros::NodeHandle & n
     fullModelTree.computeUpdate(octPointCloud,octomap::point3d(0,0,0),freeKeys,occupiedKeys,-1);
     occupiedVoxelsNum = occupiedKeys.size();
     modelVolume = occupiedKeys.size()*(fullModelTree.getResolution()*fullModelTree.getResolution()*fullModelTree.getResolution());
-    maxDepth = std::sqrt(occlussionCulling->maxAccuracyError/0.0000285);
     modelTotalEntroby = occupiedKeys.size()*(-1*(0.5)*(log(0.5)/log(2)));//unknown is 0.5
 
     //voxelgrid
@@ -134,7 +133,6 @@ double CoveragePathPlanningHeuristic::pointCloudDiff(pcl::PointCloud<pcl::PointX
                         extraNum++;
                     }
                 }
-
             }
         }
     }
@@ -233,13 +231,16 @@ void CoveragePathPlanningHeuristic::findClusterBB(pcl::PointCloud<pcl::PointXYZ>
     Eigen::Vector4f min_b = grid.getCentroidCoordinate (grid.getMinBoxCoordinates());
     Eigen::Vector4f max_b = grid.getCentroidCoordinate (grid.getMaxBoxCoordinates ());
 
-    // 3 is used to making the BB bigger not exactly on the boundry of the cluster
-    gridSize.x = std::abs(max_b[0]-min_b[0]) + 5;//5
-    gridSize.y = std::abs(max_b[1]-min_b[1]) + 5;//5
-    gridSize.z = std::abs(max_b[2]-min_b[2]) + 3;//3
+    // 3 and 5 is used to making the BB bigger not exactly on the boundry of the cluster
+    // (sometimes it is very small set of samples and the descritization sample will not fit)
+    double maximizeSizeXY = 5;
+    double maximizeSizeZ = 3;
+    gridSize.x = std::abs(max_b[0]-min_b[0]) + maximizeSizeXY;//5
+    gridSize.y = std::abs(max_b[1]-min_b[1]) + maximizeSizeXY;//5
+    gridSize.z = std::abs(max_b[2]-min_b[2]) + maximizeSizeZ;//3
 
-    gridStart.position.x = min_b[0] - 5;//5
-    gridStart.position.y = min_b[1] - 5;//5
+    gridStart.position.x = min_b[0] - double(maximizeSizeXY/2);//5
+    gridStart.position.y = min_b[1] - double(maximizeSizeXY/2);//5
     gridStart.position.z = min_b[2];//to avoid going under 0, UAVs can't fly under 0
 
 }
@@ -317,23 +318,27 @@ bool CoveragePathPlanningHeuristic::isFilteringConditionSatisfied(geometry_msgs:
         if (sqd >=(minDist*minDist) && sqd <= (maxDist*maxDist) )
         {
             //coverage based filtering
-            pcl::PointCloud<pcl::PointXYZ> pts;
+            pcl::PointCloud<pcl::PointXYZ> sensorsCloud;
             for(int i=0; i<correspondingSensorPoses.poses.size(); i++)
             {
-                pts += occlussionCulling->extractVisibleSurface(correspondingSensorPoses.poses[i]);
-            }
-//            std::cout<<"visible pts"<<pts.size()<<std::endl;
-            if(pts.size()>5)
-            {
-                globalCloud += pts;
-                double accuracy = occlussionCulling->calcAvgAccuracy(pts);
-//                std::cout<<"accuracy : "<<accuracy<<std::endl;
-                if(accuracy >= accuracyThreshhold)//1.5mm , for aircraft scaled it is limited between 0.2mm to 1.9mm
+                pcl::PointCloud<pcl::PointXYZ> pts;
+                pts = occlussionCulling->extractVisibleSurface(correspondingSensorPoses.poses[i]);
+                sensorsCloud += pts;
+                if(pts.size()>5)
                 {
-                    accuracyClusters.push_back(pts);
+                    globalCloud += pts;
+                    double accuracy = occlussionCulling->calcAvgAccuracy(pts,correspondingSensorPoses.poses[i]);
+                    //std::cout<<"\naccuracy : "<<accuracy<<std::endl;
+                    if(accuracy >= accuracyThreshhold)
+                    {
+                        accuracyClusters.push_back(pts);
+                    }
                 }
-                return true;
+
             }
+            //to check if at least one of the sensors is processed and add the point or not
+            if(sensorsCloud.size()>5)
+                return true;
             else return false;
 
         } else return false;
@@ -374,7 +379,11 @@ bool CoveragePathPlanningHeuristic::isCost()
         return true;
     else return false;
 }
-
+void CoveragePathPlanningHeuristic::setMaxMinSensorAccuracy(std::vector<geometry_msgs::PoseArray> sensorsViewsSS)
+{
+    this->occlussionCulling->SSMaxMinAccuracy(sensorsViewsSS);
+    maxDepth = std::sqrt(occlussionCulling->maxAccuracyError/0.0000285);
+}
 void CoveragePathPlanningHeuristic::setCoverageTarget(double coverageTarget)
 {
     this->coverageTarget = coverageTarget;
@@ -646,10 +655,15 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                     //loop through occupied keys
                     for (octomap::KeySet::iterator it = occupiedKeys.begin(); it != occupiedKeys.end(); ++it) {
+                        //calculate accuracy (sensor noise)
                         octomap::point3d center = node->octree->keyToCoord(*it);
-                        fcl::Vec3f vec2(center.x(), center.y(), center.z());
-                        //TODO: change dist to depth for the voxel
-                        double dist =  std::sqrt(( vec2[0] - origin.x())*(vec2[0] - origin.x()) + (vec2[1] - origin.y())*(vec2[1] - origin.y()) + (vec2[2] -origin.z())*(vec2[2] -origin.z()));
+                        pcl::PointCloud<pcl::PointXYZ> voxelPoint,transformedVoxel;
+                        pcl::PointXYZ pt;
+                        pt.x = center.x();pt.y = center.y();pt.z = center.z();
+                        voxelPoint.points.push_back(pt);
+                        transformedVoxel = occlussionCulling->pointCloudViewportTransform(voxelPoint,node->senPoses[i].p); //newly added
+                        double dist = transformedVoxel.points[0].x;
+                        //std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> distance : "<<dist<<" max depth: "<<maxDepth<<std::endl;
                         if(dist>maxDepth)
                             dist=maxDepth;
                         double normAcc = (occlussionCulling->maxAccuracyError - (0.0000285 * dist * dist*0.5))/occlussionCulling->maxAccuracyError;
@@ -688,6 +702,15 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                     }//end of occupied Keys loop
 
+                    //if one of the mounted sensors did not extract any point cloud, avoid creating nan , -nan values
+                    if(temp.points.size()!=0)
+                    {
+                        double avgAcc = occlussionCulling->calcAvgAccuracy(temp,node->senPoses[i].p);
+                        double a = (occlussionCulling->maxAccuracyError - avgAcc)/occlussionCulling->maxAccuracyError;
+                        accuracyPerViewpointAvg.push_back(a);
+                        accuracySum += avgAcc;
+                        //std::cout<<"accuracy per viewpoints: "<<a<<" "<<avgAcc<<std::endl;
+                    }
 
                 }//end of sensors loop
 
@@ -709,11 +732,6 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 angle=qtParent.angleShortestPath(qtNode);
 //                normAngle=1-angle/(2*M_PI);
                 normAngle = angle/(2*M_PI);
-
-                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
-                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
-                accuracyPerViewpointAvg.push_back(a);
-                accuracySum += avgAcc;
 
                 // 5- function
                 double localE = node->totalEntroby- node->parent->totalEntroby;
@@ -967,10 +985,16 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                     //loop through occupied keys
                     for (octomap::KeySet::iterator it = occupiedKeys.begin(); it != occupiedKeys.end(); ++it) {
+                        //calculate accuracy (sensor noise)
                         octomap::point3d center = node->octree->keyToCoord(*it);
-                        fcl::Vec3f vec2(center.x(), center.y(), center.z());
-                        //TODO: change dist to depth for the voxel
-                        double dist =  std::sqrt(( vec2[0] - origin.x())*(vec2[0] - origin.x()) + (vec2[1] - origin.y())*(vec2[1] - origin.y()) + (vec2[2] -origin.z())*(vec2[2] -origin.z()));
+                        pcl::PointCloud<pcl::PointXYZ> voxelPoint,transformedVoxel;
+                        pcl::PointXYZ pt;
+                        pt.x = center.x();pt.y = center.y();pt.z = center.z();
+                        voxelPoint.points.push_back(pt);
+                        transformedVoxel = occlussionCulling->pointCloudViewportTransform(voxelPoint,node->senPoses[i].p); //newly added
+                        double dist = transformedVoxel.points[0].x;
+                        //std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> distance : "<<dist<<" max depth: "<<maxDepth<<std::endl;
+
                         if(dist>maxDepth)
                             dist=maxDepth;
                         double normAcc = (occlussionCulling->maxAccuracyError - (0.0000285 * dist * dist*0.5))/occlussionCulling->maxAccuracyError;
@@ -1009,6 +1033,16 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                     }//end of occupied Keys loop
 
+                    //if one of the mounted sensors did not extract any point cloud, avoid creating nan , -nan values
+                    if(temp.points.size()!=0)
+                    {
+                        double avgAcc = occlussionCulling->calcAvgAccuracy(temp,node->senPoses[i].p);
+                        double a = (occlussionCulling->maxAccuracyError - avgAcc)/occlussionCulling->maxAccuracyError;
+                        accuracyPerViewpointAvg.push_back(a);
+                        accuracySum += avgAcc;
+                        //std::cout<<"accuracy per viewpoints: "<<a<<" "<<avgAcc<<std::endl;
+                    }
+
                 }//end of sensors loop
 
                 //2 - coverage for termination
@@ -1025,11 +1059,6 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
                 angle=qtParent.angleShortestPath(qtNode);
 //                normAngle=1-angle/(2*M_PI);
                 normAngle = angle/(2*M_PI);
-
-                double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
-                a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
-                accuracyPerViewpointAvg.push_back(a);
-                accuracySum += avgAcc;
 
                 //4- function
                 double localE = node->totalEntroby-node->parent->totalEntroby;
@@ -1109,10 +1138,16 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 //loop through occupied keys
                 for (octomap::KeySet::iterator it = occupiedKeys.begin(); it != occupiedKeys.end(); ++it) {
+                    //calculate accuracy (sensor noise)
                     octomap::point3d center =node->octree->keyToCoord(*it);
-                    fcl::Vec3f vec2(center.x(), center.y(), center.z());
-                    //TODO: change dist to depth for the voxel
-                    double dist =  std::sqrt(( vec2[0] - origin.x())*(vec2[0] - origin.x()) + (vec2[1] - origin.y())*(vec2[1] - origin.y()) + (vec2[2] -origin.z())*(vec2[2] -origin.z()));
+                    pcl::PointCloud<pcl::PointXYZ> voxelPoint,transformedVoxel;
+                    pcl::PointXYZ pt;
+                    pt.x = center.x();pt.y = center.y();pt.z = center.z();
+                    voxelPoint.points.push_back(pt);
+                    transformedVoxel = occlussionCulling->pointCloudViewportTransform(voxelPoint,node->senPoses[i].p); //newly added
+                    double dist = transformedVoxel.points[0].x;
+                    //std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> distance : "<<dist<<" max depth: "<<maxDepth<<std::endl;
+
                     if(dist>maxDepth)
                         dist=maxDepth;
                     double normAcc = (occlussionCulling->maxAccuracyError - (0.0000285 * dist * dist*0.5))/occlussionCulling->maxAccuracyError;
@@ -1150,12 +1185,18 @@ void CoveragePathPlanningHeuristic::calculateHeuristic(Node *node)
 
                 }//end of occupied Keys loop
 
-            }//end of sensors loop
+                //if one of the mounted sensors did not extract any point cloud, avoid creating nan , -nan values
+                if(temp.points.size()!=0)
+                {
+                    double avgAcc = occlussionCulling->calcAvgAccuracy(temp,node->senPoses[i].p);
+                    double a = (occlussionCulling->maxAccuracyError - avgAcc)/occlussionCulling->maxAccuracyError;
+                    accuracyPerViewpointAvg.push_back(a);
+                    accuracySum += avgAcc;
+                    //std::cout<<"accuracy per viewpoints: "<<a<<" "<<avgAcc<<std::endl;
+                }
 
-            double avgAcc = occlussionCulling->calcAvgAccuracy(visibleCloud);
-            double a = (occlussionCulling->maxAccuracyError - occlussionCulling->calcAvgAccuracy(visibleCloud))/occlussionCulling->maxAccuracyError;
-            accuracyPerViewpointAvg.push_back(a);
-            accuracySum += avgAcc;
+
+            }//end of sensors loop
 
             //2- coverage
             node->coverage = (double)node->coveredVolume/modelVolume * 100;

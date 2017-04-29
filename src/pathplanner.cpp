@@ -113,9 +113,9 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
     }
 
     int numSamples = 0;
-    for(float x = gridStartPose.position.x; x<=(gridStartPose.position.x + gridSize.x); x+=gridResolution)
-        for(float y = gridStartPose.position.y; y<=(gridStartPose.position.y + gridSize.y); y+=gridResolution)
-            for(float z = gridStartPose.position.z; z<=(gridStartPose.position.z + gridSize.z); z+=gridResolution)
+    for(float z = gridStartPose.position.z; z<=(gridStartPose.position.z + gridSize.z); z+=gridResolution)
+        for(float x = gridStartPose.position.x; x<=(gridStartPose.position.x + gridSize.x); x+=gridResolution)
+            for(float y = gridStartPose.position.y; y<=(gridStartPose.position.y + gridSize.y); y+=gridResolution)
             {
                 pose.position.z=z;
                 pose.position.y=y;
@@ -143,7 +143,14 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
 
                         if(samplesFiltering)
                         {
-                            if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 1, 4, globalCloud, accuracyClusters,0.00170))
+                            //Note: the accuracy threshhold defines the maximum error that you want to get, any waypoint (with its viewpoints) that extracts point cloud with bigger error than this threshold
+                            // will be added to the accuracy clusters to be re-sampled with lower resolution (results with nearer waypoints which provide better accuracy & low error)
+
+                            //Note: if you chose a very small depth, the process of filtering will take time since the accuracy clusters will increase so much and as a result, the number of waypoints will increase alot!!
+                            // it is also affected by the decrement step of the dynamic sampling
+                            double desiredMaxDepth = 5.7; //meters
+                            double maxErrorThresh = 0.0000285 * desiredMaxDepth * desiredMaxDepth; //meters squared (this equation with the constant 0.0000285 is taken from a paper that studied the accuracy of kinect sensor  )
+                            if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 1, 4, globalCloud, accuracyClusters,maxErrorThresh))
                             {
                                 if(insertSearchSpace)
                                 {
@@ -271,6 +278,36 @@ std::vector<geometry_msgs::Point> PathPlanner::getSearchSpace()
     return pts;
 }
 
+//gets the robot waypoints and the sensors viewpoints each in seperate vector
+void PathPlanner::getRobotSensorPoses(geometry_msgs::PoseArray& robotPoses, std::vector<geometry_msgs::PoseArray> &sensorsPoses)
+{
+    SearchSpaceNode *temp = searchspace;
+
+    for(int i = 0 ; i<temp->sensorLocation.poses.size(); i++)
+    {
+        geometry_msgs::PoseArray sensor;
+        sensorsPoses.push_back(sensor);
+    }
+    while (temp != NULL)
+    {
+        geometry_msgs::Pose pose;
+        pose.position.x= temp->location.position.x;
+        pose.position.y= temp->location.position.y;
+        pose.position.z= temp->location.position.z;
+        pose.orientation.x= temp->location.orientation.x;
+        pose.orientation.y= temp->location.orientation.y;
+        pose.orientation.z= temp->location.orientation.z;
+        pose.orientation.w= temp->location.orientation.w;
+        robotPoses.poses.push_back(pose);
+        for(int i=0; i<temp->sensorLocation.poses.size();i++)
+        {
+            sensorsPoses[i].poses.push_back(temp->sensorLocation.poses[i]);
+        }
+        temp = temp->next;
+    }
+}
+
+//gets the robot waypoints and the sensors viewpoints in one vector
 void PathPlanner::getRobotSensorPoses(geometry_msgs::PoseArray& robotPoses, geometry_msgs::PoseArray& sensorPoses)
 {
     SearchSpaceNode *temp = searchspace;

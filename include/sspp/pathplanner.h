@@ -80,6 +80,7 @@ namespace SSPP
         Node * startSearch(Pose startPose);
         std::vector<geometry_msgs::Point> getConnections();
         std::vector<geometry_msgs::Point> getSearchSpace();
+        void getRobotSensorPoses(geometry_msgs::PoseArray& robotPoses, std::vector<geometry_msgs::PoseArray> &sensorsPoses);
         void getRobotSensorPoses(geometry_msgs::PoseArray& robotPoses, geometry_msgs::PoseArray& sensorPoses);
         std::vector<Sensors> robotSensors;
         void   findRoot();
