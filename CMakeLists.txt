@@ -115,4 +115,19 @@ if (component_test_FOUND)
             ${rviz_visual_tools_LIBRARIES}
             CoverageHeuristic
             )
+
+        add_executable(coverage_multi_agent_test src/coverage_multi_agent_test.cpp)
+        target_include_directories(coverage_multi_agent_test PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
+        target_link_libraries(coverage_multi_agent_test SSPathPlanner
+            -lgmp -lmpfr
+            ${CGAL_LIBRARY}
+            ${CGAL_Core_LIBRARY}
+            ${catkin_LIBRARIES}
+            ${PCL_LIBRARIES}
+            ${OCTOMAP_LIBRARIES}
+            ${component_test_LIBRARIES}
+            occlusion_culling_gpu
+            ${rviz_visual_tools_LIBRARIES}
+            CoverageHeuristic
+            )
 endif (component_test_FOUND)

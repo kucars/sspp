@@ -148,7 +148,7 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
 
                             //Note: if you chose a very small depth, the process of filtering will take time since the accuracy clusters will increase so much and as a result, the number of waypoints will increase alot!!
                             // it is also affected by the decrement step of the dynamic sampling
-                            double desiredMaxDepth = 5.7; //meters
+                            double desiredMaxDepth = 6.9; //meters
                             double maxErrorThresh = 0.0000285 * desiredMaxDepth * desiredMaxDepth; //meters squared (this equation with the constant 0.0000285 is taken from a paper that studied the accuracy of kinect sensor  )
                             if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 1, 4, globalCloud, accuracyClusters,maxErrorThresh))
                             {
