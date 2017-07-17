@@ -74,10 +74,10 @@ int main( int argc, char **  argv)
     Robot *robot= new Robot("Robot",robotH,robotW,narrowestPath,robotCenter);
 
     // Every how many iterations to display the tree
-    int progressDisplayFrequency = 1;
+    int progressDisplayFrequency = -1;
     pathPlanner = new PathPlanner(nh,robot,regGridConRad,progressDisplayFrequency);
     // This causes the planner to pause for the desired amount of time and display the search tree, useful for debugging
-    pathPlanner->setDebugDelay(0.1);
+    pathPlanner->setDebugDelay(0);
     /*
     double coverageTolerance=0.5, targetCov=10;
     std::string modelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels.obj";

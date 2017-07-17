@@ -187,7 +187,7 @@ Node *Astar::astarSearch(Pose start)
     int count = 0;
     while (openList->Start != NULL)
     {
-        if((count++%progressDisplayFrequency) == 0)
+        if(progressDisplayFrequency > 0 && (count++%progressDisplayFrequency) == 0)
         {
             heuristic->displayProgress(tree);
             //seconds to usec
