@@ -174,7 +174,7 @@ SearchSpaceNode * SearchSpace::nodeExists(geometry_msgs::Pose nodePose)
     return NULL;
 }
 
-bool SearchSpace::removeNode(geometry_msgs::Pose nodePose)
+bool SearchSpace::removeNode(geometry_msgs::Pose nodePose, bool ignoreOrientation)
 {
     SearchSpaceNode *temp = searchspace;
 
@@ -183,7 +183,9 @@ bool SearchSpace::removeNode(geometry_msgs::Pose nodePose)
         return false;
 
     // if it's the first node, simply remove it
-    if(samePosition(nodePose,temp->location))
+    if( (!ignoreOrientation && samePosition(nodePose,temp->location))
+        || (ignoreOrientation && isPositionEqual(nodePose,temp->location))
+      )
     {
         searchspace = temp->next;
         delete temp;
@@ -192,7 +194,9 @@ bool SearchSpace::removeNode(geometry_msgs::Pose nodePose)
 
     while (temp->next != NULL)
     {
-        if(samePosition(nodePose,temp->next->location))
+        if( (!ignoreOrientation && samePosition(nodePose,temp->location))
+            || (ignoreOrientation && isPositionEqual(nodePose,temp->location))
+          )
         {
             SearchSpaceNode *toDelete = temp->next;
             temp->next = temp->next->next;

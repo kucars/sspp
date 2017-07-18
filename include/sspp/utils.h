@@ -248,6 +248,13 @@ inline bool isPositionEqual(geometry_msgs::Point a, geometry_msgs::Point b)
   return false;
 }
 
+inline bool isPositionEqual(geometry_msgs::Pose a, geometry_msgs::Pose b)
+{
+  return (fabs(a.position.x - b.position.x) < 1E-12
+       && fabs(a.position.y - b.position.y) < 1E-12
+       && fabs(a.position.z - b.position.z) < 1E-12);
+}
+
 inline bool isOrientationEqual(geometry_msgs::Quaternion a, geometry_msgs::Quaternion b)
 {
   if (fabs(a.x-b.x) < 1E-12 && fabs(a.y-b.y) < 1E-12 && fabs(a.z-b.z) < 1E-12 && fabs(a.w-b.w) < 1E-12)

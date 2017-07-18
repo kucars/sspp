@@ -41,7 +41,7 @@ public:
     SearchSpaceNode * insertTempSearchSpace(geometry_msgs::PoseArray robotPoses, std::vector<geometry_msgs::PoseArray> correspondingSensorsPoses);
     SearchSpaceNode * nodeExists(geometry_msgs::Pose nodePose);
     SearchSpaceNode * nodeExists(SearchSpaceNode * space, geometry_msgs::Pose nodePose);
-    bool              removeNode(geometry_msgs::Pose nodePose);
+    bool              removeNode(geometry_msgs::Pose nodePose, bool ignoreOrientation = false);
     SearchSpace();
     virtual ~SearchSpace();
     int idCount;
