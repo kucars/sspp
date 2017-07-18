@@ -63,7 +63,7 @@ int main( int argc, char **  argv)
 
     PathPlanner * pathPlanner;
     Pose start(0.0,0.0,0,DTOR(0.0));
-    Pose   end(5.0,7.0,2,DTOR(0.0));
+    Pose   end(15.0,7.0,2,DTOR(0.0));
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
     double distanceToGoal = 1.0,regGridConRad = 1.5;
@@ -73,8 +73,8 @@ int main( int argc, char **  argv)
     robotCenter.y = 0.0f;
     Robot *robot= new Robot("Robot",robotH,robotW,narrowestPath,robotCenter);
 
-    // Every how many iterations to display the tree
-    int progressDisplayFrequency = -1;
+    // Every how many iterations to display the tree. -1 disables visualization
+    int progressDisplayFrequency = 1;
     pathPlanner = new PathPlanner(nh,robot,regGridConRad,progressDisplayFrequency);
     // This causes the planner to pause for the desired amount of time and display the search tree, useful for debugging
     pathPlanner->setDebugDelay(0);
@@ -94,12 +94,35 @@ int main( int argc, char **  argv)
 
     // Generate Grid Samples and visualise it
     pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.0,false,180,false,true);
+
+    std::cout<<"\n\n---->>> Initialized\n";
+
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
     std::vector<geometry_msgs::PoseArray> sensorsPoseSS;
     geometry_msgs::PoseArray robotPoseSS;
     pathPlanner->getRobotSensorPoses(robotPoseSS,sensorsPoseSS);
     std::cout<<"\n\n---->>> Total Nodes in search Space ="<<searchSpaceNodes.size();
     visualTools->publishSpheres(searchSpaceNodes,rviz_visual_tools::PURPLE,0.1,"search_space_nodes");
+
+
+    // Remove some nodes from the search space
+    for (int i=1; i<8; i++)
+    {
+      for (int j=3; j<5; j++)
+      {
+        for (int k=0; k<3; k++)
+        {
+          geometry_msgs::Pose p;
+          p.position.x = i;
+          p.position.y = j;
+          p.position.z = k;
+
+          if (!pathPlanner->removeNode(p, true))
+            printf("Failed to remove node\n");
+        }
+      }
+    }
+
 
     // Connect nodes and visualise it
     pathPlanner->connectNodes();
