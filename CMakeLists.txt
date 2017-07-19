@@ -83,18 +83,18 @@ add_library(SSPathPlanner SHARED
     )
 
 target_link_libraries(SSPathPlanner
+	${CGAL_LIBRARY}
+	${CGAL_Core_LIBRARY}
     ${OCTOMAP_LIBRARIES}
+	${rviz_visual_tools_LIBRARIES}
     )
 
 add_executable(distance_heuristic_test src/distance_heuristic_test.cpp)
 target_include_directories(distance_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS})
 target_link_libraries(distance_heuristic_test SSPathPlanner
     -lgmp -lmpfr
-    ${CGAL_LIBRARY}
-    ${CGAL_Core_LIBRARY}
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
-    ${rviz_visual_tools_LIBRARIES}
     )
 
 if (component_test_FOUND)
