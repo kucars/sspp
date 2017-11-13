@@ -31,9 +31,6 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseArray.h>
 
-//#include <component_test/occlusion_culling_gpu.h>
-//#include <component_test/occlusion_culling.h>
-//#include "coverage_path_planning_heuristic.h"
 #include "sspp/distance_heuristic.h"
 #include "sspp/rviz_drawing_tools.h"
 #include "rviz_visual_tools/rviz_visual_tools.h"

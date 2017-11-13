@@ -1,0 +1,19 @@
+<launch>
+
+  <!-- Load Rviz -->
+  <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
+        args="-d $(find sspp)/rviz/reactive_planner_test.rviz" output="screen">
+  </node>
+
+  <!-- Fake transform from world origin to robot origin (base) -->
+  <node pkg="tf" type="static_transform_publisher" name="base_to_world" args="0 0 0 0 0 0 /world /base 30" />
+
+  <arg name="debug" default="false" />
+  <arg unless="$(arg debug)" name="launch_prefix" value="" />
+  <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
+
+  <node name="reactive_planner_test" launch-prefix="$(arg launch_prefix)" pkg="sspp"
+        type="reactive_planner_test" output="screen">
+  </node>
+
+</launch>

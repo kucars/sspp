@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find sspp)/rviz/sspp_disatnce_heuristic.rviz"/>
+    <!--node pkg="sspp" type="coverage_heuristic_test" name="coverage_heuristic_test" output="screen" launch-prefix="xterm -e gdb -ex run - -args"/-->
+    <node pkg="sspp" type="coverage_heuristic_test" name="coverage_heuristic_test" output="screen" launch-prefix="valgrind"/>
+</launch>

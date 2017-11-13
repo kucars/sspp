@@ -97,6 +97,17 @@ target_link_libraries(distance_heuristic_test SSPathPlanner
     ${rviz_visual_tools_LIBRARIES}
     )
 
+add_executable(reactive_planner_test src/reactive_planner_test.cpp)
+target_include_directories(reactive_planner_test PUBLIC include ${catkin_INCLUDE_DIRS})
+target_link_libraries(reactive_planner_test SSPathPlanner
+    -lgmp -lmpfr
+    ${CGAL_LIBRARY}
+    ${CGAL_Core_LIBRARY}
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+    ${rviz_visual_tools_LIBRARIES}
+    )
+
 if (component_test_FOUND)
         add_library(CoverageHeuristic SHARED src/coverage_path_planning_heuristic.cpp)
         target_link_libraries(CoverageHeuristic ${component_test_LIBRARIES} occlusion_culling_gpu mesh_surface ${OCTOMAP_LIBRARIES})

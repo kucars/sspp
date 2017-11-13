@@ -111,11 +111,16 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
     {
         sensorsFilteredPoses.push_back(correspondingSensorPose);
     }
-
+    int orientationsNum = 1;
+    if(sampleOrientations)
+    {
+        orientationsNum= 360.0f/orientationResolution;
+    }
+    std::cout<<"\nNumber of Orientation Samples:"<<orientationsNum<<" sample orientations?"<<sampleOrientations<<" orientation sampling resolution:"<<orientationResolution;
     int numSamples = 0;
-    for(float z = gridStartPose.position.z; z<=(gridStartPose.position.z + gridSize.z); z+=gridResolution)
-        for(float x = gridStartPose.position.x; x<=(gridStartPose.position.x + gridSize.x); x+=gridResolution)
-            for(float y = gridStartPose.position.y; y<=(gridStartPose.position.y + gridSize.y); y+=gridResolution)
+    for(float z = (gridStartPose.position.z - gridSize.z/2.0); z<=(gridStartPose.position.z + gridSize.z/2.0); z+=gridResolution)
+        for(float x = (gridStartPose.position.x - gridSize.x/2.0); x<=(gridStartPose.position.x + gridSize.x/2.0); x+=gridResolution)
+            for(float y = (gridStartPose.position.y - gridSize.y/2.0); y<=(gridStartPose.position.y + gridSize.y/2.0); y+=gridResolution)
             {
                 pose.position.z=z;
                 pose.position.y=y;
@@ -123,7 +128,6 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
 
                 if(sampleOrientations)
                 {
-                    int orientationsNum= 360.0f/orientationResolution;
                     // in radians
                     double yaw=0.0;
                     tf::Quaternion tf ;
@@ -171,7 +175,6 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
                             if(insertSearchSpace)
                                 insertNode(pose,correspondingSensorPose);
                         }
-
                         correspondingSensorPose.poses.erase(correspondingSensorPose.poses.begin(),correspondingSensorPose.poses.end());
                     }
                 }

@@ -56,18 +56,20 @@ int main( int argc, char **  argv)
     std::vector<ros::Publisher> sensorsPoseSSPub;
     ros::Publisher octomapPub        = nh.advertise<octomap_msgs::Octomap>("octomap", 1);
 
-
+    std::cout<<"Here 1\n"; fflush(stdout);
     pcl::PointCloud<pcl::PointXYZ>::Ptr originalCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::io::loadPCDFile<pcl::PointXYZ> (ros::package::getPath("component_test")+"/src/pcd/burj_arab_scaled_densed.pcd", *originalCloudPtr);
-
+    std::cout<<"Here 2\n"; fflush(stdout);
+    pcl::io::loadPCDFile<pcl::PointXYZ> (ros::package::getPath("component_test")+"/src/pcd/bun000_Structured.pcd", *originalCloudPtr);
+    std::cout<<"Here 3 pointcloud size:"<<originalCloudPtr->size(); fflush(stdout);
     pcl::PointCloud<pcl::PointXYZ>::Ptr coveredCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
-    OcclusionCullingGPU occlusionCulling(nh,"burj_arab_scaled_densed.pcd");
+    OcclusionCullingGPU occlusionCulling(nh,"bun000_Structured.pcd");
+    std::cout<<"Here 4\n"; fflush(stdout);
 
     rviz_visual_tools::RvizVisualToolsPtr visualTools;
     visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/sspp_visualisation"));
     visualTools->deleteAllMarkers();
     visualTools->setLifetime(0.2);
-
+    std::cout<<"Here"; fflush(stdout);
     ros::Time timer_start = ros::Time::now();
     geometry_msgs::Pose gridStartPose;
     geometry_msgs::Vector3 gridSize;
