@@ -253,7 +253,6 @@ Node *Astar::astarSearch(Pose start)
 
     std::cout<<"\n	--->>> Search Started <<<---"<<std::endl;
     findRoot();
-
     openList->add(root,heuristic->isCost());
     // while openList is not empty
     int count = 0;
@@ -266,7 +265,6 @@ Node *Astar::astarSearch(Pose start)
             if(debugDelay!=0)
                 usleep(debugDelay*1000000);
         }
-
         // Get the node with the highest cost (first node) (it was the cheapest one before since we were taking the lower cost but now it is converted to a reward function)
         current = new Node(openList->getHead());
         openList->remove(openList->getHead());
@@ -275,7 +273,6 @@ Node *Astar::astarSearch(Pose start)
         closedList->add(current,heuristic->isCost());
 
         NodesExpanded++;
-
         if ((heuristic->terminateConditionReached(current) && current!= root) || (nodesCounter==nodeToBeVisNum && nodeToBeVisNum!=0))
         {
             //the last node in the path
@@ -312,7 +309,6 @@ Node *Astar::astarSearch(Pose start)
         }
         // insert the children into the OPEN list according to their f values
         nodesCounter++;
-
         while (childList != NULL)
         {
             curChild  = childList;
@@ -331,14 +327,15 @@ Node *Astar::astarSearch(Pose start)
                 std::cout<<"\ncurChildren f value= "<<curChild->f_value;
                 std::cout<<"\nFinding the curchild : "<<curChild->pose.p.position.x<<" "<< curChild->pose.p.position.y<<" "<<curChild->pose.p.position.z<<" "<<curChild->pose.p.orientation.x<<" "<<curChild->pose.p.orientation.y<<" "<<curChild->pose.p.orientation.z<<" "<<curChild->pose.p.orientation.w;
             }
+
             if(heuristic->isCost())
-                condition = (p->f_value <=curChild->f_value);
+                condition = (current->f_value <=curChild->f_value);
             else
-                condition = (p->f_value >=curChild->f_value);
+                condition = (current->f_value >=curChild->f_value);
+
             if(openList!=NULL)
             {
-              p = openList->find(curChild);
-              if(p)
+              if(openList->find(curChild))
               {
                 if(condition)
                 {
@@ -350,7 +347,7 @@ Node *Astar::astarSearch(Pose start)
             }
             if(closedList!=NULL)
             {
-              if((p = closedList->find(curChild)))
+              if(closedList->find(curChild))
               {
                 if(condition)
                 {

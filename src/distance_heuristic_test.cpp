@@ -54,13 +54,14 @@ int main( int argc, char **  argv)
     gridStartPose.position.x = 0 ;
     gridStartPose.position.y = 0 ;
     gridStartPose.position.z = 0 ;
-    gridSize.x = 20;
-    gridSize.y = 10;
-    gridSize.z = 2;
+    gridSize.x = 10.0;
+    gridSize.y = 10.0;
+    gridSize.z = 2.0;
+    double gridRes = 1.0;
 
     PathPlanner * pathPlanner;
     Pose start(0.0,0.0,0,DTOR(0.0));
-    Pose   end(5.0,7.0,2,DTOR(0.0));
+    Pose   end(4.0,4.0,2,DTOR(0.0));
 
     double robotH=0.9,robotW=0.5,narrowestPath=0.987;//is not changed
     double distanceToGoal = 1.0,regGridConRad = 1.5;
@@ -71,10 +72,10 @@ int main( int argc, char **  argv)
     Robot *robot= new Robot("Robot",robotH,robotW,narrowestPath,robotCenter);
 
     // Every how many iterations to display the tree
-    int progressDisplayFrequency = 1;
+    int progressDisplayFrequency = -1;
     pathPlanner = new PathPlanner(nh,robot,regGridConRad,progressDisplayFrequency);
     // This causes the planner to pause for the desired amount of time and display the search tree, useful for debugging
-    pathPlanner->setDebugDelay(0.1);
+    pathPlanner->setDebugDelay(0.0);
     /*
     double coverageTolerance=0.5, targetCov=10;
     std::string modelPath = ros::package::getPath("component_test") + "/src/mesh/etihad_nowheels.obj";
@@ -90,7 +91,7 @@ int main( int argc, char **  argv)
     pathPlanner->setHeuristicFucntion(&distanceHeuristic);
 
     // Generate Grid Samples and visualise it
-    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.0,false,180,false,true);
+    pathPlanner->generateRegularGrid(gridStartPose, gridSize,1.0,true,90,false,true);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
     std::vector<geometry_msgs::PoseArray> sensorsPoseSS;
     geometry_msgs::PoseArray robotPoseSS;

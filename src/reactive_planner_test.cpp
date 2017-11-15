@@ -78,7 +78,7 @@ int main(int argc, char** argv)
   Robot* robot = new Robot("Robot", robotH, robotW, narrowestPath, robotCenter);
 
   //Every how many iterations to display the tree; -1 disable display
-  int progressDisplayFrequency = 10;
+  int progressDisplayFrequency = -1;
   pathPlanner = new SSPP::PathPlanner(nh, robot, regGridConRad, progressDisplayFrequency);
 
   // This causes the planner to pause for the desired amount of time and display
