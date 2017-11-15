@@ -44,6 +44,13 @@ double DistanceHeuristic::gCost(Node *node)
     if(node == NULL || node->parent==NULL)
         return 0.0;
     cost = node->parent->g_value + Dist(node->pose.p,node->parent->pose.p);
+/*
+    geometry_msgs::Pose startPose;
+    startPose.position.x = 0;
+    startPose.position.y = 0;
+    startPose.position.z = 0;
+    cost = Dist(node->pose.p,startPose);
+*/
     return cost;
 }
 
@@ -61,24 +68,28 @@ bool DistanceHeuristic::terminateConditionReached(Node *node)
 {
     double deltaDist;
     deltaDist = Dist(node->pose.p,endPose);
-    geometry_msgs::Point linept;
-    linept.x = node->pose.p.position.x; linept.y = node->pose.p.position.y; linept.z = node->pose.p.position.z;
-    points.push_back(linept);
-    visualization_msgs::Marker pointsList = drawPoints(points,3,10000);
-    pathPointPub.publish(pointsList);
 
-    if(node->parent)
+    if(debug)
     {
+      geometry_msgs::Point linept;
+      linept.x = node->pose.p.position.x; linept.y = node->pose.p.position.y; linept.z = node->pose.p.position.z;
+      points.push_back(linept);
+      visualization_msgs::Marker pointsList = drawPoints(points,3,10000);
+      pathPointPub.publish(pointsList);
+
+      if(node->parent)
+      {
         linepoint.x = node->pose.p.position.x; linepoint.y =  node->pose.p.position.y; linepoint.z = node->pose.p.position.z;
         lines.push_back(linepoint);
         linepoint.x = node->parent->pose.p.position.x; linepoint.y = node->parent->pose.p.position.y; linepoint.z = node->parent->pose.p.position.z;
         lines.push_back(linepoint);
         visualization_msgs::Marker linesList = drawLines(lines,333333,1,1000000,0.2);
         pathPub.publish(linesList);
-    }
-//    std::cout<<"\n\n ****************** Delta distance %: "<<deltaDist <<" **************************"<<std::endl;
-//    std::cout<<"\n\n ****************** node pose : ( "<<node->pose.p.position.x <<", "<<node->pose.p.position.y<<", "<<node->pose.p.position.z<<" )**************************"<<std::endl;
+      }
 
+      std::cout<<"\n\n ****************** Delta distance %: "<<deltaDist <<" **************************"<<std::endl;
+      std::cout<<"\n\n ****************** node pose : ( "<<node->pose.p.position.x <<", "<<node->pose.p.position.y<<", "<<node->pose.p.position.z<<" )**************************"<<std::endl;
+    }
     if ( deltaDist <= tolerance2Goal)
         return true;
     else
@@ -119,7 +130,7 @@ void DistanceHeuristic::findClusterBB(pcl::PointCloud<pcl::PointXYZ> clusterPoin
 void DistanceHeuristic::displayProgress(vector<Tree> tree)
 {
     rviz_visual_tools::RvizVisualToolsPtr visualTools;
-    visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/sspp_visualisation"));
+    visualTools.reset(new rviz_visual_tools::RvizVisualTools("world","/sspp_visualisation"));
     geometry_msgs::Pose child;
     std::vector<geometry_msgs::Point> lineSegments;
     geometry_msgs::Point linePoint1,linePoint2;
@@ -141,12 +152,8 @@ void DistanceHeuristic::displayProgress(vector<Tree> tree)
 
             visualTools->publishLine(linePoint1,linePoint2,rviz_visual_tools::GREEN, rviz_visual_tools::LARGE);
         }
+        visualTools->trigger();
     }
-    //visualTools->publishPath(lineSegments, rviz_visual_tools::GREEN, rviz_visual_tools::LARGE,"search_tree");
-    /*
-    visualization_msgs::Marker linesList = drawLines(lineSegments,1000000,2,100000000,0.08);
-    treePub.publish(linesList);
-    */
 }
 
 bool DistanceHeuristic::isCost()

@@ -88,6 +88,13 @@ void LList::add(Node * curChild, bool ascending)
     bool condition;
     p = this->Start;
     q = p;
+
+    if(p==NULL) // insert at the beginning
+    {
+        Start = curChild;
+        curChild->prev = NULL;
+        return;
+    }
     // now insert the child into the open list according to the f value
     while (p)
     {
@@ -107,24 +114,16 @@ void LList::add(Node * curChild, bool ascending)
             p->prev = curChild;
             if (curChild->prev)
                 (curChild->prev)->next = curChild;
-            break;
+            return;
         }
         q = p;
         p = p->next;
     }
-    if (p == NULL)
+    if (q != NULL) // insert at the end
     {
-        if (q != NULL) // insert at the end
-        {
-            q->next = curChild;
-            curChild->prev = q;
-            curChild->next = NULL;
-        }
-        else	      // insert at the beginning
-        {
-            Start = curChild;
-            curChild->prev = NULL;
-        }
+      q->next = curChild;
+      curChild->prev = q;
+      curChild->next = NULL;
     }
 }
 
@@ -143,11 +142,11 @@ bool LList::remove(Node *q)
             if (p == Start)
                 Start = p->next;
             delete p;
-            return 1;
+            return true;
         }
         p = p->next;
     }
-    return 0;
+    return false;
 }
 
 void LList::print()

@@ -62,8 +62,10 @@ public :
     Pose   pose;
     std::vector<Pose>   senPoses;
     Node();
+    Node(Node *n);
     bool operator == (Node);
     bool operator != (Node);
+    void print();
     ~Node();
 };
 

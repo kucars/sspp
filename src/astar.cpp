@@ -145,12 +145,84 @@ void Astar::setHeuristicFucntion(Heuristic* heuristicFun)
     heuristic = heuristicFun;
 }
 
+//TODO: Randa call this inside the AStart Search with the appropriate parameters
+void Astar::displayOctree()
+{
+  /*
+  //display the child and the octree
+  if(nodesCounter == nodeToBeVisNum && nodeToBeVisNum != 0)
+  {
+    geometry_msgs::Pose parent;
+
+    geometry_msgs::Pose child;
+    geometry_msgs::Point linePoint;
+
+    std::cout<<"I entered tree childrens of the desired node "<<std::endl;
+
+    child = curChild->pose.p;
+    parent = current->pose.p;
+    childPose.poses.push_back(child);
+    parentPose.poses.push_back(parent);
+    for(int i=0; i<curChild->senPoses.size();i++)
+    {
+      childSensors.poses.push_back(curChild->senPoses[i].p);
+      parentSensors.poses.push_back(current->senPoses[i].p);
+    }
+
+    linePoint.x = current->pose.p.position.x;
+    linePoint.y = current->pose.p.position.y;
+    linePoint.z = current->pose.p.position.z;
+    lineSegments.push_back(linePoint);
+    linePoint.x = child.position.x;
+    linePoint.y = child.position.y;
+    linePoint.z = child.position.z;
+    lineSegments.push_back(linePoint);
+
+    //visualization
+    childPose.header.frame_id= "map";
+    childPose.header.stamp = ros::Time::now();
+    childPosePub.publish(childPose);
+    childSensors.header.frame_id= "map";
+    childSensors.header.stamp = ros::Time::now();
+    childSensorsPub.publish(childSensors);
+    parentPose.header.frame_id= "map";
+    parentPose.header.stamp = ros::Time::now();
+    parentPosePub.publish(parentPose);
+    parentSensors.header.frame_id= "map";
+    parentSensors.header.stamp = ros::Time::now();
+    parenSensorsPub.publish(parentSensors);
+    visualization_msgs::Marker linesList1 = drawLines(lineSegments,1,6,100000,0.1);
+    branchPub.publish(linesList1);
+
+
+    octomap_msgs::Octomap octomap ;
+    octomap.binary = 1 ;
+    octomap.id = 1 ;
+    octomap.resolution =0.25;
+    octomap.header.frame_id = "map";
+    octomap.header.stamp = ros::Time::now();
+    bool res = octomap_msgs::fullMapToMsg(*curChild->octree, octomap);
+    if(res)
+    {
+      octomapChildPub.publish(octomap);
+    }
+    else
+    {
+      ROS_WARN("OCT Map serialization failed!");
+    }
+    childSensors.poses.erase(childSensors.poses.begin(),childSensors.poses.end() );
+    childPose.poses.erase(childPose.poses.begin(),childPose.poses.end() );
+    lineSegments.erase(lineSegments.begin(), lineSegments.end());
+    ros::Duration(2).sleep();
+  }
+  */
+}
 
 Node *Astar::astarSearch(Pose start)
 {
     Node *path = NULL;
-    int ID = 1;
     int NodesExpanded = 0;
+    globalID = 0;
     bool condition;
     if(this->tree.size() > 0)
         this->tree.clear();
@@ -185,9 +257,9 @@ Node *Astar::astarSearch(Pose start)
     openList->add(root,heuristic->isCost());
     // while openList is not empty
     int count = 0;
-    while (openList->Start != NULL)
+    while(openList->Start != NULL)
     {
-        if((count++%progressDisplayFrequency) == 0)
+        if(progressDisplayFrequency > 0 && (count++%progressDisplayFrequency) == 0)
         {
             heuristic->displayProgress(tree);
             //seconds to usec
@@ -196,19 +268,20 @@ Node *Astar::astarSearch(Pose start)
         }
 
         // Get the node with the highest cost (first node) (it was the cheapest one before since we were taking the lower cost but now it is converted to a reward function)
-        current = openList->getHead();
+        current = new Node(openList->getHead());
+        openList->remove(openList->getHead());
 
-        // Move to the next Node
-        openList->next();
+        // put the current node onto the closed list, ==>> already visited List
+        closedList->add(current,heuristic->isCost());
+
         NodesExpanded++;
 
-        // We reached the target pose, so build the path and return it.
         if ((heuristic->terminateConditionReached(current) && current!= root) || (nodesCounter==nodeToBeVisNum && nodeToBeVisNum!=0))
         {
             //the last node in the path
             current->next = NULL;
-            std::cout<<"*************commulative distance : "<<current->distance<<"************ \n";
-            std::cout<<"\n"<<"	--->>> Goal state reached with :"<<ID<< "nodes created and :"<<NodesExpanded<<" nodes expanded <<<---";
+            std::cout<<"*************Cumulative distance : "<<current->distance<<"************ \n";
+            std::cout<<"\n"<<"	--->>> Goal state reached with :"<<globalID<< "nodes created and :"<<NodesExpanded<<" nodes expanded <<<---";
             fflush(stdout);
             p = current;
             path = NULL;
@@ -231,6 +304,7 @@ Node *Astar::astarSearch(Pose start)
             closedList->free();
             return path;
         }
+        debug = false;
         // Create List of Children for the current NODE
         if(!(childList = makeChildrenNodes(current)))
         {
@@ -238,185 +312,67 @@ Node *Astar::astarSearch(Pose start)
         }
         // insert the children into the OPEN list according to their f values
         nodesCounter++;
-        geometry_msgs::PoseArray childPose,parentPose, childSensors, parentSensors;
-        std::vector<geometry_msgs::Point> lineSegments;
+
         while (childList != NULL)
         {
             curChild  = childList;
             childList = childList->next;
-            // set up the rest of the child node details
-            curChild->parent = current;
-            curChild->depth  = current->depth + 1;
-            curChild->id = ID++;
             curChild->next = NULL;
             curChild->prev = NULL;
             // calculate f_value
             heuristic->calculateHeuristic(curChild);
-
-
-            //display the child and the octree
-            if(nodesCounter == nodeToBeVisNum && nodeToBeVisNum != 0)
-            {
-                geometry_msgs::Pose parent;
-
-                geometry_msgs::Pose child;
-                geometry_msgs::Point linePoint;
-
-                std::cout<<"I entered tree childrens of the desired node "<<std::endl;
-
-                child = curChild->pose.p;
-                parent = current->pose.p;
-                childPose.poses.push_back(child);
-                parentPose.poses.push_back(parent);
-                for(int i=0; i<curChild->senPoses.size();i++)
-                {
-                    childSensors.poses.push_back(curChild->senPoses[i].p);
-                    parentSensors.poses.push_back(current->senPoses[i].p);
-                }
-
-                linePoint.x = current->pose.p.position.x;
-                linePoint.y = current->pose.p.position.y;
-                linePoint.z = current->pose.p.position.z;
-                lineSegments.push_back(linePoint);
-                linePoint.x = child.position.x;
-                linePoint.y = child.position.y;
-                linePoint.z = child.position.z;
-                lineSegments.push_back(linePoint);
-
-                //visualization
-                childPose.header.frame_id= "map";
-                childPose.header.stamp = ros::Time::now();
-                childPosePub.publish(childPose);
-                childSensors.header.frame_id= "map";
-                childSensors.header.stamp = ros::Time::now();
-                childSensorsPub.publish(childSensors);
-                parentPose.header.frame_id= "map";
-                parentPose.header.stamp = ros::Time::now();
-                parentPosePub.publish(parentPose);
-                parentSensors.header.frame_id= "map";
-                parentSensors.header.stamp = ros::Time::now();
-                parenSensorsPub.publish(parentSensors);
-                visualization_msgs::Marker linesList1 = drawLines(lineSegments,1,6,100000,0.1);
-                branchPub.publish(linesList1);
-
-
-                octomap_msgs::Octomap octomap ;
-                octomap.binary = 1 ;
-                octomap.id = 1 ;
-                octomap.resolution =0.25;
-                octomap.header.frame_id = "map";
-                octomap.header.stamp = ros::Time::now();
-                bool res = octomap_msgs::fullMapToMsg(*curChild->octree, octomap);
-                if(res)
-                {
-                    octomapChildPub.publish(octomap);
-                }
-                else
-                {
-                    ROS_WARN("OCT Map serialization failed!");
-                }
-                childSensors.poses.erase(childSensors.poses.begin(),childSensors.poses.end() );
-                childPose.poses.erase(childPose.poses.begin(),childPose.poses.end() );
-                lineSegments.erase(lineSegments.begin(), lineSegments.end());
-                ros::Duration(2).sleep();
-            }
-
-
-
+            //TODO:: pass the correct parameters to the display function
+            displayOctree();
             globalcount++;
-            Node * p;
+            Node * p= NULL;
             if(debug)
             {
+                std::cout<<"\n ID= "<<curChild->id<<" global count:"<<globalcount<<" nodeExpanded:"<<NodesExpanded<<" mem address:"<<curChild;
                 std::cout<<"\ncurChildren f value= "<<curChild->f_value;
-                std::cout<<"\nFinding the curchild : "<<curChild->pose.p.position.x<<" "<< curChild->pose.p.position.y<<" "<<curChild->pose.p.position.z<<" "<<curChild->pose.p.orientation.x<<" "<<curChild->pose.p.orientation.y<<" "<<curChild->pose.p.orientation.z<<" "<<curChild->pose.p.orientation.w<< std::endl;
+                std::cout<<"\nFinding the curchild : "<<curChild->pose.p.position.x<<" "<< curChild->pose.p.position.y<<" "<<curChild->pose.p.position.z<<" "<<curChild->pose.p.orientation.x<<" "<<curChild->pose.p.orientation.y<<" "<<curChild->pose.p.orientation.z<<" "<<curChild->pose.p.orientation.w;
             }
-
-            if((p = openList->find(curChild)))
+            if(heuristic->isCost())
+                condition = (p->f_value <=curChild->f_value);
+            else
+                condition = (p->f_value >=curChild->f_value);
+            if(openList!=NULL)
             {
-                if (debug)
-                    std::cout<<"\nCheck if the child is already in the open list"<<"\n";
-                if(heuristic->isCost())
-                    condition = (p->f_value <=curChild->f_value);
-                else
-                    condition = (p->f_value >=curChild->f_value);
-                if (condition)
+              p = openList->find(curChild);
+              if(p)
+              {
+                if(condition)
                 {
-                    //TODO: remove it later, it is used for memory usage reduction ... information gain heuristic (uses octree) and the distance heuritic uses cost function (doesn't use octree)
-                    //curChild->octree->clear();
-                    freeNode(curChild);
-                    curChild = NULL;
+                  freeNode(curChild);
+                  curChild = NULL;
+                  continue;
                 }
-                // the child is a shorter path to this point, delete p from  the closed list
-                else
-                {
-                    openList->remove(p);
-                    fflush(stdout);
-                }
+              }
             }
-            // test whether the child is in the closed list (already been there)
-            if (curChild)
+            if(closedList!=NULL)
             {
-                if (debug)
+              if((p = closedList->find(curChild)))
+              {
+                if(condition)
                 {
-                    std::cout<<" check if the current child in the closed list\n"<<std::endl;
-                    std::cout<<" CLOSED LIST NODES\n"<<std::endl;
-                    closedList->print();
-                    std::cout<<" Finding the curchild : "<<curChild->pose.p.position.x<<" "<< curChild->pose.p.position.y<<" "<<curChild->pose.p.position.z<<" "<<curChild->pose.p.orientation.x<<" "<<curChild->pose.p.orientation.y<<" "<<curChild->pose.p.orientation.z<<" "<<curChild->pose.p.orientation.w<< std::endl;
+                  freeNode(curChild);
+                  curChild = NULL;
+                  continue;
                 }
-                if((p = closedList->find(curChild)))
-                {
-                    if (debug)
-                        std::cout<<"The child is already in the closed list"<<"\n";
-
-                    if(heuristic->isCost())
-                        condition = (p->f_value <=curChild->f_value);
-                    else
-                        condition = (p->f_value >=curChild->f_value);
-                    if(condition)
-                    {
-                        if (debug)
-                            std::cout<<"Free the node the closed list check, parent is bigger than the child"<<"\n";
-                        //TODO: remove it later, it is used for memory usage reduction ... information gain heuristic (uses octree) and the distance heuritic uses cost function (doesn't use octree)
-                        //curChild->octree->clear();
-                        freeNode(curChild);
-                        curChild = NULL;
-                    }
-                    // the child is a shorter path to this point, delete p from  the closed list
-                    else
-                    {
-                        if (debug)
-                            std::cout<<"the parent f value is less than the child"<<"\n"; fflush(stdout);
-                        /* This is the tricky part, it rarely happens, but in my case it happenes all the time :s
-                         * Anyways, we are here cause we found a better path to a node that we already visited, we will have to
-                         * Update the cost of that node and ALL ITS DESCENDENTS because their cost is parent dependent ;)
-                         * Another Solution is simply to comment everything and do nothing, doing this, the child will be added to the
-                         * Open List and it will be investigated further later on.
-                         */
-                    }
-                }
-                if (debug)
-                    std::cout<<"DID NOT find the child in the closed list\n";
+              }
             }
-            // ADD the child to the OPEN List
-            if (curChild)
-            {
-                if (debug)
-                    std::cout<<"adding the cur child to the openlist"<<"\n";
-                openList->add(curChild,heuristic->isCost());
-            }
+            // remove any similar node in open list as it's higher cost
+            openList->remove(curChild);
+            // add the new one, it's lower cost
+            openList->add(curChild,heuristic->isCost());
         }
-
-
-        // put the current node onto the closed list, ==>> already visited List
-        closedList->add(current,heuristic->isCost());
         // Test to see if we have expanded too many nodes without a solution
         if (current->id > this->MAXNODES)
         {
             std::cout<<"\nExpanded:"<<current->id<<" Nodes which is more than the maximum allowed MAXNODE:"<<MAXNODES;
             //Delete Nodes in Open and Closed Lists
-            std::cout<<"\nThe closed list and open list have been cleared"<<"\n";
             closedList->free();
             openList->free();
+            std::cout<<"\nThe closed list and open list have been cleared"<<"\n";fflush(stdout);
             path = NULL;
             return path; // Expanded more than the maximium nodes state
         }
@@ -432,9 +388,9 @@ Node *Astar::makeChildrenNodes(Node *parent)
     Node  *p, *q, *r;
     SearchSpaceNode *temp;
 
-    P.position.x  = parent->pose.p.position.x;
-    P.position.y  = parent->pose.p.position.y;
-    P.position.z  = parent->pose.p.position.z;
+    P.position.x     = parent->pose.p.position.x;
+    P.position.y     = parent->pose.p.position.y;
+    P.position.z     = parent->pose.p.position.z;
     P.orientation.x  = parent->pose.p.orientation.x;
     P.orientation.y  = parent->pose.p.orientation.y;
     P.orientation.z  = parent->pose.p.orientation.z;
@@ -450,22 +406,24 @@ Node *Astar::makeChildrenNodes(Node *parent)
     while(temp!=NULL)
     {
         //added the orientation since we have different
-        if (isPositionEqual(temp->location.position,P.position) && isOrientationEqual(temp->location.orientation,P.orientation))
+        if(isPositionEqual(temp->location.position,P.position) && isOrientationEqual(temp->location.orientation,P.orientation))
             break;
         temp = temp->next;
     }
 
-    if (!temp)
+    if(!temp)
     {
         return NULL;
     }
     q = NULL;
 
-    if (debug == true)
-        std::cout<<"\n\n\n#############children Size: "<< temp->children.size() <<" ##################\n\n\n";
+    if(debug)
+    {
+        std::cout<<"\n\n\n#############children Size: "<< temp->children.size() <<" ##################\n\n\n";fflush(stdout);
+    }
 
     // Check Each neighbour
-    for (int i=0;i<temp->children.size();i++)
+    for(int i=0;i<temp->children.size();i++)
     {
         //TODO: check for collision before adding the node, use previous implementation for reference
         p = new Node;
@@ -489,28 +447,24 @@ Node *Astar::makeChildrenNodes(Node *parent)
             tempPose.p.orientation.w = temp->children[i]->sensorLocation.poses[j].orientation.w;
 
             p->senPoses.push_back(tempPose);
-
         }
-
-        //To avoid choosing already selected parent as a child
-        if((r=closedList->find(p)))
-        {
-
-        }else
-        {
-            p->id = temp->children[i]->id;
-            t.children.push_back(p->pose.p);
-            p->parent = parent;
-            p->next = q;
-            q = p;
-        }
-
+        // move the " in closed list detection" to the astar
+        p->id = temp->children[i]->id;
+        p->parent = parent;
+        p->next   = q;
+        p->prev   = NULL;
+        p->depth  = parent->depth + 1;
+        p->id     = globalID++;
+        q = p;
+        t.children.push_back(p->pose.p);
     }
     // Save the search tree so that it can be displayed later
     if (t.children.size() > 0)
         tree.push_back(t);
     if(debug)
-        std::cout<<" Making children nodes: "<<t.children.size()<<"\n";
+    {
+        std::cout<<" Making children nodes: "<<t.children.size()<<"\n"; fflush(stdout);
+    }
     return q;
 }
 

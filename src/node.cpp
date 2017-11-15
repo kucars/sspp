@@ -39,6 +39,34 @@ Node :: Node ():
     cloud_filtered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
 }
 
+Node::Node(Node *n)
+{
+  parent = n->parent;
+  next   = n->next;
+  prev   = n->prev;
+  depth  = n->depth;
+  pose.p.position.x = n->pose.p.position.x;
+  pose.p.position.y = n->pose.p.position.y;
+  pose.p.position.z = n->pose.p.position.z;
+  pose.p.orientation.x = n->pose.p.orientation.x;
+  pose.p.orientation.y = n->pose.p.orientation.y;
+  pose.p.orientation.z = n->pose.p.orientation.z;
+  pose.p.orientation.w = n->pose.p.orientation.w;
+  id = n->id;
+  for(int i=0;i<n->senPoses.size();i++)
+    senPoses.push_back(n->senPoses[i]);
+  nearest_obstacle = n->nearest_obstacle;
+  g_value = n->g_value;
+  h_value = n->h_value;
+  f_value = n->f_value;
+  totalEntroby = n->totalEntroby;
+  distance = n->distance;
+  coverage = n->coverage;
+  coveredVoxelsNum = n->coveredVoxelsNum;
+  coveredVolume = n->coveredVolume;
+  cloud_filtered = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud <pcl::PointXYZ>);
+}
+
 Node :: ~Node ()
 {
     parent = next = prev = NULL;
@@ -51,7 +79,12 @@ bool Node ::operator == (Node a)
 
 bool Node ::operator != (Node a)
 {
-    return ( !(isPositionEqual(this->pose.p.position,a.pose.p.position) && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation)));
+  return ( !(isPositionEqual(this->pose.p.position,a.pose.p.position) && isOrientationEqual(this->pose.p.orientation,a.pose.p.orientation)));
+}
+
+void Node::print()
+{
+  std::cout<<"\n Node X="<<pose.p.position.x<<" Y="<<pose.p.position.y<<" Z="<<pose.p.position.z<<" F value="<<f_value;
 }
 
 }

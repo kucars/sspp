@@ -348,7 +348,6 @@ bool CoveragePathPlanningHeuristic::isFilteringConditionSatisfied(geometry_msgs:
 
 void CoveragePathPlanningHeuristic::displayProgress(vector<Tree> tree)
 {
-
         geometry_msgs::Pose child;
         std::vector<geometry_msgs::Point> lineSegments;
         geometry_msgs::Point linePoint;
@@ -366,7 +365,6 @@ void CoveragePathPlanningHeuristic::displayProgress(vector<Tree> tree)
                 linePoint.y = child.position.y;
                 linePoint.z = child.position.z;
                 lineSegments.push_back(linePoint);
-
             }
         }
         visualization_msgs::Marker linesList = drawLines(lineSegments,1,6,1000000,0.08);

@@ -59,10 +59,15 @@ int main(int argc, char** argv)
   gridSize.x = 10.0;
   gridSize.y = 10.0;
   gridSize.z = 2.0;
+  double gridRes = 1.0;
 
   SSPP::PathPlanner* pathPlanner;
   Pose start(0.0, 0.0, 0, DTOR(0.0));
   Pose end(4.0, 4.0, 2.0, DTOR(0.0));
+
+  visualTools->publishSphere(start.p, rviz_visual_tools::BLUE, 0.3,"start_pose");
+  visualTools->publishSphere(end.p, rviz_visual_tools::ORANGE, 0.3,"end_pose");
+  visualTools->trigger();
 
   double robotH = 0.9, robotW = 0.5, narrowestPath = 0.987;
   double distanceToGoal = 1.2, regGridConRad = 1.5;
@@ -72,14 +77,13 @@ int main(int argc, char** argv)
   robotCenter.y = 0.0f;
   Robot* robot = new Robot("Robot", robotH, robotW, narrowestPath, robotCenter);
 
-  //Every how many iterations to display the tree
-  int progressDisplayFrequency = 1;
-  pathPlanner =
-      new SSPP::PathPlanner(nh, robot, regGridConRad, progressDisplayFrequency);
+  //Every how many iterations to display the tree; -1 disable display
+  int progressDisplayFrequency = 10;
+  pathPlanner = new SSPP::PathPlanner(nh, robot, regGridConRad, progressDisplayFrequency);
 
   // This causes the planner to pause for the desired amount of time and display
   // the search tree, useful for debugging
-  pathPlanner->setDebugDelay(0.1);
+  pathPlanner->setDebugDelay(0.0);
 
   SSPP::DistanceHeuristic distanceHeuristic(nh, false);
   distanceHeuristic.setEndPose(end.p);
@@ -87,7 +91,7 @@ int main(int argc, char** argv)
   pathPlanner->setHeuristicFucntion(&distanceHeuristic);
 
   // Generate Grid Samples and visualise it
-  pathPlanner->generateRegularGrid(gridStartPose, gridSize, 1.0, true, 90.0f,false, true);
+  pathPlanner->generateRegularGrid(gridStartPose, gridSize, gridRes, true, 90.0f,false, true);
   std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
 
   std::vector<geometry_msgs::PoseArray> sensorsPoseSS;
@@ -143,7 +147,6 @@ int main(int argc, char** argv)
       for (int i = 0; i < path->senPoses.size(); i++)
         sensorPose.poses.push_back(path->senPoses[i].p);
       pathSegments.push_back(linePoint);
-      std::cout<<" Line p1 x:"<<linePoint.x<<" y:"<<linePoint.y<<" z:"<<linePoint.z;
 
       linePoint.x = path->next->pose.p.position.x;
       linePoint.y = path->next->pose.p.position.y;
@@ -152,21 +155,20 @@ int main(int argc, char** argv)
       for (int i = 0; i < path->next->senPoses.size(); i++)
         sensorPose.poses.push_back(path->next->senPoses[i].p);
       pathSegments.push_back(linePoint);
-      std::cout<<" p2 x:"<<linePoint.x<<" y:"<<linePoint.y<<" z:"<<linePoint.z<<"\n";
 
       dist = dist + Dist(path->next->pose.p, path->pose.p);      
     }
     path = path->next;
   }
+  std::cout << "\nDistance calculated from the path: " << dist << "m\n";
 
+  /*
   for(int i =0; i<(pathSegments.size() - 1) ;i++)
   {
-    std::cout<<"\nLine p1 x:"<<pathSegments[i].x<<" y:"<<pathSegments[i].y<<" z:"<<pathSegments[i].z;
     visualTools->publishLine(pathSegments[i], pathSegments[i+1], rviz_visual_tools::RED);
   }
   visualTools->trigger();
 
-  std::cout << "\nDistance calculated from the path: " << dist << "m\n";
   for (int i = 0; i < robotPose.poses.size(); i++)
   {
     visualTools->publishArrow(robotPose.poses[i], rviz_visual_tools::YELLOW, rviz_visual_tools::LARGE, 0.3);
@@ -185,6 +187,7 @@ int main(int argc, char** argv)
       visualTools->publishArrow(sensorsPoseSS[i].poses[j], rviz_visual_tools::DARK_GREY, rviz_visual_tools::LARGE, 0.3);
   }
   visualTools->trigger();
+  */
 
   delete robot;
   delete pathPlanner;

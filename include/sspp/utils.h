@@ -350,12 +350,12 @@ inline void DeleteSTLMap(map& m)
 
 inline double Dist(geometry_msgs::Point a, geometry_msgs::Point b)
 {
-    return sqrt(pow(a.x - b.x,2) + pow(a.y - b.y,2));
+    return sqrt((a.x - b.x)*(a.x - b.x) + (a.y - b.y)*(a.y - b.y) + (a.z - b.z)*(a.z - b.z));
 }
 
 inline double Dist(geometry_msgs::Pose a, geometry_msgs::Pose b)
 {
-    return sqrt(pow(a.position.x - b.position.x,2) + pow(a.position.y - b.position.y,2) + pow(a.position.z - b.position.z,2) );
+    return sqrt( (a.position.x - b.position.x)*(a.position.x - b.position.x) + (a.position.y - b.position.y)*(a.position.y - b.position.y) + (a.position.z - b.position.z)*(a.position.z - b.position.z));
 }
 
 class Line
@@ -393,23 +393,23 @@ class Pose
 {	
 public : 
     geometry_msgs::Pose p;
-	double phi;	
+    double phi;
     Pose(){}
     Pose(double x ,double y, double z, double theta)
-	{
+    {
         p.position.x = x;
         p.position.y = y;
         p.position.z = z;
-		phi = theta;
-	}
-	bool operator==(const Pose& pose) const
-  	{
+        phi = theta;
+    }
+    bool operator==(const Pose& pose) const
+    {
         return samePosition(p,pose.p);
-  	}
-  	bool operator!=(const Pose& pose) const
-  	{
+    }
+    bool operator!=(const Pose& pose) const
+    {
         return !samePosition(p,pose.p);
-  	}
+    }
 };
 
 // computes the signed minimum difference between the two angles.

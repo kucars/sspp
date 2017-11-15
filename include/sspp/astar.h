@@ -53,6 +53,7 @@ private:
     void   findDest() throw(SSPPException);
     Node  *makeChildrenNodes(Node *parent) ;
     ros::NodeHandle  nh;
+    void displayOctree();
 public:
     Astar(ros::NodeHandle & n, Robot *,int progressDisplayFrequency);
     Astar();
@@ -76,7 +77,7 @@ public:
     Node*  astarSearch(Pose start);
     Node*  tempChildList;
     double debugDelay;
-
+    int globalID;
     ros::Publisher childPosePub;
     ros::Publisher childSensorsPub;
     ros::Publisher parentPosePub;

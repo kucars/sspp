@@ -9,8 +9,6 @@ Panels:
         - /MarkerArray1
         - /MarkerArray1/Namespaces1
         - /Marker1
-        - /Marker2
-        - /Marker3
       Splitter Ratio: 0.658333361
     Tree Height: 795
   - Class: rviz/Selection
@@ -58,28 +56,14 @@ Visualization Manager:
       Marker Topic: /sspp_visualisation
       Name: MarkerArray
       Namespaces:
+        Arrow: true
+        Line: true
         search_space_nodes: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /branch
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /search_tree
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /path_testing
       Name: Marker
       Namespaces:
         {}
@@ -109,7 +93,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 22.1068153
+      Distance: 18.3574219
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -124,10 +108,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.994796395
+      Pitch: 0.874796093
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.26039958
+      Yaw: 3.24039674
     Saved: ~
 Window Geometry:
   Displays:
