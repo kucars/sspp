@@ -28,11 +28,14 @@
 
 #include "sspp/distance_heuristic.h"
 #include "rviz_visual_tools/rviz_visual_tools.h"
+#include <octomap_world/octomap_manager.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "reactive_planner_test");
   ros::NodeHandle nh;
+  ros::NodeHandle nh_private("~");
 
   // Allow the action server to recieve and send ros messages
   ros::AsyncSpinner spinner(1);
@@ -49,6 +52,17 @@ int main(int argc, char** argv)
   visualTools->deleteAllMarkers();
   visualTools->enableBatchPublishing();
   //    visualTools->setLifetime(0.2);
+  volumetric_mapping::OctomapManager * manager = new volumetric_mapping::OctomapManager(nh, nh_private);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr originalCloud(new pcl::PointCloud<pcl::PointXYZ>);
+
+  std::string pp = ros::package::getPath("component_test");
+  pcl::io::loadPCDFile<pcl::PointXYZ> (pp+"/src/pcd/etihad_nowheels_densed.pcd", *originalCloud);
+
+  sensor_msgs::PointCloud2 toManagerCloud;
+  pcl::toROSMsg(*originalCloud, toManagerCloud);
+  //pcl_conversion::fromPCL();
+  sensor_msgs::PointCloud2ConstPtr toManagerCloudPtr = boost::shared_ptr<sensor_msgs::PointCloud2> (&toManagerCloud);
+  manager->insertPointcloudWithTf(toManagerCloudPtr);
 
   ros::Time timer_start = ros::Time::now();
   geometry_msgs::Pose gridStartPose;
@@ -56,14 +70,14 @@ int main(int argc, char** argv)
   gridStartPose.position.x = 0.0;
   gridStartPose.position.y = 0.0;
   gridStartPose.position.z = 0.0;
-  gridSize.x = 10.0;
-  gridSize.y = 10.0;
+  gridSize.x = 20.0;
+  gridSize.y = 20.0;
   gridSize.z = 2.0;
   double gridRes = 1.0;
 
   SSPP::PathPlanner* pathPlanner;
   Pose start(0.0, 0.0, 0, DTOR(0.0));
-  Pose end(4.0, 4.0, 2.0, DTOR(0.0));
+  Pose end(8.0, 8.0, 2.0, DTOR(0.0));
 
   visualTools->publishSphere(start.p, rviz_visual_tools::BLUE, 0.3,"start_pose");
   visualTools->publishSphere(end.p, rviz_visual_tools::ORANGE, 0.3,"end_pose");
@@ -160,8 +174,8 @@ int main(int argc, char** argv)
     }
     path = path->next;
   }
-  std::cout << "\nDistance calculated from the path: " << dist << "m\n";
 
+  std::cout << "\nDistance calculated from the path: " << dist << "m\n";
 
   for(int i =0; i<(pathSegments.size() - 1) ;i++)
   {
@@ -190,5 +204,9 @@ int main(int argc, char** argv)
 
   delete robot;
   delete pathPlanner;
+  if (manager)
+  {
+    delete manager;
+  }
   return 0;
 }

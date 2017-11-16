@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   shape_msgs
   std_msgs
   rviz_visual_tools
+  octomap_world
   )
 
 # Few differences when dealing with ros-indigo and ros-kinetic
@@ -49,10 +50,9 @@ include(FindPkgConfig)
 
 #catkin_package(CATKIN_DEPENDS component_test)
 catkin_package(
-   INCLUDE_DIRS
-   include
-   LIBRARIES
-   CATKIN_DEPENDS roscpp pcl_ros
+   INCLUDE_DIRS include
+   LIBRARIES ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES}
+   CATKIN_DEPENDS roscpp pcl_ros octomap_world
 )
 
 include_directories(include
