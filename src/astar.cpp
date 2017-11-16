@@ -145,11 +145,11 @@ void Astar::setHeuristicFucntion(Heuristic* heuristicFun)
     heuristic = heuristicFun;
 }
 
-//TODO: Randa call this inside the AStart Search with the appropriate parameters
 void Astar::displayOctree()
 {
-  /*
   //display the child and the octree
+  geometry_msgs::PoseArray childPose,parentPose, childSensors, parentSensors;
+  std::vector<geometry_msgs::Point> lineSegments;
   if(nodesCounter == nodeToBeVisNum && nodeToBeVisNum != 0)
   {
     geometry_msgs::Pose parent;
@@ -215,7 +215,6 @@ void Astar::displayOctree()
     lineSegments.erase(lineSegments.begin(), lineSegments.end());
     ros::Duration(2).sleep();
   }
-  */
 }
 
 Node *Astar::astarSearch(Pose start)
@@ -335,26 +334,20 @@ Node *Astar::astarSearch(Pose start)
 
             if(openList!=NULL)
             {
-              if(openList->find(curChild))
+              if(openList->find(curChild) && condition)
               {
-                if(condition)
-                {
-                  freeNode(curChild);
-                  curChild = NULL;
-                  continue;
-                }
+                freeNode(curChild);
+                curChild = NULL;
+                continue;
               }
             }
             if(closedList!=NULL)
             {
-              if(closedList->find(curChild))
+              if(closedList->find(curChild) && condition)
               {
-                if(condition)
-                {
-                  freeNode(curChild);
-                  curChild = NULL;
-                  continue;
-                }
+                freeNode(curChild);
+                curChild = NULL;
+                continue;
               }
             }
             // remove any similar node in open list as it's higher cost
