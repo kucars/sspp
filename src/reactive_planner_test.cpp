@@ -162,7 +162,7 @@ int main(int argc, char** argv)
   }
   std::cout << "\nDistance calculated from the path: " << dist << "m\n";
 
-  /*
+
   for(int i =0; i<(pathSegments.size() - 1) ;i++)
   {
     visualTools->publishLine(pathSegments[i], pathSegments[i+1], rviz_visual_tools::RED);
@@ -187,7 +187,6 @@ int main(int argc, char** argv)
       visualTools->publishArrow(sensorsPoseSS[i].poses[j], rviz_visual_tools::DARK_GREY, rviz_visual_tools::LARGE, 0.3);
   }
   visualTools->trigger();
-  */
 
   delete robot;
   delete pathPlanner;
