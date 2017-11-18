@@ -16,4 +16,8 @@
         type="reactive_planner_test" output="screen">
   </node>
 
+  <node pkg="pcl_ros" type="pcd_to_pointcloud" name="spawn_pcd_to_pcl" output="screen" args ="$(find sspp)/pcd/etihad_nowheels_nointernal_scaled_newdensed.pcd 10" >
+    <param name="frame_id" value="/world" />
+  </node>
+
 </launch>
