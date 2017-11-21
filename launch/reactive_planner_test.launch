@@ -37,7 +37,7 @@
         <param name="debug" type="bool" value="false" />
         <param name="sample_orientations" type="bool" value="false" />
         <param name="orientation_sampling_res"  type="double" value="90.0" />
-        <param name="tree_progress_display_freq"  type="int" value="10" />
+        <param name="tree_progress_display_freq"  type="int" value="-1" />
         <param name="debug_delay"      type="double" value="0.0" />
         <param name="dist_to_goal"     type="double" value="0.5" />
         <param name="connection_rad"   type="double" value="1.5" />
@@ -45,6 +45,9 @@
         <param name="grid_size_x"      type="double" value="10.0" />
         <param name="grid_size_y"      type="double" value="10.0" />
         <param name="grid_size_z"      type="double" value="0.0" />
+        <param name="grid_start_x"     type="double" value="0.0" />
+        <param name="grid_start_y"     type="double" value="0.0" />
+        <param name="grid_start_z"     type="double" value="0.0" />
   </node>
 
   <node pkg="pcl_ros" type="pcd_to_pointcloud" name="spawn_pcd_to_pcl" output="screen" args ="$(find sspp)/pcd/sphere_verydensed.pcd 1" >

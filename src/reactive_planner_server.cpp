@@ -31,7 +31,7 @@
 #include <octomap_world/octomap_manager.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-class ReactivePlanner
+class ReactivePlannerServer
 {
 private:
   ros::Subscriber sub;
@@ -58,17 +58,18 @@ private:
   geometry_msgs::Pose gridStart;
   std::vector<std::pair<Eigen::Vector3d, double> > occupied_box_vector;
 public:
-  ReactivePlanner(const ros::NodeHandle& nh_, const ros::NodeHandle& nh_private_):
+  ReactivePlannerServer(const ros::NodeHandle& nh_, const ros::NodeHandle& nh_private_):
     nh(nh_),
     nh_private(nh_private_)
   {
-    getConfigsFromRosParams();
-    sub = nh.subscribe<sensor_msgs::PointCloud2>("cloud_pcd", 1, &ReactivePlanner::callback,this);
+    sub = nh.subscribe<sensor_msgs::PointCloud2>("cloud_pcd", 1, &ReactivePlannerServer::callback,this);
     visualTools.reset(new rviz_visual_tools::RvizVisualTools("world", "/sspp_visualisation"));
     visualTools->loadMarkerPub();
     gridStart.position.x = 0.0;
     gridStart.position.y = 0.0;
     gridStart.position.z = 0.0;
+
+    getConfigsFromRosParams();
     visualTools->deleteAllMarkers();
     visualTools->enableBatchPublishing();
     manager = new volumetric_mapping::OctomapManager(nh, nh_private);
@@ -99,22 +100,6 @@ public:
     }
   }
 
-  ~ReactivePlanner()
-  {
-    if(robot)
-      delete robot;
-    if(pathPlanner)
-      delete pathPlanner;
-    if (manager)
-      delete manager;
-  }
-
-  void callback(const sensor_msgs::PointCloud2::ConstPtr& cloudIn)
-  {
-    gotCloud = true;
-    manager->insertPointcloudWithTf(cloudIn);
-  }
-
   void getConfigsFromRosParams()
   {
     std::string ns = ros::this_node::getName();
@@ -142,12 +127,34 @@ public:
     nh_private.param("tree_progress_display_freq",treeProgressDisplayFrequency,treeProgressDisplayFrequency);
   }
 
+  ~ReactivePlannerServer()
+  {
+    if(robot)
+      delete robot;
+    if(pathPlanner)
+      delete pathPlanner;
+    if (manager)
+      delete manager;
+  }
+
+  void callback(const sensor_msgs::PointCloud2::ConstPtr& cloudIn)
+  {
+    gotCloud = true;
+    manager->insertPointcloudWithTf(cloudIn);
+  }
+
   void planPath()
   {
     manager->getAllOccupiedBoxes(&occupied_box_vector);
     ROS_INFO_THROTTLE(1,"While Planning MAP SIZE:[%f %f %f] occupied cells:%lu",manager->getMapSize()[0],manager->getMapSize()[1],manager->getMapSize()[2],occupied_box_vector.size());
 
     ros::Time timer_start = ros::Time::now();
+    geometry_msgs::Pose gridStartPose;
+
+    gridStartPose.position.x = 0.0;
+    gridStartPose.position.y = 0.0;
+    gridStartPose.position.z = 0.0;
+
     start.phi = end.phi = DTOR(0.0);
 
     visualTools->publishSphere(start.p, rviz_visual_tools::BLUE, 0.3,"start_pose");
@@ -175,7 +182,7 @@ public:
     pathPlanner->setHeuristicFucntion(&distanceHeuristic);
 
     // Generate Grid Samples and visualise it
-    pathPlanner->generateRegularGrid(gridStart, gridSize, gridRes, sampleOrientations, orientationSamplingRes,false, true);
+    pathPlanner->generateRegularGrid(gridStartPose, gridSize, gridRes, sampleOrientations, orientationSamplingRes,false, true);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
 
     std::vector<geometry_msgs::PoseArray> sensorsPoseSS;
@@ -280,10 +287,10 @@ public:
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "reactive_planner_test");
+  ros::init(argc, argv, "reactive_planner_server");
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
-  ReactivePlanner reactivePlanner(nh,nh_private);
+  ReactivePlannerServer reactivePlannerServer(nh,nh_private);
   ros::spin();
   return 0;
 }
