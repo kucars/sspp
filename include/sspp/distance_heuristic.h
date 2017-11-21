@@ -25,8 +25,8 @@
 #include "node.h"
 #include "heuristic_interface.h"
 #include "rviz_drawing_tools.h"
-
-using namespace std;
+#include <octomap_world/octomap_manager.h>
+#include "rviz_visual_tools/rviz_visual_tools.h"
 
 namespace SSPP
 {
@@ -34,7 +34,7 @@ namespace SSPP
 class DistanceHeuristic:public Heuristic
 {
 public:
-    DistanceHeuristic(ros::NodeHandle &n, bool d=false);
+    DistanceHeuristic(ros::NodeHandle &n, bool d=false,volumetric_mapping::OctomapManager * manager=NULL, rviz_visual_tools::RvizVisualToolsPtr visualTools_ = NULL);
     ~DistanceHeuristic(){}
     double gCost(Node *node);
     double hCost(Node *node);
@@ -62,7 +62,8 @@ private:
     std::vector<geometry_msgs::Point> points;
     std::vector<geometry_msgs::Point> lines;
     geometry_msgs::Point linepoint;
-
+    volumetric_mapping::OctomapManager * manager;
+    rviz_visual_tools::RvizVisualToolsPtr visualTools;
 };
 
 }

@@ -24,18 +24,18 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
-#include "rviz_visual_tools/rviz_visual_tools.h"
 
 namespace SSPP
 {
 
-DistanceHeuristic::DistanceHeuristic(ros::NodeHandle & nh, bool d)
+DistanceHeuristic::DistanceHeuristic(ros::NodeHandle & nh, bool d,volumetric_mapping::OctomapManager * manager_,rviz_visual_tools::RvizVisualToolsPtr visualTools_):
+  debug(d),
+  manager(manager_),
+  visualTools(visualTools_)
 {
-    debug   = d;
     treePub = nh.advertise<visualization_msgs::Marker>("search_tree", 10);
     pathPointPub = nh.advertise<visualization_msgs::Marker>("path_point" , 10);
     pathPub = nh.advertise<visualization_msgs::Marker>("path_testing", 10);
-
 }
 
 double DistanceHeuristic::gCost(Node *node)
@@ -98,14 +98,40 @@ bool DistanceHeuristic::terminateConditionReached(Node *node)
 
 bool DistanceHeuristic::isConnectionConditionSatisfied(SearchSpaceNode *temp, SearchSpaceNode *S)
 {
-    //TODO::do a collision check with the map
-    return true;
+  if(manager)
+  {
+    bool noCollision = true;
+    Eigen::Vector3d startPoint(temp->location.position.x, temp->location.position.y, temp->location.position.z);
+    Eigen::Vector3d endPoint(S->location.position.x, S->location.position.y, S->location.position.z);
+    //TODO: read size of robot from params
+    Eigen::Vector3d boundingBox(0.5,0.5,0.3);
+    volumetric_mapping::OctomapManager::CellStatus cellStatus;
+    cellStatus = manager->getLineStatusBoundingBox(startPoint,endPoint,boundingBox);
+
+    if(cellStatus == volumetric_mapping::OctomapManager::CellStatus::kFree)
+      noCollision = true;
+    else
+      noCollision = false;
+    if(debug && visualTools)
+    {
+      if(!noCollision)
+        visualTools->publishLine(startPoint,endPoint,rviz_visual_tools::RED, rviz_visual_tools::LARGE);
+      else
+        visualTools->publishLine(startPoint,endPoint,rviz_visual_tools::GREEN, rviz_visual_tools::LARGE);
+      visualTools->trigger();
+    }
+
+    return noCollision;
+  }
+  return true;
 }
+
 bool DistanceHeuristic::isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray& correspondingSensorPoses, double minDist, double maxDist, pcl::PointCloud<pcl::PointXYZ>& globalCloud, std::vector<pcl::PointCloud<pcl::PointXYZ> >& accuracyClusters, double accuracyThreshhold)
 {
     //TODO::preform filtering check
     return true;
 }
+
 double DistanceHeuristic::pointCloudDiff(pcl::PointCloud<pcl::PointXYZ>::Ptr globalCloudPtr, pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloudDiffPtr )
 {
     //TODO::Finding a way to not include this function here too, it is for coverage heuristic
@@ -129,8 +155,6 @@ void DistanceHeuristic::findClusterBB(pcl::PointCloud<pcl::PointXYZ> clusterPoin
 
 void DistanceHeuristic::displayProgress(vector<Tree> tree)
 {
-    rviz_visual_tools::RvizVisualToolsPtr visualTools;
-    visualTools.reset(new rviz_visual_tools::RvizVisualTools("world","/sspp_visualisation"));
     geometry_msgs::Pose child;
     std::vector<geometry_msgs::Point> lineSegments;
     geometry_msgs::Point linePoint1,linePoint2;
@@ -149,10 +173,11 @@ void DistanceHeuristic::displayProgress(vector<Tree> tree)
             linePoint2.y = child.position.y;
             linePoint2.z = child.position.z;
             lineSegments.push_back(linePoint2);
-
-            visualTools->publishLine(linePoint1,linePoint2,rviz_visual_tools::GREEN, rviz_visual_tools::LARGE);
+            if(visualTools)
+              visualTools->publishLine(linePoint1,linePoint2,rviz_visual_tools::GREEN, rviz_visual_tools::LARGE);
         }
-        visualTools->trigger();
+        if(visualTools)
+          visualTools->trigger();
     }
 }
 

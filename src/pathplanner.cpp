@@ -464,7 +464,6 @@ void PathPlanner::connectNodes()
                     numConnections++;
                     temp->children.push_back(S);
                 }
-
             }
             S = S->next;
         }

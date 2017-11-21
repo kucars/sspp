@@ -12,11 +12,42 @@
   <arg unless="$(arg debug)" name="launch_prefix" value="" />
   <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
 
-  <node name="reactive_planner_test" launch-prefix="$(arg launch_prefix)" pkg="sspp"
-        type="reactive_planner_test" output="screen">
+  <arg name="tf_frame" default="world" />
+  <arg name="resolution" default="0.3" />
+  <arg name="visualize_max_z" default="3" />
+  <arg name="sensor_max_range" default="15.0" />
+
+  <node name="reactive_planner_test" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_test" output="screen">
+        <!-- Volumetic Mapping Params -->
+        <param name="tf_frame" type="string" value="$(arg tf_frame)" />
+        <param name="resolution" type="double" value="$(arg resolution)" />
+        <param name="visualize_max_z" type="double" value="$(arg visualize_max_z)" />
+        <param name="sensor_max_range" type="double" value="$(arg sensor_max_range)" />
+        <param name="map_publish_frequency" type="double" value="1.0" />
+        <param name="treat_unknown_as_occupied" type="bool" value="false" />
+        <!-- Path Planning Params -->
+        <param name="start_x" type="double" value="-4.0" />
+        <param name="start_y" type="double" value="0.0" />
+        <param name="start_z" type="double" value="0.0" />
+        <param name="end_x"   type="double" value="4.0" />
+        <param name="end_y"   type="double" value="0.0" />
+        <param name="end_z"   type="double" value="0.0" />
+        <param name="end_z"   type="double" value="0.0" />
+        <param name="visualize_search_space" type="bool" value="false" />
+        <param name="debug" type="bool" value="false" />
+        <param name="sample_orientations" type="bool" value="false" />
+        <param name="orientation_sampling_res"  type="double" value="90.0" />
+        <param name="tree_progress_display_freq"  type="int" value="10" />
+        <param name="debug_delay"      type="double" value="0.0" />
+        <param name="dist_to_goal"     type="double" value="0.5" />
+        <param name="connection_rad"   type="double" value="1.5" />
+        <param name="grid_resolution"  type="double" value="1.0" />
+        <param name="grid_size_x"      type="double" value="10.0" />
+        <param name="grid_size_y"      type="double" value="10.0" />
+        <param name="grid_size_z"      type="double" value="0.0" />
   </node>
 
-  <node pkg="pcl_ros" type="pcd_to_pointcloud" name="spawn_pcd_to_pcl" output="screen" args ="$(find sspp)/pcd/etihad_nowheels_nointernal_scaled_newdensed.pcd 10" >
+  <node pkg="pcl_ros" type="pcd_to_pointcloud" name="spawn_pcd_to_pcl" output="screen" args ="$(find sspp)/pcd/sphere_verydensed.pcd 1" >
     <param name="frame_id" value="/world" />
   </node>
 

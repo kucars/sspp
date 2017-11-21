@@ -30,7 +30,7 @@ else()
     message("Unsupported ROS Distro")
 endif()
 
-find_package( CGAL QUIET COMPONENTS  )
+find_package(CGAL QUIET COMPONENTS)
 find_package(PCL REQUIRED)
 find_package(CUDA QUIET)
 find_package(octomap REQUIRED)
@@ -89,6 +89,7 @@ target_link_libraries(SSPathPlanner
 
 add_executable(distance_heuristic_test src/distance_heuristic_test.cpp)
 target_include_directories(distance_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS})
+add_dependencies(distance_heuristic_test ${catkin_EXPORTED_TARGETS})
 target_link_libraries(distance_heuristic_test SSPathPlanner
     -lgmp -lmpfr
     ${CGAL_LIBRARY}
@@ -100,6 +101,7 @@ target_link_libraries(distance_heuristic_test SSPathPlanner
 
 add_executable(reactive_planner_test src/reactive_planner_test.cpp)
 target_include_directories(reactive_planner_test PUBLIC include ${catkin_INCLUDE_DIRS})
+add_dependencies(reactive_planner_test ${catkin_EXPORTED_TARGETS})
 target_link_libraries(reactive_planner_test SSPathPlanner
     -lgmp -lmpfr
     ${CGAL_LIBRARY}

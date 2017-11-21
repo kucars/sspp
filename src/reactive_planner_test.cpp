@@ -37,70 +37,142 @@ private:
   ros::Subscriber sub;
   ros::NodeHandle nh;
   ros::NodeHandle nh_private;
-  volumetric_mapping::OctomapManager * manager;
+  volumetric_mapping::OctomapManager * manager = NULL;
   rviz_visual_tools::RvizVisualToolsPtr visualTools;
-
+  SSPP::PathPlanner* pathPlanner = NULL;
+  Robot* robot = NULL;
+  geometry_msgs::Point robotCenter;
+  bool gotCloud = false;
+  bool donePlanning = false;
+  bool visualizeSearchSpace = false;
+  bool sampleOrientations = false;
+  bool debug = false;
+  Pose start,end;
+  double orientationSamplingRes = 90.0;
+  double debugDelay = 0.0;
+  double regGridConRad;
+  double gridRes;
+  double distanceToGoal = 0;
+  int treeProgressDisplayFrequency = -1;
+  geometry_msgs::Vector3 gridSize;
+  std::vector<std::pair<Eigen::Vector3d, double> > occupied_box_vector;
 public:
-  ReactivePlanner(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private):
-    nh(nh),
-    nh_private(nh_private)
+  ReactivePlanner(const ros::NodeHandle& nh_, const ros::NodeHandle& nh_private_):
+    nh(nh_),
+    nh_private(nh_private_)
   {
-    sub = nh.subscribe("cloud_pcd", 1, &ReactivePlanner::gotCloud,this);
+    sub = nh.subscribe<sensor_msgs::PointCloud2>("cloud_pcd", 1, &ReactivePlanner::callback,this);
     visualTools.reset(new rviz_visual_tools::RvizVisualTools("world", "/sspp_visualisation"));
     visualTools->loadMarkerPub();
 
-    ROS_INFO("Sleeping 5 seconds before running demo");
-    //ros::Duration(5.0).sleep();
     visualTools->deleteAllMarkers();
     visualTools->enableBatchPublishing();
     manager = new volumetric_mapping::OctomapManager(nh, nh_private);
+    Eigen::Vector3d origin(0,0,0);
+    Eigen::Vector3d envBox(15,15,10);
+    manager->setFree(origin,envBox);
+    ROS_INFO("Starting the reactive planning");
+    //ros::Duration(5.0).sleep();
+    ros::Rate loopRate(10);
+    while(ros::ok())
+    {
+      manager->getAllOccupiedBoxes(&occupied_box_vector);
+      ROS_INFO_THROTTLE(1,"MAP SIZE:[%f %f %f] occupied cells:%lu",manager->getMapSize()[0],manager->getMapSize()[1],manager->getMapSize()[2],occupied_box_vector.size());
+      if(gotCloud && !donePlanning && occupied_box_vector.size()>0)
+      {
+        if (manager->getMapSize().norm() <= 0.0)
+        {
+            ROS_ERROR_THROTTLE(1, "Planner not set up: Octomap is empty!");
+        }
+        else
+        {
+          donePlanning = true;
+          planPath();
+        }
+      }
+      loopRate.sleep();
+      ros::spinOnce();
+    }
   }
 
-  void gotCloud(const sensor_msgs::PointCloud2::ConstPtr& cloudIn)
+  ~ReactivePlanner()
   {
+    if(robot)
+      delete robot;
+    if(pathPlanner)
+      delete pathPlanner;
+    if (manager)
+      delete manager;
+  }
+
+  void callback(const sensor_msgs::PointCloud2::ConstPtr& cloudIn)
+  {
+    gotCloud = true;
     manager->insertPointcloudWithTf(cloudIn);
+  }
+
+  void planPath()
+  {
+    manager->getAllOccupiedBoxes(&occupied_box_vector);
+    ROS_INFO_THROTTLE(1,"While Planning MAP SIZE:[%f %f %f] occupied cells:%lu",manager->getMapSize()[0],manager->getMapSize()[1],manager->getMapSize()[2],occupied_box_vector.size());
+
     ros::Time timer_start = ros::Time::now();
     geometry_msgs::Pose gridStartPose;
-    geometry_msgs::Vector3 gridSize;
+
     gridStartPose.position.x = 0.0;
     gridStartPose.position.y = 0.0;
     gridStartPose.position.z = 0.0;
-    gridSize.x = 20.0;
-    gridSize.y = 20.0;
-    gridSize.z = 2.0;
-    double gridRes = 1.0;
+    std::string ns = ros::this_node::getName();
+    std::cout<<"Node name is:"<<ns<<"\n";
+    ros::param::get(ns + "/start_x",start.p.position.x);
+    ros::param::get(ns + "/start_y",start.p.position.y);
+    ros::param::get(ns + "/start_z",start.p.position.z);
 
-    SSPP::PathPlanner* pathPlanner;
-    Pose start(0.0, 0.0, 0, DTOR(0.0));
-    Pose end(8.0, 8.0, 2.0, DTOR(0.0));
+    ros::param::get(ns + "/end_x",end.p.position.x);
+    ros::param::get(ns + "/end_y",end.p.position.y);
+    ros::param::get(ns + "/end_z",end.p.position.z);
+    ros::param::get(ns + "/connection_rad",regGridConRad);
+    ros::param::get(ns + "/grid_resolution",gridRes);
+    ros::param::get(ns + "/grid_size_x",gridSize.x);
+    ros::param::get(ns + "/grid_size_y",gridSize.y);
+    ros::param::get(ns + "/grid_size_z",gridSize.z);
+    ros::param::get(ns + "/visualize_search_space",visualizeSearchSpace);
+    ros::param::get(ns + "/debug",debug);
+    ros::param::get(ns + "/debug_delay",debugDelay);
+    ros::param::get(ns + "/dist_to_goal",distanceToGoal);
+    ros::param::get(ns + "/sample_orientations",sampleOrientations);
+    ros::param::get(ns + "/orientation_sampling_res",orientationSamplingRes);
+    ros::param::get(ns + "/tree_progress_display_freq",treeProgressDisplayFrequency);
+
+
+    start.phi = end.phi = DTOR(0.0);
 
     visualTools->publishSphere(start.p, rviz_visual_tools::BLUE, 0.3,"start_pose");
     visualTools->publishSphere(end.p, rviz_visual_tools::ORANGE, 0.3,"end_pose");
     visualTools->trigger();
 
     double robotH = 0.9, robotW = 0.5, narrowestPath = 0.987;
-    double distanceToGoal = 1.2, regGridConRad = 1.5;
 
-    geometry_msgs::Point robotCenter;
     robotCenter.x = -0.3f;
     robotCenter.y = 0.0f;
-    Robot* robot = new Robot("Robot", robotH, robotW, narrowestPath, robotCenter);
+    if(!robot)
+      robot = new Robot("Robot", robotH, robotW, narrowestPath, robotCenter);
 
     //Every how many iterations to display the tree; -1 disable display
-    int progressDisplayFrequency = -1;
-    pathPlanner = new SSPP::PathPlanner(nh, robot, regGridConRad, progressDisplayFrequency);
+
+    pathPlanner = new SSPP::PathPlanner(nh, robot, regGridConRad, treeProgressDisplayFrequency);
 
     // This causes the planner to pause for the desired amount of time and display
     // the search tree, useful for debugging
-    pathPlanner->setDebugDelay(0.0);
+    pathPlanner->setDebugDelay(debugDelay);
 
-    SSPP::DistanceHeuristic distanceHeuristic(nh, false);
+    SSPP::DistanceHeuristic distanceHeuristic(nh, false,manager,visualTools);
     distanceHeuristic.setEndPose(end.p);
     distanceHeuristic.setTolerance2Goal(distanceToGoal);
     pathPlanner->setHeuristicFucntion(&distanceHeuristic);
 
     // Generate Grid Samples and visualise it
-    pathPlanner->generateRegularGrid(gridStartPose, gridSize, gridRes, true, 90.0f,false, true);
+    pathPlanner->generateRegularGrid(gridStartPose, gridSize, gridRes, sampleOrientations, orientationSamplingRes,false, true);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
 
     std::vector<geometry_msgs::PoseArray> sensorsPoseSS;
@@ -116,10 +188,15 @@ public:
     std::cout << "\nSpace Generation took:"
               << double(ros::Time::now().toSec() - timer_start.toSec())
               << " secs";
-    std::vector<geometry_msgs::Point> searchSpaceConnections = pathPlanner->getConnections();
-
-    //visualTools->publishPath(searchSpaceConnections, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE, "search_space");
-    //visualTools->trigger();
+    if(visualizeSearchSpace)
+    {
+      std::vector<geometry_msgs::Point> searchSpaceConnections = pathPlanner->getConnections();
+      for(int i =0; i<(searchSpaceConnections.size() - 1) ;i+=2)
+      {
+        visualTools->publishLine(searchSpaceConnections[i], searchSpaceConnections[i+1], rviz_visual_tools::BLUE,rviz_visual_tools::LARGE);
+      }
+      visualTools->trigger();
+    }
 
     // Find path and visualise it
     ros::Time timer_restart = ros::Time::now();
@@ -127,7 +204,6 @@ public:
     ros::Time timer_end = ros::Time::now();
     std::cout << "\nPath Finding took:" << double(timer_end.toSec() - timer_restart.toSec()) << " secs";
 
-    // path print and visualization
     if (path)
     {
       pathPlanner->printNodeList();
@@ -196,13 +272,6 @@ public:
         visualTools->publishArrow(sensorsPoseSS[i].poses[j], rviz_visual_tools::DARK_GREY, rviz_visual_tools::LARGE, 0.3);
     }
     visualTools->trigger();
-
-    delete robot;
-    delete pathPlanner;
-    if (manager)
-    {
-      delete manager;
-    }
   }
 };
 
