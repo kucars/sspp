@@ -1,0 +1,8 @@
+#request constants
+Header header
+geometry_msgs/Pose grid_start
+geometry_msgs/Pose start
+geometry_msgs/Pose end
+-------
+#response constants
+geometry_msgs/Pose[] path
