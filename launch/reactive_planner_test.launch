@@ -18,6 +18,9 @@
   <arg name="sensor_max_range" default="15.0" />
 
   <node name="reactive_planner_test" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_test" output="screen">
+  </node>
+
+  <node name="reactive_planner_server" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_server" output="screen">
         <!-- Volumetic Mapping Params -->
         <param name="tf_frame" type="string" value="$(arg tf_frame)" />
         <param name="resolution" type="double" value="$(arg resolution)" />
@@ -26,13 +29,6 @@
         <param name="map_publish_frequency" type="double" value="1.0" />
         <param name="treat_unknown_as_occupied" type="bool" value="false" />
         <!-- Path Planning Params -->
-        <param name="start_x" type="double" value="-4.0" />
-        <param name="start_y" type="double" value="0.0" />
-        <param name="start_z" type="double" value="0.0" />
-        <param name="end_x"   type="double" value="4.0" />
-        <param name="end_y"   type="double" value="0.0" />
-        <param name="end_z"   type="double" value="0.0" />
-        <param name="end_z"   type="double" value="0.0" />
         <param name="visualize_search_space" type="bool" value="false" />
         <param name="debug" type="bool" value="false" />
         <param name="sample_orientations" type="bool" value="false" />

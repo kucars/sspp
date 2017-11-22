@@ -36,6 +36,18 @@ find_package(CUDA QUIET)
 find_package(octomap REQUIRED)
 find_package(component_test QUIET)
 
+add_service_files(
+  FILES
+  sspp_srv.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  geometry_msgs
+  visualization_msgs
+  std_msgs
+)
+
 if ( NOT CUDA_FOUND )
   message(STATUS "You will not be able to use coverage heuristic, it requires CUDA")
 #  return()

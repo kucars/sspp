@@ -30,10 +30,12 @@
 #include "rviz_visual_tools/rviz_visual_tools.h"
 #include <octomap_world/octomap_manager.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <sspp/sspp_srv.h>
 
 class ReactivePlannerServer
 {
 private:
+  ros::ServiceServer planningService;
   ros::Subscriber sub;
   ros::NodeHandle nh;
   ros::NodeHandle nh_private;
@@ -63,6 +65,7 @@ public:
     nh_private(nh_private_)
   {
     sub = nh.subscribe<sensor_msgs::PointCloud2>("cloud_pcd", 1, &ReactivePlannerServer::callback,this);
+    planningService = nh.advertiseService("sspp_planner", &ReactivePlannerServer::plannerCallback, this);
     visualTools.reset(new rviz_visual_tools::RvizVisualTools("world", "/sspp_visualisation"));
     visualTools->loadMarkerPub();
     gridStart.position.x = 0.0;
@@ -77,54 +80,6 @@ public:
     Eigen::Vector3d envBox(15,15,10);
     manager->setFree(origin,envBox);
     ROS_INFO("Starting the reactive planning");
-
-    ros::Rate loopRate(10);
-    while(ros::ok())
-    {
-      manager->getAllOccupiedBoxes(&occupied_box_vector);
-      ROS_INFO_THROTTLE(1,"MAP SIZE:[%f %f %f] occupied cells:%lu",manager->getMapSize()[0],manager->getMapSize()[1],manager->getMapSize()[2],occupied_box_vector.size());
-      if(gotCloud && !donePlanning && occupied_box_vector.size()>0)
-      {
-        if (manager->getMapSize().norm() <= 0.0)
-        {
-            ROS_ERROR_THROTTLE(1, "Planner not set up: Octomap is empty!");
-        }
-        else
-        {
-          donePlanning = true;
-          planPath();
-        }
-      }
-      loopRate.sleep();
-      ros::spinOnce();
-    }
-  }
-
-  void getConfigsFromRosParams()
-  {
-    std::string ns = ros::this_node::getName();
-    std::cout<<"Node name is:"<<ns<<"\n";
-    nh_private.param("start_x",start.p.position.x,start.p.position.x);
-    nh_private.param("start_y",start.p.position.y,start.p.position.y);
-    nh_private.param("start_z",start.p.position.z,start.p.position.z);
-    nh_private.param("end_x",end.p.position.x,end.p.position.x);
-    nh_private.param("end_y",end.p.position.y,end.p.position.y);
-    nh_private.param("end_z",end.p.position.z,end.p.position.z);
-    nh_private.param("connection_rad",regGridConRad,regGridConRad);
-    nh_private.param("grid_resolution",gridRes,gridRes);
-    nh_private.param("grid_size_x",gridSize.x,gridSize.x);
-    nh_private.param("grid_size_y",gridSize.y,gridSize.y);
-    nh_private.param("grid_size_z",gridSize.z,gridSize.z);
-    nh_private.param("grid_start_x",gridStart.position.x,gridStart.position.x);
-    nh_private.param("grid_start_y",gridStart.position.y,gridStart.position.y);
-    nh_private.param("grid_start_z",gridStart.position.z,gridStart.position.z);
-    nh_private.param("visualize_search_space",visualizeSearchSpace,visualizeSearchSpace);
-    nh_private.param("debug",debug,debug);
-    nh_private.param("debug_delay",debugDelay,debugDelay);
-    nh_private.param("dist_to_goal",distanceToGoal,distanceToGoal);
-    nh_private.param("sample_orientations",sampleOrientations,sampleOrientations);
-    nh_private.param("orientation_sampling_res",orientationSamplingRes,orientationSamplingRes);
-    nh_private.param("tree_progress_display_freq",treeProgressDisplayFrequency,treeProgressDisplayFrequency);
   }
 
   ~ReactivePlannerServer()
@@ -137,25 +92,22 @@ public:
       delete manager;
   }
 
-  void callback(const sensor_msgs::PointCloud2::ConstPtr& cloudIn)
-  {
-    gotCloud = true;
-    manager->insertPointcloudWithTf(cloudIn);
-  }
-
-  void planPath()
+  bool plannerCallback(sspp::sspp_srv::Request& req, sspp::sspp_srv::Response& res)
   {
     manager->getAllOccupiedBoxes(&occupied_box_vector);
-    ROS_INFO_THROTTLE(1,"While Planning MAP SIZE:[%f %f %f] occupied cells:%lu",manager->getMapSize()[0],manager->getMapSize()[1],manager->getMapSize()[2],occupied_box_vector.size());
+    ROS_INFO_THROTTLE(1,"Received a Service Request Planning MAP SIZE:[%f %f %f] occupied cells:%lu",manager->getMapSize()[0],manager->getMapSize()[1],manager->getMapSize()[2],occupied_box_vector.size());
+
+    if(!gotCloud || occupied_box_vector.size()<=0 || manager->getMapSize().norm() <= 0.0)
+    {
+        ROS_INFO_THROTTLE(1, "Planner not set up: Octomap is empty!");
+        return false;
+    }
 
     ros::Time timer_start = ros::Time::now();
-    geometry_msgs::Pose gridStartPose;
 
-    gridStartPose.position.x = 0.0;
-    gridStartPose.position.y = 0.0;
-    gridStartPose.position.z = 0.0;
-
-    start.phi = end.phi = DTOR(0.0);
+    start.p   = req.start;
+    end.p     = req.end;
+    gridStart = req.grid_start;
 
     visualTools->publishSphere(start.p, rviz_visual_tools::BLUE, 0.3,"start_pose");
     visualTools->publishSphere(end.p, rviz_visual_tools::ORANGE, 0.3,"end_pose");
@@ -169,8 +121,8 @@ public:
       robot = new Robot("Robot", robotH, robotW, narrowestPath, robotCenter);
 
     //Every how many iterations to display the tree; -1 disable display
-
-    pathPlanner = new SSPP::PathPlanner(nh, robot, regGridConRad, treeProgressDisplayFrequency);
+    if(!pathPlanner)
+      pathPlanner = new SSPP::PathPlanner(nh, robot, regGridConRad, treeProgressDisplayFrequency);
 
     // This causes the planner to pause for the desired amount of time and display
     // the search tree, useful for debugging
@@ -182,7 +134,7 @@ public:
     pathPlanner->setHeuristicFucntion(&distanceHeuristic);
 
     // Generate Grid Samples and visualise it
-    pathPlanner->generateRegularGrid(gridStartPose, gridSize, gridRes, sampleOrientations, orientationSamplingRes,false, true);
+    pathPlanner->generateRegularGrid(gridStart, gridSize, gridRes, sampleOrientations, orientationSamplingRes,false, true);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
 
     std::vector<geometry_msgs::PoseArray> sensorsPoseSS;
@@ -221,11 +173,12 @@ public:
     else
     {
       std::cout << "\nNo Path Found";
+      return false;
     }
 
     geometry_msgs::Point linePoint;
     std::vector<geometry_msgs::Point> pathSegments;
-    geometry_msgs::PoseArray robotPose, sensorPose;
+    geometry_msgs::PoseArray robotPose, sensorPose,pathPoses;
     double dist = 0;
     double yaw;
     while (path != NULL)
@@ -233,6 +186,7 @@ public:
       tf::Quaternion qt(path->pose.p.orientation.x, path->pose.p.orientation.y,
                         path->pose.p.orientation.z, path->pose.p.orientation.w);
       yaw = tf::getYaw(qt);
+      pathPoses.poses.push_back(path->pose.p);
       if (path->next != NULL)
       {
         linePoint.x = path->pose.p.position.x;
@@ -255,6 +209,8 @@ public:
       }
       path = path->next;
     }
+
+    res.path = pathPoses.poses;
 
     std::cout << "\nDistance calculated from the path: " << dist << "m\n";
 
@@ -282,7 +238,42 @@ public:
         visualTools->publishArrow(sensorsPoseSS[i].poses[j], rviz_visual_tools::DARK_GREY, rviz_visual_tools::LARGE, 0.3);
     }
     visualTools->trigger();
+    return true;
   }
+
+  void getConfigsFromRosParams()
+  {
+    std::string ns = ros::this_node::getName();
+    std::cout<<"Node name is:"<<ns<<"\n";
+    nh_private.param("start_x",start.p.position.x,start.p.position.x);
+    nh_private.param("start_y",start.p.position.y,start.p.position.y);
+    nh_private.param("start_z",start.p.position.z,start.p.position.z);
+    nh_private.param("end_x",end.p.position.x,end.p.position.x);
+    nh_private.param("end_y",end.p.position.y,end.p.position.y);
+    nh_private.param("end_z",end.p.position.z,end.p.position.z);
+    nh_private.param("connection_rad",regGridConRad,regGridConRad);
+    nh_private.param("grid_resolution",gridRes,gridRes);
+    nh_private.param("grid_size_x",gridSize.x,gridSize.x);
+    nh_private.param("grid_size_y",gridSize.y,gridSize.y);
+    nh_private.param("grid_size_z",gridSize.z,gridSize.z);
+    nh_private.param("grid_start_x",gridStart.position.x,gridStart.position.x);
+    nh_private.param("grid_start_y",gridStart.position.y,gridStart.position.y);
+    nh_private.param("grid_start_z",gridStart.position.z,gridStart.position.z);
+    nh_private.param("visualize_search_space",visualizeSearchSpace,visualizeSearchSpace);
+    nh_private.param("debug",debug,debug);
+    nh_private.param("debug_delay",debugDelay,debugDelay);
+    nh_private.param("dist_to_goal",distanceToGoal,distanceToGoal);
+    nh_private.param("sample_orientations",sampleOrientations,sampleOrientations);
+    nh_private.param("orientation_sampling_res",orientationSamplingRes,orientationSamplingRes);
+    nh_private.param("tree_progress_display_freq",treeProgressDisplayFrequency,treeProgressDisplayFrequency);
+  }
+
+  void callback(const sensor_msgs::PointCloud2::ConstPtr& cloudIn)
+  {
+    gotCloud = true;
+    manager->insertPointcloudWithTf(cloudIn);
+  }
+
 };
 
 int main(int argc, char** argv)
