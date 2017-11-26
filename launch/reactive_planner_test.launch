@@ -20,7 +20,7 @@
   <node name="reactive_planner_test" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_test" output="screen">
   </node>
 
-  <node name="reactive_planner_server" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_server" output="screen">
+  <node name="reactive_planner_server_node" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_server_node" output="screen">
         <!-- Volumetic Mapping Params -->
         <param name="tf_frame" type="string" value="$(arg tf_frame)" />
         <param name="resolution" type="double" value="$(arg resolution)" />

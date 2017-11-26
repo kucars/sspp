@@ -123,10 +123,10 @@ target_link_libraries(reactive_planner_test SSPathPlanner
     ${rviz_visual_tools_LIBRARIES}
     )
 
-add_executable(reactive_planner_server src/reactive_planner_server.cpp)
-target_include_directories(reactive_planner_server PUBLIC include ${catkin_INCLUDE_DIRS})
-add_dependencies(reactive_planner_server ${catkin_EXPORTED_TARGETS})
-target_link_libraries(reactive_planner_server SSPathPlanner
+add_executable(reactive_planner_server_node src/reactive_planner_server_node.cpp src/reactive_planner_server.cpp)
+target_include_directories(reactive_planner_server_node PUBLIC include ${catkin_INCLUDE_DIRS})
+add_dependencies(reactive_planner_server_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(reactive_planner_server_node SSPathPlanner
     -lgmp -lmpfr
     ${CGAL_LIBRARY}
     ${CGAL_Core_LIBRARY}
