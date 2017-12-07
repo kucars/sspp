@@ -1,4 +1,6 @@
 <launch>
+  <arg name="debug"       default="false" />
+  <arg name="useValgrind" default="true" />
 
   <!-- Load Rviz -->
   <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
@@ -8,43 +10,70 @@
   <!-- Fake transform from world origin to robot origin (base) -->
   <node pkg="tf" type="static_transform_publisher" name="base_to_world" args="0 0 0 0 0 0 /world /base 30" />
 
-  <arg name="debug" default="false" />
-  <arg unless="$(arg debug)" name="launch_prefix" value="" />
-  <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />
-
   <arg name="tf_frame" default="world" />
   <arg name="resolution" default="0.3" />
   <arg name="visualize_max_z" default="3" />
   <arg name="sensor_max_range" default="15.0" />
 
-  <node name="reactive_planner_test" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_test" output="screen">
-  </node>
-
-  <node name="reactive_planner_server_node" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_server_node" output="screen">
-        <!-- Volumetic Mapping Params -->
-        <param name="tf_frame" type="string" value="$(arg tf_frame)" />
-        <param name="resolution" type="double" value="$(arg resolution)" />
-        <param name="visualize_max_z" type="double" value="$(arg visualize_max_z)" />
-        <param name="sensor_max_range" type="double" value="$(arg sensor_max_range)" />
-        <param name="map_publish_frequency" type="double" value="1.0" />
-        <param name="treat_unknown_as_occupied" type="bool" value="false" />
-        <!-- Path Planning Params -->
-        <param name="visualize_search_space" type="bool" value="false" />
-        <param name="debug" type="bool" value="false" />
-        <param name="sample_orientations" type="bool" value="false" />
-        <param name="orientation_sampling_res"  type="double" value="90.0" />
-        <param name="tree_progress_display_freq"  type="int" value="-1" />
-        <param name="debug_delay"      type="double" value="0.0" />
-        <param name="dist_to_goal"     type="double" value="0.5" />
-        <param name="connection_rad"   type="double" value="1.5" />
-        <param name="grid_resolution"  type="double" value="1.0" />
-        <param name="grid_size_x"      type="double" value="10.0" />
-        <param name="grid_size_y"      type="double" value="10.0" />
-        <param name="grid_size_z"      type="double" value="0.0" />
-        <param name="grid_start_x"     type="double" value="0.0" />
-        <param name="grid_start_y"     type="double" value="0.0" />
-        <param name="grid_start_z"     type="double" value="0.0" />
-  </node>
+  <group if="$(arg debug)">
+      <arg name="launch_prefix" value="gdb --ex run --args" unless="$(arg useValgrind)"  />
+      <arg name="launch_prefix" value="valgrind" if="$(arg useValgrind)"/>
+      <node name="reactive_planner_test" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_test" output="screen"/>
+      <node name="reactive_planner_server_node" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_server_node" output="screen">
+            <!-- Volumetic Mapping Params -->
+            <param name="tf_frame" type="string" value="$(arg tf_frame)" />
+            <param name="resolution" type="double" value="$(arg resolution)" />
+            <param name="visualize_max_z" type="double" value="$(arg visualize_max_z)" />
+            <param name="sensor_max_range" type="double" value="$(arg sensor_max_range)" />
+            <param name="map_publish_frequency" type="double" value="1.0" />
+            <param name="treat_unknown_as_occupied" type="bool" value="false" />
+            <!-- Path Planning Params -->
+            <param name="visualize_search_space" type="bool" value="false" />
+            <param name="debug" type="bool" value="false" />
+            <param name="sample_orientations" type="bool" value="false" />
+            <param name="orientation_sampling_res"  type="double" value="90.0" />
+            <param name="tree_progress_display_freq"  type="int" value="-1" />
+            <param name="debug_delay"      type="double" value="0.0" />
+            <param name="dist_to_goal"     type="double" value="0.5" />
+            <param name="connection_rad"   type="double" value="1.5" />
+            <param name="grid_resolution"  type="double" value="1.0" />
+            <param name="grid_size_x"      type="double" value="10.0" />
+            <param name="grid_size_y"      type="double" value="10.0" />
+            <param name="grid_size_z"      type="double" value="0.0" />
+            <param name="grid_start_x"     type="double" value="0.0" />
+            <param name="grid_start_y"     type="double" value="0.0" />
+            <param name="grid_start_z"     type="double" value="0.0" />
+      </node>
+  </group>
+  <group unless="$(arg debug)">
+      <arg name="launch_prefix" value=""/>
+      <node name="reactive_planner_test" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_test" output="screen"/>
+      <node name="reactive_planner_server_node" launch-prefix="$(arg launch_prefix)" pkg="sspp" type="reactive_planner_server_node" output="screen">
+            <!-- Volumetic Mapping Params -->
+            <param name="tf_frame" type="string" value="$(arg tf_frame)" />
+            <param name="resolution" type="double" value="$(arg resolution)" />
+            <param name="visualize_max_z" type="double" value="$(arg visualize_max_z)" />
+            <param name="sensor_max_range" type="double" value="$(arg sensor_max_range)" />
+            <param name="map_publish_frequency" type="double" value="1.0" />
+            <param name="treat_unknown_as_occupied" type="bool" value="false" />
+            <!-- Path Planning Params -->
+            <param name="visualize_search_space" type="bool" value="false" />
+            <param name="debug" type="bool" value="false" />
+            <param name="sample_orientations" type="bool" value="false" />
+            <param name="orientation_sampling_res"  type="double" value="90.0" />
+            <param name="tree_progress_display_freq"  type="int" value="-1" />
+            <param name="debug_delay"      type="double" value="0.0" />
+            <param name="dist_to_goal"     type="double" value="0.5" />
+            <param name="connection_rad"   type="double" value="1.5" />
+            <param name="grid_resolution"  type="double" value="1.0" />
+            <param name="grid_size_x"      type="double" value="10.0" />
+            <param name="grid_size_y"      type="double" value="10.0" />
+            <param name="grid_size_z"      type="double" value="0.0" />
+            <param name="grid_start_x"     type="double" value="0.0" />
+            <param name="grid_start_y"     type="double" value="0.0" />
+            <param name="grid_start_z"     type="double" value="0.0" />
+      </node>
+  </group>
 
   <node pkg="pcl_ros" type="pcd_to_pointcloud" name="spawn_pcd_to_pcl" output="screen" args ="$(find sspp)/pcd/sphere_verydensed.pcd 1" >
     <param name="frame_id" value="/world" />
