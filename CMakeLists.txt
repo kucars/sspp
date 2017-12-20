@@ -135,7 +135,7 @@ target_link_libraries(reactive_planner_server_node SSPathPlanner
     ${rviz_visual_tools_LIBRARIES}
     )
 
-if (component_test_FOUND)
+if (component_test_FOUND AND CUDA_FOUND)
         add_library(CoverageHeuristic SHARED src/coverage_path_planning_heuristic.cpp)
         target_link_libraries(CoverageHeuristic ${component_test_LIBRARIES} occlusion_culling_gpu mesh_surface ${OCTOMAP_LIBRARIES})
         target_include_directories(CoverageHeuristic PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
