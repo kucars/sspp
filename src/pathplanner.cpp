@@ -116,85 +116,89 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
     {
         orientationsNum= 360.0f/orientationResolution;
     }
-    std::cout<<"\nNumber of Orientation Samples:"<<orientationsNum<<" sample orientations?"<<sampleOrientations<<" orientation sampling resolution:"<<orientationResolution;
+    std::cout<<"\nNumber of Orientation Samples:"<<orientationsNum<<" sample orientations?"<<sampleOrientations<<" orientation sampling resolution:"<<orientationResolution; fflush(stdout);
     int numSamples = 0;
-    for(float z = (gridStartPose.position.z - gridSize.z/2.0); z<=(gridStartPose.position.z + gridSize.z/2.0); z+=gridResolution)
-        for(float x = (gridStartPose.position.x - gridSize.x/2.0); x<=(gridStartPose.position.x + gridSize.x/2.0); x+=gridResolution)
-            for(float y = (gridStartPose.position.y - gridSize.y/2.0); y<=(gridStartPose.position.y + gridSize.y/2.0); y+=gridResolution)
+
+    for(double z = (gridStartPose.position.z - gridSize.z/2.0); z<=(gridStartPose.position.z + gridSize.z/2.0); z+=gridResolution)
+    {
+      for(double x = (gridStartPose.position.x - gridSize.x/2.0); x<=(gridStartPose.position.x + gridSize.x/2.0); x+=gridResolution)
+      {
+        for(double y = (gridStartPose.position.y - gridSize.y/2.0); y<=(gridStartPose.position.y + gridSize.y/2.0); y+=gridResolution)
+        {
+          pose.position.z=z;
+          pose.position.y=y;
+          pose.position.x=x;
+
+          if(sampleOrientations)
+          {
+            // in radians
+            double yaw=0.0;
+            tf::Quaternion tf ;
+            for(int i=0; i<orientationsNum;i++)
             {
-                pose.position.z=z;
-                pose.position.y=y;
-                pose.position.x=x;
+              tf = tf::createQuaternionFromYaw(yaw);
+              pose.orientation.x = tf.getX();
+              pose.orientation.y = tf.getY();
+              pose.orientation.z = tf.getZ();
+              pose.orientation.w = tf.getW();
+              yaw+=(orientationResolution*M_PI/180.0f);
+              for(int j=0; j<robotSensors.size();j++)
+              {
+                sensorLoc = robotSensors[j].robot2sensorTransformation(pose);
+                correspondingSensorPose.poses.push_back(sensorLoc);
+              }
 
-                if(sampleOrientations)
+              if(samplesFiltering)
+              {
+                //Note: the accuracy threshhold defines the maximum error that you want to get, any waypoint (with its viewpoints) that extracts point cloud with bigger error than this threshold
+                // will be added to the accuracy clusters to be re-sampled with lower resolution (results with nearer waypoints which provide better accuracy & low error)
+
+                //Note: if you chose a very small depth, the process of filtering will take time since the accuracy clusters will increase so much and as a result, the number of waypoints will increase alot!!
+                // it is also affected by the decrement step of the dynamic sampling
+                double desiredMaxDepth = 6.9; //meters
+                double maxErrorThresh = 0.0000285 * desiredMaxDepth * desiredMaxDepth; //meters squared (this equation with the constant 0.0000285 is taken from a paper that studied the accuracy of kinect sensor  )
+                if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 1, 4, globalCloud, accuracyClusters,maxErrorThresh))
                 {
-                    // in radians
-                    double yaw=0.0;
-                    tf::Quaternion tf ;
-                    for(int i=0; i<orientationsNum;i++)
-                    {
-                        tf = tf::createQuaternionFromYaw(yaw);
-                        pose.orientation.x = tf.getX();
-                        pose.orientation.y = tf.getY();
-                        pose.orientation.z = tf.getZ();
-                        pose.orientation.w = tf.getW();
-                        yaw+=(orientationResolution*M_PI/180.0f);
-                        for(int j=0; j<robotSensors.size();j++)
-                        {
-                            sensorLoc = robotSensors[j].robot2sensorTransformation(pose);
-                            correspondingSensorPose.poses.push_back(sensorLoc);
-                        }
+                  if(insertSearchSpace)
+                  {
+                    insertNode(pose,correspondingSensorPose);
+                    robotFilteredPoses.poses.push_back(pose);
 
-                        if(samplesFiltering)
-                        {
-                            //Note: the accuracy threshhold defines the maximum error that you want to get, any waypoint (with its viewpoints) that extracts point cloud with bigger error than this threshold
-                            // will be added to the accuracy clusters to be re-sampled with lower resolution (results with nearer waypoints which provide better accuracy & low error)
-
-                            //Note: if you chose a very small depth, the process of filtering will take time since the accuracy clusters will increase so much and as a result, the number of waypoints will increase alot!!
-                            // it is also affected by the decrement step of the dynamic sampling
-                            double desiredMaxDepth = 6.9; //meters
-                            double maxErrorThresh = 0.0000285 * desiredMaxDepth * desiredMaxDepth; //meters squared (this equation with the constant 0.0000285 is taken from a paper that studied the accuracy of kinect sensor  )
-                            if(heuristic->isFilteringConditionSatisfied(pose, correspondingSensorPose, 1, 4, globalCloud, accuracyClusters,maxErrorThresh))
-                            {
-                                if(insertSearchSpace)
-                                {
-                                    insertNode(pose,correspondingSensorPose);
-                                    robotFilteredPoses.poses.push_back(pose);
-
-                                    for(int j=0; j<robotSensors.size();j++)
-                                    {
-                                        sensorsFilteredPoses[j].poses.push_back(correspondingSensorPose.poses[j]);
-                                    }
-                                }
-                                numSamples++;
-//                                std::cout<<"number of samples "<<numSamples<<std::endl;
-                            }
-                        }
-                        else
-                        {
-                            if(insertSearchSpace)
-                                insertNode(pose,correspondingSensorPose);
-                        }
-                        correspondingSensorPose.poses.erase(correspondingSensorPose.poses.begin(),correspondingSensorPose.poses.end());
-                    }
-                }
-                else
-                {
-                    pose.orientation.x=0;pose.orientation.y=0;pose.orientation.z=0;pose.orientation.w=1;
                     for(int j=0; j<robotSensors.size();j++)
                     {
-                        sensorLoc = robotSensors[j].robot2sensorTransformation(pose);
-                        correspondingSensorPose.poses.push_back(sensorLoc);
+                      sensorsFilteredPoses[j].poses.push_back(correspondingSensorPose.poses[j]);
                     }
-                    if(insertSearchSpace)
-                        insertNode(pose,correspondingSensorPose);
-                    correspondingSensorPose.poses.erase(correspondingSensorPose.poses.begin(),correspondingSensorPose.poses.end());
-                    numSamples++;
+                  }
+                  numSamples++;
+                  //                                std::cout<<"number of samples "<<numSamples<<std::endl;
                 }
-
+              }
+              else
+              {
+                if(insertSearchSpace)
+                  insertNode(pose,correspondingSensorPose);
+              }
+              correspondingSensorPose.poses.erase(correspondingSensorPose.poses.begin(),correspondingSensorPose.poses.end());
             }
+          }
+          else
+          {
+            pose.orientation.x=0;pose.orientation.y=0;pose.orientation.z=0;pose.orientation.w=1;
+            for(int j=0; j<robotSensors.size();j++)
+            {
+              sensorLoc = robotSensors[j].robot2sensorTransformation(pose);
+              correspondingSensorPose.poses.push_back(sensorLoc);
+            }
+            if(insertSearchSpace)
+              insertNode(pose,correspondingSensorPose);
+            correspondingSensorPose.poses.erase(correspondingSensorPose.poses.begin(),correspondingSensorPose.poses.end());
+            numSamples++;
+          }
 
-    std::cout<<"\n	--->>> REGULAR GRID GENERATED SUCCESSFULLY <<<--- Samples:"<<numSamples++;;
+        }
+      }
+    }
+    std::cout<<"\n	--->>> REGULAR GRID GENERATED SUCCESSFULLY <<<--- Samples:"<<numSamples++; fflush(stdout);
 }
 
 

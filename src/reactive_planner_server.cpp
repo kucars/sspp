@@ -103,6 +103,7 @@ bool ReactivePlannerServer::plannerCallback(sspp::sspp_srv::Request& req, sspp::
   std::vector<geometry_msgs::PoseArray> sensorsPoseSS;
   geometry_msgs::PoseArray robotPoseSS;
   pathPlanner->getRobotSensorPoses(robotPoseSS, sensorsPoseSS);
+
   std::cout << "\n\n---->>> Total Nodes in search Space ="<< searchSpaceNodes.size();
 
   visualTools->publishSpheres(searchSpaceNodes, rviz_visual_tools::PURPLE, 0.1,"search_space_nodes");

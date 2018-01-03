@@ -48,9 +48,9 @@ int main(int argc, char** argv)
 
   while (ros::ok())
   {
-    start.position.x = -2;
-    start.position.y =  0;
-    start.position.z =  0;
+    start.position.x = -2.12;
+    start.position.y =  1.2;
+    start.position.z =  0.2;
 
     end.position.x = 2;
     end.position.y = 2;
