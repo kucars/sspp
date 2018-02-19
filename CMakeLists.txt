@@ -34,7 +34,6 @@ find_package(CGAL QUIET COMPONENTS)
 find_package(PCL REQUIRED)
 find_package(CUDA QUIET)
 find_package(octomap REQUIRED)
-find_package(component_test QUIET)
 
 add_service_files(
   FILES
@@ -53,14 +52,9 @@ if ( NOT CUDA_FOUND )
 #  return()
 endif()
 
-if ( NOT component_test_FOUND )
-  message(STATUS "You will not be able to use coverage heuristic, it requires component test package")
-#  return()
-endif()
 
 include(FindPkgConfig)
 
-#catkin_package(CATKIN_DEPENDS component_test)
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES}
@@ -135,37 +129,3 @@ target_link_libraries(reactive_planner_server_node SSPathPlanner
     ${rviz_visual_tools_LIBRARIES}
     )
 
-if (component_test_FOUND AND CUDA_FOUND)
-        add_library(CoverageHeuristic SHARED src/coverage_path_planning_heuristic.cpp)
-        target_link_libraries(CoverageHeuristic ${component_test_LIBRARIES} occlusion_culling_gpu mesh_surface ${OCTOMAP_LIBRARIES})
-        target_include_directories(CoverageHeuristic PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
-        add_executable(coverage_heuristic_test src/coverage_heuristic_test.cpp)
-        target_include_directories(coverage_heuristic_test PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
-        target_link_libraries(coverage_heuristic_test SSPathPlanner
-            -lgmp -lmpfr
-            ${CGAL_LIBRARY}
-            ${CGAL_Core_LIBRARY}
-            ${catkin_LIBRARIES}
-            ${PCL_LIBRARIES}
-            ${OCTOMAP_LIBRARIES}
-            ${component_test_LIBRARIES}
-            occlusion_culling_gpu
-            ${rviz_visual_tools_LIBRARIES}
-            CoverageHeuristic
-            )
-
-        add_executable(coverage_multi_agent_test src/coverage_multi_agent_test.cpp)
-        target_include_directories(coverage_multi_agent_test PUBLIC include ${catkin_INCLUDE_DIRS} ${component_test_INCLUDE_DIRS} /usr/local/cuda/include/)
-        target_link_libraries(coverage_multi_agent_test SSPathPlanner
-            -lgmp -lmpfr
-            ${CGAL_LIBRARY}
-            ${CGAL_Core_LIBRARY}
-            ${catkin_LIBRARIES}
-            ${PCL_LIBRARIES}
-            ${OCTOMAP_LIBRARIES}
-            ${component_test_LIBRARIES}
-            occlusion_culling_gpu
-            ${rviz_visual_tools_LIBRARIES}
-            CoverageHeuristic
-            )
-endif (component_test_FOUND)
