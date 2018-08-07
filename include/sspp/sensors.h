@@ -51,9 +51,8 @@
 #include <limits>
 #include <cassert>
 #include <iomanip>
-#include "fcl/math/transform.h"
-
-using namespace fcl;
+//#include "fcl/math/transform.h"
+//using namespace fcl;
 using namespace std;
 class Sensors
 {
@@ -61,8 +60,8 @@ public :
     std::string robotModel,robotName;
     double hFOV, vFOV, focalLength, near, far, resWidth, resHeight;// sensorSize;
 //    geometry_msgs::Pose sensorLocation; //with respect to the UAV
-    Vec3f sensorPose, sensorRPY;
-    Sensors(double hfov, double vfov, double fl, double nearR, double farR, double width, double height, Vec3f sP, Vec3f sRPY);
+    Eigen::Vector3f sensorPose, sensorRPY;
+    Sensors(double hfov, double vfov, double fl, double nearR, double farR, double width, double height, Eigen::Vector3f sP, Eigen::Vector3f sRPY);
     geometry_msgs::Pose robot2sensorTransformation(geometry_msgs::Pose pose);
     Sensors();
     ~Sensors();

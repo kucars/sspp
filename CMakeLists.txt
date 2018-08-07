@@ -1,7 +1,19 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(sspp)
-SET ( CMAKE_CXX_FLAGS "-frounding-math" )
+#SET(CMAKE_C_COMPILER /usr/bin/gcc-4.9)
+#SET(CMAKE_CXX_COMPILER /usr/bin/g++-4.9)
+
 set(CMAKE_BUILD_TYPE Release)
+add_definitions(-std=c++11)
+SET(CMAKE_CXX_FLAGS "-frounding-math" )
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# Warnings
+add_definitions(-W -Wall -Wextra
+  #-Wcast-qual
+  -Wwrite-strings -Wunreachable-code -Wpointer-arith
+  -Winit-self -Wredundant-decls
+  -Wno-unused-parameter -Wno-unused-function)
+add_definitions (-D_GLIBCXX_USE_CXX11_ABI=1)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -17,18 +29,6 @@ find_package(catkin REQUIRED COMPONENTS
   rviz_visual_tools
   octomap_world
   )
-
-# Few differences when dealing with ros-indigo and ros-kinetic
-set( ROS_DISTRO $ENV{ROS_DISTRO} )
-if( ${ROS_DISTRO} STREQUAL "indigo" )
-    find_package(fcl REQUIRED)
-elseif(${ROS_DISTRO} STREQUAL "kinetic")
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(LIBFCL REQUIRED fcl)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-else()
-    message("Unsupported ROS Distro")
-endif()
 
 find_package(CGAL QUIET COMPONENTS)
 find_package(PCL REQUIRED)

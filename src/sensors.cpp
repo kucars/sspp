@@ -21,7 +21,7 @@
  ***************************************************************************/
 #include "sspp/sensors.h"
 
-Sensors::Sensors(double hfov, double vfov, double fl, double nearR, double farR, double width, double height, Vec3f sP, Vec3f sRPY):
+Sensors::Sensors(double hfov, double vfov, double fl, double nearR, double farR, double width, double height, Eigen::Vector3f sP, Eigen::Vector3f sRPY):
 hFOV(hfov),
 vFOV(vfov),
 focalLength(fl),
