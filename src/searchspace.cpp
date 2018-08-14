@@ -69,7 +69,7 @@ SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry
 SearchSpaceNode * SearchSpace::insertNode(geometry_msgs::Pose nodePose, geometry_msgs::PoseArray correspondingSensorsPoses, int id)
 {
     SearchSpaceNode *temp;
-    if(!nodeExists(nodePose))
+    if( !(temp = nodeExists(nodePose)) )
     {
         // Constructing the ROOT NODE
         if (searchspace == NULL )

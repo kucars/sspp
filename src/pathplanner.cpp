@@ -194,7 +194,6 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
             correspondingSensorPose.poses.erase(correspondingSensorPose.poses.begin(),correspondingSensorPose.poses.end());
             numSamples++;
           }
-
         }
       }
     }
@@ -267,6 +266,98 @@ void PathPlanner::loadRegularGrid(const char *filename1, const char *filename2, 
     fclose(file2);
     fclose(file3);
     std::cout<<"\n	--->>> REGULAR GRID GENERATED SUCCESSFULLY <<<---	";
+}
+
+void PathPlanner::saveSearchSpace(const char *filename)
+{
+    ofstream fileStream;
+    fileStream.open(filename);
+
+    SearchSpaceNode *temp = searchspace;
+    while (temp != NULL)
+    {
+        for(int i=0; i < temp->children.size();i++)
+        {
+            fileStream  << std::fixed << std::setprecision(3)
+                        <<temp->location.position.x<<" "
+                        <<temp->location.position.y<<" "
+                        <<temp->location.position.z<<" "
+                        <<temp->location.orientation.x<<" "
+                        <<temp->location.orientation.y<<" "
+                        <<temp->location.orientation.z<<" "
+                        <<temp->location.orientation.w<<" "
+                        <<temp->children[i]->location.position.x<<" "
+                        <<temp->children[i]->location.position.y<<" "
+                        <<temp->children[i]->location.position.z<<" "
+                        <<temp->children[i]->location.orientation.x<<" "
+                        <<temp->children[i]->location.orientation.y<<" "
+                        <<temp->children[i]->location.orientation.z<<" "
+                        <<temp->children[i]->location.orientation.w
+                        <<"\n";
+        }
+        temp = temp->next;
+    }
+  fileStream.close();
+}
+
+bool PathPlanner::loadSearchSpace(const char *fileName)
+{
+  	double locationx,locationy,obstacle_cost;
+  	SearchSpaceNode *temp;
+  	assert(fileName != NULL);
+	char buffer[1024];
+	int line = 0;
+	std::ifstream inputf(fileName);
+  	if (!inputf)
+  	{
+    	fprintf(stderr, "ERROR: couldn't open config file '%s' for reading: %s\n",fileName, strerror(errno));
+    	exit(EXIT_FAILURE);
+  	}
+    double location1x,location1y,location1z,q1x,q1y,q1z,q1w;
+    double location2x,location2y,location2z,q2x,q2y,q2z,q2w;
+    geometry_msgs::Pose pose1,pose2,sensorPose;
+    geometry_msgs::PoseArray correspondingSensorPose1,correspondingSensorPose2;
+
+  	while (!inputf.eof()) 
+  	{
+    	inputf.getline(buffer, sizeof(buffer));
+    	if(buffer[0]=='#') 
+    		continue;
+  		sscanf(buffer,"%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",&location1x,&location1y,&location1z,&q1x,&q1y,&q1z,&q1w,
+          &location2x,&location2y,&location2z,&q2x,&q2y,&q2z,&q2w);
+        
+        correspondingSensorPose1.poses.clear();
+        correspondingSensorPose2.poses.clear();
+
+        pose1.position.x    = location1x;
+        pose1.position.y    = location1y;
+        pose1.position.z    = location1z;
+        pose1.orientation.x = q1x;
+        pose1.orientation.y = q1y;
+        pose1.orientation.z = q1z;
+        pose1.orientation.w = q1w;
+
+        pose2.position.x    = location2x;
+        pose2.position.y    = location2y;
+        pose2.position.z    = location2z;
+        pose2.orientation.x = q2x;
+        pose2.orientation.y = q2y;
+        pose2.orientation.z = q2z;
+        pose2.orientation.w = q2w;
+
+        for(int j=0; j<robotSensors.size();j++)
+        {
+            sensorPose = robotSensors[j].robot2sensorTransformation(pose1);
+            correspondingSensorPose1.poses.push_back(sensorPose);
+            sensorPose = robotSensors[j].robot2sensorTransformation(pose2);
+            correspondingSensorPose2.poses.push_back(sensorPose);
+        }
+
+        SearchSpaceNode *node1 = insertNode(pose1,correspondingSensorPose1);
+        SearchSpaceNode *node2 = insertNode(pose2,correspondingSensorPose2);
+        node1->children.push_back(node2);
+  	}
+  	return true;
 }
 
 std::vector<geometry_msgs::Point> PathPlanner::getSearchSpace()

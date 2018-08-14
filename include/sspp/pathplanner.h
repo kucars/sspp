@@ -89,6 +89,8 @@ namespace SSPP
         PathPlanner(ros::NodeHandle & nh, Robot *, double regGridConRadius, int progressDisplayFrequency);
         ~PathPlanner();
         void loadRegularGrid(const char *filename1, const char *filename2, const char *filename3);
+        void saveSearchSpace(const char *filename);
+        bool loadSearchSpace(const char *filename);
         bool sampleOrientations;
         bool samplesFiltering;
         bool multiAgentSupport;
