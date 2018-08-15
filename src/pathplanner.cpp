@@ -573,7 +573,6 @@ void PathPlanner::checkSearchSpaceDuplications()
 
   if (!temp)
       return;
-  int numConnections=0;
 
   std::vector<std::pair<geometry_msgs::Pose,geometry_msgs::Pose>> connectionsList;
 
@@ -598,10 +597,10 @@ void PathPlanner::checkSearchSpaceDuplications()
     }
     if(numOccurance>1)
     {
-      numDuplicats++;
+      numDuplicats+=(numOccurance-1);
     }
   }
-  std::cout<<"\n =================================== Num Duplicats:"<<numDuplicats;
+  std::cout<<"\n =================================== Num Duplicats:"<<numDuplicats<<" out of:"<<connectionsList.size();
 }
 
 void PathPlanner::connectClustersInternalNodes(SearchSpaceNode * space, double connRadius)

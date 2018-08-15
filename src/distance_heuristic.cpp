@@ -96,13 +96,13 @@ bool DistanceHeuristic::terminateConditionReached(Node *node)
         return false;
 }
 
-bool DistanceHeuristic::isConnectionConditionSatisfied(SearchSpaceNode *temp, SearchSpaceNode *S)
+bool DistanceHeuristic::isConnectionConditionSatisfied(geometry_msgs::Pose temp, geometry_msgs::Pose S)
 {
   if(manager)
   {
     bool noCollision = true;
-    Eigen::Vector3d startPoint(temp->location.position.x, temp->location.position.y, temp->location.position.z);
-    Eigen::Vector3d endPoint(S->location.position.x, S->location.position.y, S->location.position.z);
+    Eigen::Vector3d startPoint(temp.position.x, temp.position.y, temp.position.z);
+    Eigen::Vector3d endPoint(S.position.x, S.position.y, S.position.z);
     //TODO: read size of robot from params
     Eigen::Vector3d boundingBox(0.5,0.5,0.3);
     volumetric_mapping::OctomapManager::CellStatus cellStatus;
@@ -124,6 +124,11 @@ bool DistanceHeuristic::isConnectionConditionSatisfied(SearchSpaceNode *temp, Se
     return noCollision;
   }
   return true;
+}
+
+bool DistanceHeuristic::isConnectionConditionSatisfied(SearchSpaceNode *temp, SearchSpaceNode *S)
+{
+  return isConnectionConditionSatisfied(temp->location,S->location);
 }
 
 bool DistanceHeuristic::isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray& correspondingSensorPoses, double minDist, double maxDist, pcl::PointCloud<pcl::PointXYZ>& globalCloud, std::vector<pcl::PointCloud<pcl::PointXYZ> >& accuracyClusters, double accuracyThreshhold)
