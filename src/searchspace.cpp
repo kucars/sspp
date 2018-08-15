@@ -108,7 +108,7 @@ SearchSpaceNode * SearchSpace::insertTempSearchSpace( geometry_msgs::PoseArray r
 {
     SearchSpaceNode *temp;
     SearchSpaceNode * space =NULL;
-    for(int i =0; i<robotPoses.poses.size(); i++)
+    for(uint i =0; i<robotPoses.poses.size(); i++)
     {
         if(!nodeExists(space,robotPoses.poses[i]))
         {

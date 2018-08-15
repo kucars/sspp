@@ -134,7 +134,7 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
             // in radians
             double yaw=0.0;
             tf::Quaternion tf ;
-            for(int i=0; i<orientationsNum;i++)
+            for(uint i=0; i<orientationsNum;i++)
             {
               tf = tf::createQuaternionFromYaw(yaw);
               pose.orientation.x = tf.getX();
@@ -142,7 +142,7 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
               pose.orientation.z = tf.getZ();
               pose.orientation.w = tf.getW();
               yaw+=(orientationResolution*M_PI/180.0f);
-              for(int j=0; j<robotSensors.size();j++)
+              for(uint j=0; j<robotSensors.size();j++)
               {
                 sensorLoc = robotSensors[j].robot2sensorTransformation(pose);
                 correspondingSensorPose.poses.push_back(sensorLoc);
@@ -164,7 +164,7 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
                     insertNode(pose,correspondingSensorPose);
                     robotFilteredPoses.poses.push_back(pose);
 
-                    for(int j=0; j<robotSensors.size();j++)
+                    for(uint j=0; j<robotSensors.size();j++)
                     {
                       sensorsFilteredPoses[j].poses.push_back(correspondingSensorPose.poses[j]);
                     }
@@ -184,7 +184,7 @@ void PathPlanner::generateRegularGrid(geometry_msgs::Pose gridStartPose, geometr
           else
           {
             pose.orientation.x=0;pose.orientation.y=0;pose.orientation.z=0;pose.orientation.w=1;
-            for(int j=0; j<robotSensors.size();j++)
+            for(uint j=0; j<robotSensors.size();j++)
             {
               sensorLoc = robotSensors[j].robot2sensorTransformation(pose);
               correspondingSensorPose.poses.push_back(sensorLoc);
@@ -276,7 +276,7 @@ void PathPlanner::saveSearchSpace(const char *filename)
     SearchSpaceNode *temp = searchspace;
     while (temp != NULL)
     {
-        for(int i=0; i < temp->children.size();i++)
+        for(uint i=0; i < temp->children.size();i++)
         {
             fileStream  << std::fixed << std::setprecision(3)
                         <<temp->location.position.x<<" "
@@ -302,62 +302,60 @@ void PathPlanner::saveSearchSpace(const char *filename)
 
 bool PathPlanner::loadSearchSpace(const char *fileName)
 {
-  	double locationx,locationy,obstacle_cost;
-  	SearchSpaceNode *temp;
-  	assert(fileName != NULL);
-	char buffer[1024];
-	int line = 0;
-	std::ifstream inputf(fileName);
-  	if (!inputf)
-  	{
-    	fprintf(stderr, "ERROR: couldn't open config file '%s' for reading: %s\n",fileName, strerror(errno));
-    	exit(EXIT_FAILURE);
-  	}
-    double location1x,location1y,location1z,q1x,q1y,q1z,q1w;
-    double location2x,location2y,location2z,q2x,q2y,q2z,q2w;
-    geometry_msgs::Pose pose1,pose2,sensorPose;
-    geometry_msgs::PoseArray correspondingSensorPose1,correspondingSensorPose2;
+  std::cout<<"\nLoading Search Space from file:"<<fileName;
+  assert(fileName != NULL);
+  char buffer[1024];
+  std::ifstream inputf(fileName);
+  if (!inputf)
+  {
+    fprintf(stderr, "ERROR: couldn't open config file '%s' for reading: %s\n",fileName, strerror(errno));
+    exit(EXIT_FAILURE);
+  }
+  double location1x,location1y,location1z,q1x,q1y,q1z,q1w;
+  double location2x,location2y,location2z,q2x,q2y,q2z,q2w;
+  geometry_msgs::Pose pose1,pose2,sensorPose;
+  geometry_msgs::PoseArray correspondingSensorPose1,correspondingSensorPose2;
 
-  	while (!inputf.eof()) 
-  	{
-    	inputf.getline(buffer, sizeof(buffer));
-    	if(buffer[0]=='#') 
-    		continue;
-  		sscanf(buffer,"%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",&location1x,&location1y,&location1z,&q1x,&q1y,&q1z,&q1w,
-          &location2x,&location2y,&location2z,&q2x,&q2y,&q2z,&q2w);
-        
-        correspondingSensorPose1.poses.clear();
-        correspondingSensorPose2.poses.clear();
+  while (!inputf.eof())
+  {
+    inputf.getline(buffer, sizeof(buffer));
+    if(buffer[0]=='#')
+      continue;
+    sscanf(buffer,"%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",&location1x,&location1y,&location1z,&q1x,&q1y,&q1z,&q1w,
+           &location2x,&location2y,&location2z,&q2x,&q2y,&q2z,&q2w);
 
-        pose1.position.x    = location1x;
-        pose1.position.y    = location1y;
-        pose1.position.z    = location1z;
-        pose1.orientation.x = q1x;
-        pose1.orientation.y = q1y;
-        pose1.orientation.z = q1z;
-        pose1.orientation.w = q1w;
+    correspondingSensorPose1.poses.clear();
+    correspondingSensorPose2.poses.clear();
 
-        pose2.position.x    = location2x;
-        pose2.position.y    = location2y;
-        pose2.position.z    = location2z;
-        pose2.orientation.x = q2x;
-        pose2.orientation.y = q2y;
-        pose2.orientation.z = q2z;
-        pose2.orientation.w = q2w;
+    pose1.position.x    = location1x;
+    pose1.position.y    = location1y;
+    pose1.position.z    = location1z;
+    pose1.orientation.x = q1x;
+    pose1.orientation.y = q1y;
+    pose1.orientation.z = q1z;
+    pose1.orientation.w = q1w;
 
-        for(int j=0; j<robotSensors.size();j++)
-        {
-            sensorPose = robotSensors[j].robot2sensorTransformation(pose1);
-            correspondingSensorPose1.poses.push_back(sensorPose);
-            sensorPose = robotSensors[j].robot2sensorTransformation(pose2);
-            correspondingSensorPose2.poses.push_back(sensorPose);
-        }
+    pose2.position.x    = location2x;
+    pose2.position.y    = location2y;
+    pose2.position.z    = location2z;
+    pose2.orientation.x = q2x;
+    pose2.orientation.y = q2y;
+    pose2.orientation.z = q2z;
+    pose2.orientation.w = q2w;
 
-        SearchSpaceNode *node1 = insertNode(pose1,correspondingSensorPose1);
-        SearchSpaceNode *node2 = insertNode(pose2,correspondingSensorPose2);
-        node1->children.push_back(node2);
-  	}
-  	return true;
+    for(int j=0; j<robotSensors.size();j++)
+    {
+      sensorPose = robotSensors[j].robot2sensorTransformation(pose1);
+      correspondingSensorPose1.poses.push_back(sensorPose);
+      sensorPose = robotSensors[j].robot2sensorTransformation(pose2);
+      correspondingSensorPose2.poses.push_back(sensorPose);
+    }
+
+    SearchSpaceNode *node1 = insertNode(pose1,correspondingSensorPose1);
+    SearchSpaceNode *node2 = insertNode(pose2,correspondingSensorPose2);
+    node1->children.push_back(node2);
+  }
+  return true;
 }
 
 std::vector<geometry_msgs::Point> PathPlanner::getSearchSpace()
@@ -568,6 +566,44 @@ void PathPlanner::connectNodes()
     this->MAXNODES = numConnections;//searchspace->id;
 }
 
+void PathPlanner::checkSearchSpaceDuplications()
+{
+  SearchSpaceNode * S;
+  SearchSpaceNode *temp = searchspace;
+
+  if (!temp)
+      return;
+  int numConnections=0;
+
+  std::vector<std::pair<geometry_msgs::Pose,geometry_msgs::Pose>> connectionsList;
+
+  while (temp!=NULL)
+  {
+      for(uint i=0; i < temp->children.size();i++)
+      {
+        connectionsList.push_back(std::make_pair(temp->location,temp->children[i]->location));
+      }
+      temp = temp->next;
+  }
+  int numDuplicats = 0;
+  for(uint i=0;i<connectionsList.size();i++)
+  {
+    int numOccurance = 0;
+    for(uint j=0;j<connectionsList.size();j++)
+    {
+      if(samePosition(connectionsList[i].first,connectionsList[j].first) && samePosition(connectionsList[i].second,connectionsList[j].second))
+      {
+        numOccurance++;
+      }
+    }
+    if(numOccurance>1)
+    {
+      numDuplicats++;
+    }
+  }
+  std::cout<<"\n =================================== Num Duplicats:"<<numDuplicats;
+}
+
 void PathPlanner::connectClustersInternalNodes(SearchSpaceNode * space, double connRadius)
 {
     SearchSpaceNode * S;
@@ -588,7 +624,7 @@ void PathPlanner::connectClustersInternalNodes(SearchSpaceNode * space, double c
             if (distance <= connRadius && S != temp)// && distance !=0)
             {
                 //check if parent and child are in the same position
-                if (S->location.position.x != temp->location.position.x || S->location.position.y != temp->location.position.y || S->location.position.z != temp->location.position.z )
+                if(!isPositionEqual(S->location.position,temp->location.position))
                 {
                     //remeber: used nodeExists(temp2->location) & nodeExists(S->location) since we need to connect nodes in search space not in the temp space
                     // when we used temp space and pushed as child, the connection will be affected later if the node is deleted (CHECK)
@@ -598,8 +634,8 @@ void PathPlanner::connectClustersInternalNodes(SearchSpaceNode * space, double c
                         nodeExists(temp->location)->children.push_back(nodeExists(S->location));//to put the connection in the searchspace that will be used in the path planning
                     }
                 }
-                //child and parent are in the same position.
-                else
+                //child and parent are in the same position: they can't be same orientation though
+                else if(!samePosition(S->location,temp->location) )
                 {
                     numConnections++;
                     nodeExists(temp->location)->children.push_back(nodeExists(S->location));//to put the connection in the searchspace that will be used in the path planning
@@ -628,8 +664,7 @@ void PathPlanner::connectToNN(pcl::PointCloud<pcl::PointXYZ> cloudHull1, pcl::Po
     pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
     kdtree.setInputCloud (cloudHullPtr1);
 
-
-    for(int i =0; i<cloudHullPtr2->size() ; i++)//looping through the hull
+    for(uint i =0; i<cloudHullPtr2->size() ; i++)//looping through the hull
     {
 
         pcl::PointXYZ searchPoint = cloudHullPtr2->points[i];
@@ -646,48 +681,47 @@ void PathPlanner::connectToNN(pcl::PointCloud<pcl::PointXYZ> cloudHull1, pcl::Po
 
             // in order to connet , we have to create nodes with pose and orientation
             //( 8 orientaitons since we lost the orientation information when we generated the hull)
-            SearchSpaceNode* nearestnode = new SearchSpaceNode;
-            nearestnode->location.position.x   = nearestPoint.x;
-            nearestnode->location.position.y   = nearestPoint.y;
-            nearestnode->location.position.z   = nearestPoint.z;
+            geometry_msgs::Pose  nearestnode, node;
+            nearestnode.position.x   = nearestPoint.x;
+            nearestnode.position.y   = nearestPoint.y;
+            nearestnode.position.z   = nearestPoint.z;
 
-            SearchSpaceNode* node = new SearchSpaceNode;
-            node->location.position.x   = searchPoint.x;
-            node->location.position.y   = searchPoint.y;
-            node->location.position.z   = searchPoint.z;
+            node.position.x   = searchPoint.x;
+            node.position.y   = searchPoint.y;
+            node.position.z   = searchPoint.z;
 
-            int orientationsNum= 360.0f/orientationResolution;
+            int orientationsNum = 360.0f/orientationResolution;
             // in radians
             double yaw1=0.0;
             tf::Quaternion tf ;
             for(int k=0; k<orientationsNum;k++)
             {
                 tf = tf::createQuaternionFromYaw(yaw1);
-                node->location.orientation.x  = tf.getX();
-                node->location.orientation.y  = tf.getY();
-                node->location.orientation.z  = tf.getZ();
-                node->location.orientation.w  = tf.getW();
+                node.orientation.x  = tf.getX();
+                node.orientation.y  = tf.getY();
+                node.orientation.z  = tf.getZ();
+                node.orientation.w  = tf.getW();
                 double yaw2=0.0;
                 for(int i=0; i<orientationsNum;i++)
                 {
                     tf = tf::createQuaternionFromYaw(yaw2);
-                    nearestnode->location.orientation.x  = tf.getX();
-                    nearestnode->location.orientation.y  = tf.getY();
-                    nearestnode->location.orientation.z  = tf.getZ();
-                    nearestnode->location.orientation.w  = tf.getW();
+                    nearestnode.orientation.x  = tf.getX();
+                    nearestnode.orientation.y  = tf.getY();
+                    nearestnode.orientation.z  = tf.getZ();
+                    nearestnode.orientation.w  = tf.getW();
 
                     yaw2+=(orientationResolution*M_PI/180.0f);
 
-                    if (node != nearestnode)
+                    if(!samePosition(node,nearestnode))
                     {
                         //check if parent and child are in the same position
-                        if (node->location.position.x != nearestnode->location.position.x || node->location.position.y != nearestnode->location.position.y || node->location.position.z != nearestnode->location.position.z )
+                        if(!isPositionEqual(node.position,nearestnode.position))
                         {
                             //remeber: used nodeExists(temp2->location) & nodeExists(S->location) since we need to connect nodes in search space not in the temp space
                             if (heuristic->isConnectionConditionSatisfied(node,nearestnode))
                             {
-                                SearchSpaceNode* nodeTemp = nodeExists(node->location);
-                                SearchSpaceNode* nearestTemp = nodeExists(nearestnode->location);
+                                SearchSpaceNode* nodeTemp    = nodeExists(node);
+                                SearchSpaceNode* nearestTemp = nodeExists(nearestnode);
                                 if(nodeTemp!=NULL && nearestTemp!=NULL)//it exists in the search space
                                 {
                                     numConnections++;
@@ -695,14 +729,13 @@ void PathPlanner::connectToNN(pcl::PointCloud<pcl::PointXYZ> cloudHull1, pcl::Po
                                     numConnections++;
                                     nearestTemp->children.push_back(nodeTemp);//to put the connection in the searchspace that will be used in the path planning
                                 }
-
                             }
                         }
                         //child and parent are in the same position.
                         else
                         {
-                            SearchSpaceNode* nodeTemp = nodeExists(node->location);
-                            SearchSpaceNode* nearestTemp = nodeExists(nearestnode->location);
+                            SearchSpaceNode* nodeTemp = nodeExists(node);
+                            SearchSpaceNode* nearestTemp = nodeExists(nearestnode);
                             if(nodeTemp!=NULL && nearestTemp!=NULL)//it exists in the search space
                             {
                                 numConnections++;
@@ -715,14 +748,12 @@ void PathPlanner::connectToNN(pcl::PointCloud<pcl::PointXYZ> cloudHull1, pcl::Po
                     }
                 }
                 yaw1+=(orientationResolution*M_PI/180.0f);
-
             }//end of orientaiton loop
-
         }//end of if statement
-
     }//end of looping through hull
 
     std::cout<<"\n	--->>> CLUSTER WITH NEIGBOURS NODES CONNECTED <<<---	Total number of connections:"<<numConnections;
+    checkSearchSpaceDuplications();
     this->MAXNODES += numConnections;//searchspace->id;
 }
 
@@ -734,13 +765,17 @@ void PathPlanner::dynamicNodesGenerationAndConnection(geometry_msgs::Pose gridSt
     //discretize & filtering
     double res = startRes;
     this->generateRegularGrid(gridStartPose, gridSize,startRes,true,45,true,true);
+    std::cout<<"\nAfter regular grid, duplicats:"; checkSearchSpaceDuplications();
+
     SearchSpaceNode * S =insertTempSearchSpace(robotFilteredPoses,sensorsFilteredPoses);
+    std::cout<<"\nAfter Temp Space, duplicats:"; checkSearchSpaceDuplications();
 
     //connect internally
     double connRadius = std::sqrt((res*res) + (res*res)) + 0.01;
     this->connectClustersInternalNodes(S,connRadius);
-    freeTempSearchSpace(S);
+    std::cout<<"\nAfter Internal Connections, duplicats:"; checkSearchSpaceDuplications();
 
+    freeTempSearchSpace(S);
     //find the outer points (convexs hull)
     pcl::PointCloud<pcl::PointXYZ> initialHullCloud;
     //heuristic->findClusterOuterPoints(robotFilteredPoses,initialHullCloud); //not accurate, it generate outer points with precession problem,
@@ -760,11 +795,11 @@ void PathPlanner::dynamicNodesGenerationAndConnection(geometry_msgs::Pose gridSt
 
     //dynamic sampling loop
     pcl::PointCloud<pcl::PointXYZ>::Ptr globalCloudPtr (new pcl::PointCloud<pcl::PointXYZ>);
-    int j=0;
     pcl::PointCloud<pcl::PointXYZ> hullCloud1;
     hullCloud1.points = initialHullCloud.points;
 
-    while(true){
+    while(true)
+    {
         ////////////////////////////find the Uncovered part////////////////////////////
         globalCloudPtr->points=globalCloud.points;
         pcl::PointCloud<pcl::PointXYZ>::Ptr diffPtr (new pcl::PointCloud<pcl::PointXYZ>);
@@ -781,7 +816,7 @@ void PathPlanner::dynamicNodesGenerationAndConnection(geometry_msgs::Pose gridSt
         heuristic->clusteringPointCloud(clustersPointCloudVec,diffPtr);
 
         ///////////Add Accuracy clusters///////////////
-        for(int i =0; i<accuracyClusters.size(); i++)
+        for(uint i =0; i<accuracyClusters.size(); i++)
         {
             clustersPointCloudVec.push_back(accuracyClusters[i]);
         }
@@ -795,7 +830,7 @@ void PathPlanner::dynamicNodesGenerationAndConnection(geometry_msgs::Pose gridSt
         if(res>0)
         {
             pcl::PointCloud<pcl::PointXYZ> clustersCloudHull;
-            for (int i =0 ; i<clustersPointCloudVec.size(); i++)
+            for (uint i =0 ; i<clustersPointCloudVec.size(); i++)
             {
                 pcl::PointCloud<pcl::PointXYZ> cluster;
                 cluster.points = clustersPointCloudVec[i].points;
@@ -821,7 +856,7 @@ void PathPlanner::dynamicNodesGenerationAndConnection(geometry_msgs::Pose gridSt
 
                 //another suggestion instead of the outer points: connect the clusters points with the nearest point of the previous stage cluster
                 pcl::PointCloud<pcl::PointXYZ> positionsCloud;
-                for(int i =0; i<robotFilteredPoses.poses.size(); i++)
+                for(uint i =0; i<robotFilteredPoses.poses.size(); i++)
                 {
                     pcl::PointXYZ pt;
                     pt.x = robotFilteredPoses.poses[i].position.x;
@@ -846,6 +881,7 @@ void PathPlanner::dynamicNodesGenerationAndConnection(geometry_msgs::Pose gridSt
         clustersPointCloudVec.erase(clustersPointCloudVec.begin(), clustersPointCloudVec.end());
 
     }//end of dynamic sampling loop
+    std::cout<<"\nAfter Dynamic Clustering, duplicats:"; checkSearchSpaceDuplications();
     std::cout<<"\n	--->>> NODES CONNECTED <<<---	Total number of connections:"<<this->MAXNODES<<std::endl;
 }
 
@@ -857,7 +893,7 @@ std::vector<geometry_msgs::Point>  PathPlanner::getConnections()
     SearchSpaceNode *temp = searchspace;
     while (temp != NULL)
     {
-        for(int i=0; i < temp->children.size();i++)
+        for(uint i=0; i < temp->children.size();i++)
         {
             num++;
             pt.x = temp->location.position.x;

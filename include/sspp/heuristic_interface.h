@@ -40,6 +40,7 @@ public:
     virtual void calculateHeuristic(Node *)=0;
     virtual bool terminateConditionReached(Node *)=0;
     virtual bool isConnectionConditionSatisfied(SearchSpaceNode*,SearchSpaceNode*)=0;
+    virtual bool isConnectionConditionSatisfied(geometry_msgs::Pose,geometry_msgs::Pose )=0;
     virtual bool isFilteringConditionSatisfied(geometry_msgs::Pose pose, geometry_msgs::PoseArray& correspondingSensorPoses, double minDist, double maxDist, pcl::PointCloud<pcl::PointXYZ>& globalCloud, std::vector<pcl::PointCloud<pcl::PointXYZ> >& accuracyClusters, double accuracyThreshhold)=0;
     virtual void displayProgress(vector<Tree> tree)=0;
     virtual double pointCloudDiff(pcl::PointCloud<pcl::PointXYZ>::Ptr globalCloudPtr, pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloudDiffPtr )=0;

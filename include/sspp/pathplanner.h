@@ -110,7 +110,7 @@ namespace SSPP
         geometry_msgs::PoseArray robotFilteredPoses;
         std::vector<geometry_msgs::PoseArray> sensorsFilteredPoses;
         std::vector<Node*> paths;
-    private:
+        void checkSearchSpaceDuplications();
 };
 
 }
