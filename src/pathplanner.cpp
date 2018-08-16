@@ -585,19 +585,25 @@ void PathPlanner::checkSearchSpaceDuplications()
       temp = temp->next;
   }
   int numDuplicats = 0;
+  //Keep track of previously declared duplicated connections
+  std::vector<int> visitedDuplicatedIndicies;
   for(uint i=0;i<connectionsList.size();i++)
   {
     int numOccurance = 0;
-    for(uint j=0;j<connectionsList.size();j++)
+    for(uint j=i+1;j<connectionsList.size();j++)
     {
+      auto foundBefore = std::find(visitedDuplicatedIndicies.begin(), visitedDuplicatedIndicies.end(),j);
+      if( foundBefore!=std::end(visitedDuplicatedIndicies))
+        continue;
       if(samePosition(connectionsList[i].first,connectionsList[j].first) && samePosition(connectionsList[i].second,connectionsList[j].second))
       {
         numOccurance++;
+        visitedDuplicatedIndicies.push_back(j);
       }
     }
-    if(numOccurance>1)
+    if(numOccurance>0)
     {
-      numDuplicats+=(numOccurance-1);
+      numDuplicats+=numOccurance;
     }
   }
   std::cout<<"\n =================================== Num Duplicats:"<<numDuplicats<<" out of:"<<connectionsList.size();

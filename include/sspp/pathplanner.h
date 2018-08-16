@@ -71,6 +71,7 @@ namespace SSPP
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize);
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize, float gridRes);
         void   generateRegularGrid(geometry_msgs::Pose gridStartPose,geometry_msgs::Vector3 gridSize, float gridRes, bool sampleOrientations=false, float orientationRes=360, bool samplesFiltering=false, bool insertSearchSpace=true);
+        void   checkSearchSpaceDuplications();
         void   connectNodes();
         void   connectClustersInternalNodes(SearchSpaceNode * space, double connRadius);
         void   dynamicNodesGenerationAndConnection(geometry_msgs::Pose gridStartPose, geometry_msgs::Vector3 gridSize, double startRes, double resDecrement); //for dynamic sampling
@@ -110,7 +111,6 @@ namespace SSPP
         geometry_msgs::PoseArray robotFilteredPoses;
         std::vector<geometry_msgs::PoseArray> sensorsFilteredPoses;
         std::vector<Node*> paths;
-        void checkSearchSpaceDuplications();
 };
 
 }
